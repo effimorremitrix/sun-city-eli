@@ -97,8 +97,9 @@ const MENU: MenuCategory[] = [
 ];
 
 export function MenuSection() {
-  const [active, setActive] = useState(MENU[0].id);
-  const category = MENU.find((c) => c.id === active) ?? MENU[0];
+  const [active, setActive] = useState<string>("hot");
+  const category: MenuCategory =
+    MENU.find((c) => c.id === active) ?? (MENU[0] as MenuCategory);
 
   return (
     <section id="menu" className="bg-secondary/40 py-14 md:py-20">
