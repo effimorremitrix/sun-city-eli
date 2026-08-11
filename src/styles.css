@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * "החצר של אייזיק" — warm, nostalgic design system.
- * בורדו עמוק / קרם חמים / זהב קלוי / פחם.
+ * SUN CITY נדל"ן — נקי, בהיר ואמין.
+ * כתום שמש / נייבי עמוק / לבן שבור / אפור טקסט.
  */
 
 @theme inline {
@@ -32,8 +32,10 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --color-gold: var(--gold);
-  --color-gold-foreground: var(--gold-foreground);
+  --color-sun: var(--sun);
+  --color-sun-foreground: var(--sun-foreground);
+  --color-navy: var(--navy);
+  --color-navy-foreground: var(--navy-foreground);
   --color-whatsapp: var(--whatsapp);
   --color-whatsapp-foreground: var(--whatsapp-foreground);
   --color-destructive: var(--destructive);
@@ -41,37 +43,49 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --shadow-warm: var(--shadow-warm);
+  --shadow-soft: var(--shadow-soft);
   --shadow-lift: var(--shadow-lift);
 }
 
 :root {
   --radius: 1rem;
-  --background: oklch(0.963 0.017 84.6); /* #F7F1E6 */
-  --foreground: oklch(0.246 0.021 55.6); /* #2B2119 */
-  --card: oklch(0.985 0.011 84.6);
-  --card-foreground: oklch(0.246 0.021 55.6);
-  --popover: oklch(0.985 0.011 84.6);
-  --popover-foreground: oklch(0.246 0.021 55.6);
-  --primary: oklch(0.383 0.104 24.9); /* #7A2E2E */
-  --primary-foreground: oklch(0.975 0.014 84.6);
-  --secondary: oklch(0.921 0.026 82.5);
-  --secondary-foreground: oklch(0.383 0.104 24.9);
-  --muted: oklch(0.928 0.022 83);
-  --muted-foreground: oklch(0.46 0.026 55);
-  --accent: oklch(0.921 0.026 82.5);
-  --accent-foreground: oklch(0.383 0.104 24.9);
-  --gold: oklch(0.702 0.098 74.6); /* #C8964B */
-  --gold-foreground: oklch(0.246 0.021 55.6);
-  --whatsapp: oklch(0.61 0.152 152);
+  --background: oklch(0.982 0.005 85); /* #FAF8F5 */
+  --foreground: oklch(0.395 0.023 253); /* #3C4653 */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.395 0.023 253);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.395 0.023 253);
+  --primary: oklch(0.263 0.038 260); /* #1B2A41 נייבי */
+  --primary-foreground: oklch(0.982 0.005 85);
+  --navy: oklch(0.263 0.038 260);
+  --navy-foreground: oklch(0.982 0.005 85);
+  --secondary: oklch(0.955 0.008 85);
+  --secondary-foreground: oklch(0.263 0.038 260);
+  --muted: oklch(0.949 0.008 85);
+  --muted-foreground: oklch(0.52 0.021 253);
+  --accent: oklch(0.955 0.012 80);
+  --accent-foreground: oklch(0.263 0.038 260);
+  --sun: oklch(0.755 0.128 74); /* #E8A33D */
+  --sun-foreground: oklch(0.22 0.03 260);
+  --whatsapp: oklch(0.56 0.14 152);
   --whatsapp-foreground: oklch(0.99 0.01 150);
-  --destructive: oklch(0.55 0.19 28);
+  --destructive: oklch(0.53 0.19 28);
   --destructive-foreground: oklch(0.98 0.01 84);
-  --border: oklch(0.879 0.029 80);
-  --input: oklch(0.879 0.029 80);
-  --ring: oklch(0.702 0.098 74.6);
-  --shadow-warm: 0 2px 10px -4px oklch(0.383 0.104 24.9 / 0.18);
-  --shadow-lift: 0 18px 40px -24px oklch(0.383 0.104 24.9 / 0.35);
+  --border: oklch(0.9 0.008 85);
+  --input: oklch(0.9 0.008 85);
+  --ring: oklch(0.755 0.128 74);
+  --shadow-soft: 0 2px 12px -6px oklch(0.263 0.038 260 / 0.18);
+  --shadow-lift: 0 22px 45px -28px oklch(0.263 0.038 260 / 0.4);
+}
+
+/* מצב ניגודיות גבוהה (כפתור נגישות) */
+.contrast-boost {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.16 0.01 260);
+  --muted-foreground: oklch(0.28 0.015 260);
+  --border: oklch(0.6 0.01 260);
+  --sun: oklch(0.62 0.15 65);
+  --sun-foreground: oklch(1 0 0);
 }
 
 @layer base {
@@ -88,18 +102,6 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
-    /* טקסטורת פשתן עדינה */
-    background-image:
-      repeating-linear-gradient(
-        45deg,
-        oklch(0.383 0.104 24.9 / 0.014) 0 2px,
-        transparent 2px 4px
-      ),
-      repeating-linear-gradient(
-        -45deg,
-        oklch(0.383 0.104 24.9 / 0.014) 0 2px,
-        transparent 2px 4px
-      );
   }
 
   h1,
@@ -109,6 +111,12 @@
     font-family: var(--font-display);
     font-weight: 700;
     letter-spacing: -0.01em;
+    color: var(--color-primary);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-sun);
+    outline-offset: 2px;
   }
 }
 
@@ -119,9 +127,49 @@
   }
 }
 
-@utility linen-card {
+@utility soft-card {
   background-color: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-warm);
+  box-shadow: var(--shadow-soft);
+}
+
+@utility field {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-input);
+  background-color: var(--color-card);
+  padding: 0.7rem 0.9rem;
+  font-size: 1rem;
+  color: var(--color-foreground);
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.reveal {
+  opacity: 0;
+}
+
+.reveal.is-visible {
+  animation: reveal-up 0.6s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal.is-visible {
+    opacity: 1;
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
 }
