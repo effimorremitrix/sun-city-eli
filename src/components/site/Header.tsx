@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
-import { business } from "@/lib/business";
+import { Menu, X, Sun } from "lucide-react";
+import { business } from "@/lib/site-data";
 
 const links = [
-  { href: "#menu", label: "תפריט" },
-  { href: "#shabbat", label: "הזמנת שבת" },
-  { href: "#story", label: "הסיפור שלנו" },
-  { href: "#gallery", label: "גלריה" },
+  { href: "#properties", label: "נכסים" },
+  { href: "#sellers", label: "מוכרים דירה" },
+  { href: "#buyers", label: "לקונים" },
+  { href: "#investments", label: "השקעות" },
+  { href: "#team", label: "הצוות" },
   { href: "#contact", label: "צור קשר" },
 ];
 
@@ -14,54 +15,72 @@ export function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/70 bg-background/95 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-        <a href="#top" className="flex flex-col leading-none">
-          <span className="font-display text-lg font-bold text-primary">
-            {business.name}
+        <a href="#top" className="flex items-center gap-2" aria-label={`${business.name} — לראש העמוד`}>
+          <span className="flex size-9 items-center justify-center rounded-full bg-sun text-sun-foreground">
+            <Sun className="size-5" aria-hidden="true" />
           </span>
-          <span className="mt-0.5 text-[11px] text-muted-foreground">
-            {business.tagline}
+          <span className="flex flex-col leading-none">
+            <span className="font-display text-base font-extrabold text-primary">
+              {business.nameEn} <span className="text-sun">נדל"ן</span>
+            </span>
+            <span className="mt-0.5 text-[10px] text-muted-foreground">{business.tagline}</span>
           </span>
         </a>
 
-        <nav className="hidden items-center gap-6 md:flex">
+        <nav aria-label="ניווט ראשי" className="hidden items-center gap-5 lg:flex">
           {links.map((l) => (
             <a
               key={l.href}
               href={l.href}
-              className="text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
+              className="text-sm font-semibold text-foreground transition-colors hover:text-sun"
             >
               {l.label}
             </a>
           ))}
+          <a
+            href="#sellers"
+            className="rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground shadow-soft transition-transform hover:-translate-y-0.5"
+          >
+            הערכת שווי חינם
+          </a>
         </nav>
 
         <button
           type="button"
-          aria-label={open ? "סגירת תפריט" : "פתיחת תפריט"}
+          aria-label={open ? "סגירת תפריט הניווט" : "פתיחת תפריט הניווט"}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="inline-flex size-10 items-center justify-center rounded-lg border border-border text-primary md:hidden"
+          className="inline-flex size-10 items-center justify-center rounded-lg border border-border text-primary lg:hidden"
         >
-          {open ? <X className="size-5" /> : <Menu className="size-5" />}
+          {open ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
         </button>
       </div>
 
       {open && (
-        <nav className="border-t border-border bg-card md:hidden">
+        <nav aria-label="ניווט במובייל" className="border-t border-border bg-card lg:hidden">
           <ul className="mx-auto max-w-6xl px-4 py-2">
             {links.map((l) => (
               <li key={l.href}>
                 <a
                   href={l.href}
                   onClick={() => setOpen(false)}
-                  className="block border-b border-border/60 py-3 text-base font-medium text-foreground last:border-0"
+                  className="block border-b border-border/70 py-3 text-base font-semibold text-foreground"
                 >
                   {l.label}
                 </a>
               </li>
             ))}
+            <li className="py-3">
+              <a
+                href="#sellers"
+                onClick={() => setOpen(false)}
+                className="block rounded-xl bg-sun py-3 text-center text-base font-bold text-sun-foreground"
+              >
+                הערכת שווי חינם
+              </a>
+            </li>
           </ul>
         </nav>
       )}

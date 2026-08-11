@@ -1,45 +1,49 @@
-import heroImg from "@/assets/hero-cholent.jpg";
-import { business } from "@/lib/business";
+import heroImg from "@/assets/hero-netanya.jpg";
+import { stats } from "@/lib/site-data";
 
 export function Hero() {
   return (
     <section id="top" className="relative isolate">
       <img
         src={heroImg}
-        alt="סיר צ'ולנט ביתי מהביל על שולחן עץ"
+        alt="מבט על מגדלי דירות וקו החוף של נתניה ביום שמשי"
         width={1600}
-        height={1104}
+        height={1000}
         className="absolute inset-0 size-full object-cover"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-[oklch(0.2_0.03_50/0.88)] via-[oklch(0.2_0.03_50/0.6)] to-[oklch(0.2_0.03_50/0.45)]" />
+      <div className="absolute inset-0 bg-gradient-to-l from-[oklch(0.263_0.038_260/0.92)] via-[oklch(0.263_0.038_260/0.78)] to-[oklch(0.263_0.038_260/0.45)]" />
 
-      <div className="relative mx-auto flex max-w-6xl flex-col items-start px-4 py-24 md:py-36">
-        <h1 className="font-display text-4xl font-extrabold text-primary-foreground md:text-6xl">
-          {business.name}
+      <div className="relative mx-auto max-w-6xl px-4 py-20 md:py-32">
+        <h1 className="max-w-2xl font-display text-3xl font-extrabold text-primary-foreground md:text-5xl">
+          הדירה הבאה שלכם בנתניה מתחילה כאן
         </h1>
-        <p className="mt-4 max-w-md text-base leading-relaxed text-primary-foreground/90 md:text-lg">
-          אוכל יהודי ביתי בנתניה. צ'ולנט, קוגל וחמין כמו בבית סבתא.
+        <p className="mt-4 max-w-xl text-base leading-relaxed text-primary-foreground/90 md:text-lg">
+          משרד תיווך מקומי שמכיר כל רחוב בעיר. ליווי אישי ממכירה ועד מסירת מפתח.
         </p>
 
-        <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <a
-            href="#shabbat"
-            className="rounded-xl bg-gold px-6 py-3 text-center text-base font-bold text-gold-foreground shadow-lift"
+            href="#sellers"
+            className="rounded-xl bg-sun px-6 py-3 text-center text-base font-bold text-sun-foreground shadow-lift"
           >
-            להזמנת שבת
+            קבלו הערכת שווי חינם
           </a>
           <a
-            href="#menu"
+            href="#properties"
             className="rounded-xl border border-primary-foreground/50 px-6 py-3 text-center text-base font-bold text-primary-foreground"
           >
-            לתפריט המלא
+            לצפייה בנכסים
           </a>
         </div>
 
-        <p className="mt-8 text-sm text-primary-foreground/80">
-          כשר <span className="mx-2 text-gold">|</span> איסוף עצמי
-          <span className="mx-2 text-gold">|</span> מקום לשבת
-        </p>
+        <dl className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {stats.map((s) => (
+            <div key={s.label} className="rounded-xl bg-[oklch(1_0_0/0.1)] p-4 backdrop-blur">
+              <dt className="order-2 text-sm text-primary-foreground/85">{s.label}</dt>
+              <dd className="font-display text-3xl font-extrabold text-sun md:text-4xl">{s.value}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </section>
   );
