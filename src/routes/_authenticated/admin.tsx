@@ -410,6 +410,8 @@ function AdminPage() {
               {items.length === 0 && <li className="py-3 text-sm text-muted-foreground">אין פריטים עדיין.</li>}
             </ul>
           </section>
+
+          <EditLinksPanel siteId={site.id} siteName={site.name} />
         </>
       )}
 
