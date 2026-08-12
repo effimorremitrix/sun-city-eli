@@ -162,7 +162,7 @@ export function Footer() {
         <div>
           <p className="flex items-center gap-2 font-display text-lg font-extrabold text-navy-foreground">
             <Sun className="size-5 text-sun" aria-hidden="true" />
-            {business.nameEn} נדל"ן
+            Sun City נדל"ן
           </p>
           <p className="mt-1 text-sm text-navy-foreground/75">{business.tagline}</p>
           <div className="mt-4 flex gap-2">
