@@ -69,15 +69,37 @@ export const WA_PHONE = "0525551200";
 
 export const toIntl = (p: string) => "972" + p.replace(/\D/g, "").replace(/^0/, "");
 
+/** קישור לדסקטופ (משמש גם כ-href fallback ב-SSR) */
 export const buildWa = (msg: string) =>
-  "https://wa.me/" + toIntl(WA_PHONE) + "?text=" + encodeURIComponent(msg);
+  `https://web.whatsapp.com/send?phone=${toIntl(WA_PHONE)}&text=${encodeURIComponent(msg)}`;
 
-export const openWa = (msg: string) =>
-  window.open(buildWa(msg), "_blank", "noopener,noreferrer");
+/** פתיחה ישירה לפי סוג המכשיר – הפונקציה היחידה לשימוש בכל האתר */
+export const openWa = (msg: string) => {
+  const phone = toIntl(WA_PHONE);
+  const text = encodeURIComponent(msg);
+  const isMobile =
+    typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const url = isMobile
+    ? `whatsapp://send?phone=${phone}&text=${text}`
+    : `https://web.whatsapp.com/send?phone=${phone}&text=${text}`;
+  window.open(url, "_blank", "noopener,noreferrer");
+};
+
+/** props לקישור/כפתור וואטסאפ – מבטיח שהפתיחה תמיד עוברת דרך openWa */
+export const waProps = (msg: string) => ({
+  href: buildWa(msg),
+  target: "_blank" as const,
+  rel: "noopener noreferrer",
+  onClick: (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+    openWa(msg);
+  },
+});
 
 /** שמות תאימות – מפנים לאותה פונקציה יחידה */
 export const whatsappLink = (text: string) => buildWa(text);
 export const agentWhatsappLink = (_phone: string, text: string) => buildWa(text);
+
 
 /* ---------------------------- טקסטים ---------------------------- */
 
