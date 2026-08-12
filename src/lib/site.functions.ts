@@ -113,8 +113,9 @@ export const saveMyContent = createServerFn({ method: "POST" })
     const { error } = await context.supabase.from("site_content").upsert(
       {
         site_id: siteId,
-        business: data.business,
-        texts: data.texts,
+        business: data.business as never,
+        texts: data.texts as never,
+
       },
       { onConflict: "site_id" },
     );
