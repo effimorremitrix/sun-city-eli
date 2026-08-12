@@ -40,6 +40,8 @@ export type LiveSite = {
   business: LiveBusiness;
   texts: LiveTexts;
   items: LiveItem[];
+  /** תאריך העדכון האחרון של התוכן במסד הנתונים (ISO) — null כשאין רשומה */
+  updatedAt: string | null;
 };
 
 export const DEFAULT_TEXTS: LiveTexts = {
@@ -63,6 +65,7 @@ export const DEFAULT_LIVE: LiveSite = {
   business: DEFAULT_BUSINESS,
   texts: DEFAULT_TEXTS,
   items: [],
+  updatedAt: null,
 };
 
 /** ממזג נתונים חלקיים מבסיס הנתונים עם ברירות המחדל */
@@ -71,6 +74,7 @@ export function mergeLive(raw: unknown): LiveSite {
     business?: Partial<LiveBusiness>;
     texts?: Partial<LiveTexts>;
     items?: LiveItem[];
+    updated_at?: string | null;
   };
   const business = { ...DEFAULT_BUSINESS, ...(data.business ?? {}) };
   if (!Array.isArray(business.hours) || business.hours.length === 0) {
@@ -80,6 +84,7 @@ export function mergeLive(raw: unknown): LiveSite {
     business,
     texts: { ...DEFAULT_TEXTS, ...(data.texts ?? {}) },
     items: Array.isArray(data.items) ? data.items : [],
+    updatedAt: data.updated_at ?? null,
   };
 }
 
@@ -90,3 +95,11 @@ export function SiteLiveProvider({ value, children }: { value: LiveSite; childre
 }
 
 export const useLive = () => useContext(LiveContext);
+
+/** פורמט תאריך עברי לתצוגת "עודכן ב" */
+export const formatUpdated = (iso: string | null | undefined) => {
+  if (!iso) return "אין מידע";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "אין מידע";
+  return date.toLocaleDateString("he-IL", { day: "2-digit", month: "2-digit", year: "numeric" });
+};
