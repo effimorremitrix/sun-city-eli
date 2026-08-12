@@ -236,6 +236,9 @@ export function Footer() {
       </div>
 
       <p className="mx-auto mt-8 max-w-6xl text-xs text-navy-foreground/60">
+        רישיון תיווך משרד: {business.license}
+      </p>
+      <p className="mx-auto mt-2 max-w-6xl text-xs text-navy-foreground/60">
         © {new Date().getFullYear()} {business.name}. כל הזכויות שמורות.
       </p>
     </footer>
