@@ -69,16 +69,17 @@ export function Hero() {
                 rel="noopener noreferrer"
                 className="inline-block rounded-full bg-[oklch(1_0_0/0.12)] px-4 py-2 text-sm font-semibold text-primary-foreground backdrop-blur"
               >
-                בין 10 המובילות בנתניה
+                בין 10 המובילים בנתניה
               </a>
             </li>
             <li>
               <a
-                href="#buyers"
-                onClick={scrollTo("buyers")}
+                href={business.whatsappGroup.url1}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-block rounded-full bg-[oklch(1_0_0/0.12)] px-4 py-2 text-sm font-semibold text-primary-foreground backdrop-blur"
               >
-                {business.whatsappGroup.members} חברים בקבוצת הנכסים
+                לקבוצת הנכסים בוואטסאפ
               </a>
             </li>
           </ul>

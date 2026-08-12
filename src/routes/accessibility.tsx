@@ -48,8 +48,8 @@ function Page() {
         </p>
         <h2 className="text-xl">פניות בנושא נגישות</h2>
         <p>
-          נתקלתם בבעיית נגישות? נשמח לשמוע ולתקן. רכז הנגישות: [להשלמה]. טלפון:{" "}
-          <a href={`tel:${business.phone}`} className="underline">
+          נתקלתם בבעיית נגישות? נשמח לשמוע ולתקן. רכז הנגישות: אלי כליף. טלפון:{" "}
+          <a href={`tel:${business.phoneTel}`} className="underline">
             {business.phone}
           </a>
           , מייל:{" "}

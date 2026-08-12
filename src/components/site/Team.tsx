@@ -1,6 +1,13 @@
-import { Phone, MessageCircle, User } from "lucide-react";
-import { team, business, whatsappLink, agentWhatsappLink } from "@/lib/site-data";
+import { Phone, MessageCircle } from "lucide-react";
+import { team, business, whatsappLink } from "@/lib/site-data";
 import { Reveal } from "./Reveal";
+
+const initials = (name: string) =>
+  name
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("");
 
 export function Team() {
   return (
@@ -13,33 +20,36 @@ export function Team() {
         </p>
 
         <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {team.map((m, i) => {
-            const hasPhone = /\d/.test(m.phone);
-            const telHref = hasPhone ? `tel:${m.phone.replace(/[^\d]/g, "")}` : `tel:${business.phoneTel}`;
-            const waHref = hasPhone
-              ? agentWhatsappLink(m.phone, `שלום ${m.name}, הגעתי מהאתר של ${business.name} ואשמח לדבר.`)
-              : whatsappLink(`שלום, אשמח לדבר עם ${m.name} ב${business.name}.`);
-
-            return (
-              <li key={m.name}>
-                <Reveal delay={i * 70}>
-                  <article className="soft-card h-full p-5 text-center transition-transform hover:-translate-y-1">
+          {team.map((m, i) => (
+            <li key={m.name}>
+              <Reveal delay={i * 70}>
+                <article className="soft-card h-full p-5 text-center transition-transform hover:-translate-y-1">
+                  {m.image ? (
+                    <img
+                      src={m.image}
+                      alt={`${m.name} — ${m.role}`}
+                      width={160}
+                      height={160}
+                      loading="lazy"
+                      className="mx-auto size-28 rounded-full object-cover"
+                    />
+                  ) : (
                     <div
-                      className="mx-auto flex size-24 items-center justify-center rounded-full bg-sun/20 text-primary"
+                      className="mx-auto flex size-28 items-center justify-center rounded-full bg-sun/20 font-display text-2xl font-extrabold text-primary"
                       aria-hidden="true"
                     >
-                      <User className="size-10" />
+                      {initials(m.name)}
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">תמונה [להשלמה]</p>
-                    <h3 className="mt-3 text-lg">{m.name}</h3>
-                    <p className="text-sm font-semibold text-sun">{m.role}</p>
-                    <p className="mt-1 text-sm text-muted-foreground" dir="ltr">
-                      {hasPhone ? m.phone : business.phone}
-                    </p>
+                  )}
+                  <h3 className="mt-3 text-lg">{m.name}</h3>
+                  <p className="text-sm font-semibold text-sun">{m.role}</p>
 
+                  {m.phone ? (
                     <div className="mt-4 flex gap-2">
                       <a
-                        href={waHref}
+                        href={whatsappLink(
+                          `שלום ${m.name}, הגעתי מהאתר של ${business.name} ואשמח לדבר.`,
+                        )}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-whatsapp py-2.5 text-sm font-bold text-whatsapp-foreground"
@@ -49,7 +59,7 @@ export function Team() {
                         וואטסאפ
                       </a>
                       <a
-                        href={telHref}
+                        href={`tel:${business.phoneTel}`}
                         className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-primary/30 py-2.5 text-sm font-bold text-primary"
                         aria-label={`התקשרות ל${m.name}`}
                       >
@@ -57,11 +67,24 @@ export function Team() {
                         התקשרו
                       </a>
                     </div>
-                  </article>
-                </Reveal>
-              </li>
-            );
-          })}
+                  ) : (
+                    <a
+                      href={whatsappLink(
+                        `שלום ${business.name}, אשמח לפנייה למשרד בנוגע ל${m.name}.`,
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-4 flex items-center justify-center gap-1.5 rounded-xl bg-whatsapp py-2.5 text-sm font-bold text-whatsapp-foreground"
+                      aria-label={`לפנייה למשרד בנוגע ל${m.name}`}
+                    >
+                      <MessageCircle className="size-4" aria-hidden="true" />
+                      לפנייה למשרד
+                    </a>
+                  )}
+                </article>
+              </Reveal>
+            </li>
+          ))}
         </ul>
       </div>
     </section>

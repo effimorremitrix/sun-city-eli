@@ -2,10 +2,16 @@ import prop1 from "@/assets/prop-1.jpg";
 import prop2 from "@/assets/prop-2.jpg";
 import prop3 from "@/assets/prop-3.jpg";
 import prop4 from "@/assets/prop-4.jpg";
+import prop5 from "@/assets/prop-5.jpg";
+import prop6 from "@/assets/prop-6.jpg";
+import prop7 from "@/assets/prop-7.jpg";
+import prop8 from "@/assets/prop-8.jpg";
 
 /* ============================================================
- * SITE_CONFIG — כל המספרים, המיילים והקישורים במקום אחד.
+ * SITE_CONFIG — מספר טלפון אחד בלבד לכל האתר, וכל הקישורים במקום אחד.
  * ============================================================ */
+
+const PHONE = "052-5551200";
 
 export const SITE_CONFIG = {
   name: 'סאן סיטי נדל"ן',
@@ -14,52 +20,59 @@ export const SITE_CONFIG = {
   subtitle: "מכירה | קנייה | השכרת נכסים",
   address: "רחוב שמואל הנציב 20, נתניה, קומת קרקע (ליד בנק מרכנתיל)",
   addressShort: "שמואל הנציב 20, נתניה",
-  phone: "073-2113213",
-  phoneTel: "0732113213",
-  whatsappDisplay: "052-5556288",
-  whatsappIntl: "972525556288",
+  /** מספר יחיד לכל האתר — אלי כליף */
+  phone: PHONE,
+  phoneTel: "0525551200",
   email: "sun.city.netanya@gmail.com",
+  license: "307233",
   areaServed: "נתניה והסביבה",
+  coords: { lat: 32.3303316, lng: 34.8567176 },
   hours: [
-    { day: "ראשון – חמישי", value: "[להשלמה]" },
-    { day: "שישי", value: "[להשלמה]" },
+    { day: "ראשון – חמישי", value: "09:00 – 20:00" },
+    { day: "שישי", value: "09:00 – 13:00" },
     { day: "שבת", value: "סגור" },
   ],
   whatsappGroup: {
     name: 'זה הזמן לקנות נדל"ן',
-    members: 945,
-    url: "[להשלמה]", // קישור קבוצת הוואטסאפ
+    url1: "https://chat.whatsapp.com/InToWeKYOS5H2u8NsQfWqA?s=cl&p=a&mlu=0",
+    url2: "https://chat.whatsapp.com/EIJojHTrOCfDjo1D2ZOWCR?s=cl&p=a&mlu=0",
   },
-  madlanUrl:
-    "https://www.madlan.co.il/agentsOffice/re_office_cFjv57RxrAL?source=madad_index",
+  madlanUrl: "https://www.madlan.co.il/agentsOffice/re_office_cFjv57RxrAL",
+  yad2Url: "https://www.yad2.co.il/realestate/agency/7607728/forsale",
   social: {
-    facebook: "https://www.facebook.com/sun.city.netanya",
-    instagram: "https://www.instagram.com/sun_city_netanya/",
+    facebook: "https://www.facebook.com/share/199jyqdNZY/",
+    instagram:
+      "https://www.instagram.com/kalif.eli_sun_city?igsh=MXZ1NmIyYjhoYWljcw==",
   },
-  badge: "בין 10 סוכנויות הנדל\"ן המובילות בנתניה, בדירוג אתר מדל\"ן",
-  wazeUrl: "https://waze.com/ul?q=" + encodeURIComponent("שמואל הנציב 20, נתניה"),
-  mapsUrl:
-    "https://www.google.com/maps/search/?api=1&query=" +
-    encodeURIComponent("שמואל הנציב 20, נתניה"),
+  badges: [
+    'בין 10 משרדי התיווך המובילים בנתניה, בדירוג מדל"ן 2023-2026',
+    "מעל 55 חוות דעת מלקוחות",
+    "5.0 כוכבים בגוגל",
+  ],
+  badge: 'בין 10 משרדי התיווך המובילים בנתניה, בדירוג מדל"ן 2023-2026',
+  successFeeNote: "תשלום על בסיס הצלחה בלבד, משלמים רק כשסוגרים עסקה.",
 };
 
 /** שם נוח לשימוש בקומפוננטות */
 export const business = SITE_CONFIG;
 
-export const mapsEmbedUrl =
-  "https://www.google.com/maps?q=" +
-  encodeURIComponent("שמואל הנציב 20, נתניה") +
-  "&output=embed";
+const { lat, lng } = SITE_CONFIG.coords;
 
-export const whatsappLink = (text: string) =>
-  `https://wa.me/${SITE_CONFIG.whatsappIntl}?text=${encodeURIComponent(text)}`;
+export const wazeUrl = `https://waze.com/ul?ll=${lat}%2C${lng}&navigate=yes`;
+export const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat}%2C${lng}`;
+export const mapsEmbedUrl = `https://www.google.com/maps?q=${lat},${lng}&z=17&output=embed`;
 
-export const agentWhatsappLink = (phone: string, text: string) => {
-  const digits = phone.replace(/[^\d]/g, "");
-  const intl = digits.startsWith("0") ? `972${digits.slice(1)}` : digits;
-  if (!/^9725\d{8}$/.test(intl)) return whatsappLink(text);
-  return `https://wa.me/${intl}?text=${encodeURIComponent(text)}`;
-};
+/* ---------------------------- וואטסאפ ---------------------------- */
+
+export const toIntl = (p: string) => "972" + p.replace(/\D/g, "").replace(/^0/, "");
+
+export const buildWa = (phone: string, msg: string) =>
+  `https://wa.me/${toIntl(phone)}?text=${encodeURIComponent(msg)}`;
+
+export const whatsappLink = (text: string) => buildWa(SITE_CONFIG.phone, text);
+
+/** כל פנייה נשלחת למספר הראשי היחיד של המשרד */
+export const agentWhatsappLink = (_phone: string, text: string) => whatsappLink(text);
 
 /* ---------------------------- טקסטים ---------------------------- */
 
@@ -94,31 +107,58 @@ export const services = [
   },
 ];
 
-/* ---------------------------- צוות ---------------------------- */
+/* ---------------------------- צוות ----------------------------
+ * התמונות יועלו ידנית. שמות המקומות השמורים: photo1 עד photo7.
+ * לאחר העלאת התמונה לקובץ src/assets/photo1.jpg יש לייבא אותה
+ * ולהציב בשדה image של הסוכן המתאים.
+ * ------------------------------------------------------------- */
 
 export type Agent = {
   name: string;
   role: string;
-  phone: string;
-  email: string;
+  photo: string;
+  image?: string;
+  /** רק לאלי כליף יש טלפון אישי (המספר היחיד באתר) */
+  phone?: string;
 };
 
 export const team: Agent[] = [
   {
-    name: "ענבל קובל בוזגלו",
-    role: "סוכנת ושותפה",
-    phone: "052-5556288",
-    email: "inbalkoval@suncity.org.il",
+    name: "אלי כליף",
+    role: 'שותף ובעלים | מומחה נדל"ן, דרום נתניה',
+    photo: "photo1",
+    phone: PHONE,
   },
-  { name: "אלי כליף", role: "סוכן ושותף", phone: "[להשלמה]", email: "[להשלמה]" },
+  {
+    name: "עינבל קובל בוזגלו",
+    role: "מנהלת הצוות ושותפה | מומחית לדירות יד שנייה",
+    photo: "photo2",
+  },
   {
     name: "קובי בוזגלו",
-    role: 'יועץ נדל"ן ומשכנתאות',
-    phone: "[להשלמה]",
-    email: "[להשלמה]",
+    role: 'יועץ נדל"ן ומשכנתאות | מרכז וצפון נתניה, תושבי חוץ',
+    photo: "photo3",
   },
-  { name: "ילנה גנדלין", role: 'סוכנת נדל"ן', phone: "[להשלמה]", email: "[להשלמה]" },
-  { name: "אלעד אבוטבול", role: 'סוכן נדל"ן', phone: "[להשלמה]", email: "[להשלמה]" },
+  {
+    name: "ילנה גנדלין",
+    role: 'מומחית נדל"ן | מזרח ודרום נתניה, דוברת רוסית',
+    photo: "photo4",
+  },
+  {
+    name: "אלעד אבוטבול",
+    role: "מומחה לדירות יד שנייה | מרכז ודרום נתניה",
+    photo: "photo5",
+  },
+  {
+    name: "קוראל בוחבוט",
+    role: 'יועצת נדל"ן | הערכות שווי וליווי תושבי חוץ',
+    photo: "photo6",
+  },
+  {
+    name: "דניאל מוצא",
+    role: 'מומחה נדל"ן | דרום נתניה, ליווי קונים',
+    photo: "photo7",
+  },
 ];
 
 /* ---------------------------- נכסים ---------------------------- */
@@ -141,108 +181,147 @@ export type Property = {
 
 export const properties: Property[] = [
   {
-    id: "p1",
-    title: "דירת 4 חדרים מרווחת עם מרפסת שמש",
+    id: "prop1",
+    title: 'דירת 5 חדרים, 166 מ"ר, שלום עליכם 15',
     deal: "מכירה",
-    price: 1_390_000,
-    neighborhood: "קריית נורדאו",
-    address: "רחוב [להשלמה], קריית נורדאו, נתניה",
-    rooms: 4,
-    size: 96,
-    floor: "3 מתוך 6",
-    tag: "חדש",
+    price: 3_540_000,
+    neighborhood: "אגמים",
+    address: "שלום עליכם 15, אגמים, נתניה",
+    rooms: 5,
+    size: 166,
+    floor: "8",
+    tag: "בלעדי",
     features: { mamad: true, elevator: true, parking: true, balcony: true },
     description:
-      "דירה מוארת ומאווררת בבניין מטופח, קרובה לגנים, בתי ספר ומרכז מסחרי. מתאימה למשפחה צעירה או להשקעה בתשואה נאה.",
-    images: [prop1, prop3, prop4],
+      'דירת 5 חדרים מרווחת בשכונת אגמים, 166 מ"ר בקומה 8. נכס בבלעדיות המשרד.',
+    images: [prop1],
   },
   {
-    id: "p2",
-    title: "דירת 3 חדרים משופצת קרוב לים",
+    id: "prop2",
+    title: 'בית דו משפחתי 4 חדרים, 370 מ"ר, אפרים אהרונסון 26',
     deal: "מכירה",
-    price: 1_650_000,
-    neighborhood: "מרכז העיר",
-    address: "רחוב [להשלמה], מרכז העיר, נתניה",
-    rooms: 3,
-    size: 78,
-    floor: "2 מתוך 4",
-    features: { mamad: false, elevator: false, parking: false, balcony: true },
-    description:
-      "דירה משופצת מהיסוד במרכז העיר, מטרים ספורים מהטיילת ומהמסעדות. אידיאלית לזוגות ולהשקעה לטווח קצר.",
-    images: [prop3, prop1, prop2],
-  },
-  {
-    id: "p3",
-    title: "דירת גן 4 חדרים עם חצר פרטית",
-    deal: "מכירה",
-    price: 1_990_000,
-    neighborhood: "עיר ימים",
-    address: "רחוב [להשלמה], עיר ימים, נתניה",
+    price: 3_990_000,
+    neighborhood: "רמת אפרים",
+    address: "אפרים אהרונסון 26, רמת אפרים, נתניה",
     rooms: 4,
-    size: 108,
+    size: 370,
     floor: "קרקע",
     tag: "בלעדי",
-    features: { mamad: true, elevator: true, parking: true, balcony: false },
+    features: { mamad: true, elevator: false, parking: true, balcony: true },
     description:
-      "דירת גן בבניין בוטיק, חצר פרטית מרוצפת, ממ״ד וחניה בטאבו. שכנות איכותית ומרחק הליכה מהחוף.",
-    images: [prop2, prop4, prop1],
+      'בית דו משפחתי ברמת אפרים, 4 חדרים, 370 מ"ר בקומת קרקע. נכס בבלעדיות המשרד.',
+    images: [prop2],
   },
   {
-    id: "p4",
-    title: "פנטהאוז 5 חדרים עם נוף לים",
+    id: "prop3",
+    title: 'דירת 4 חדרים, 112 מ"ר, שבטי ישראל 19',
     deal: "מכירה",
-    price: 2_600_000,
-    neighborhood: "רמת פולג",
-    address: "רחוב [להשלמה], רמת פולג, נתניה",
-    rooms: 5,
-    size: 140,
-    floor: "9 מתוך 9",
+    price: 2_395_000,
+    neighborhood: "קריית השרון",
+    address: "שבטי ישראל 19, קריית השרון, נתניה",
+    rooms: 4,
+    size: 112,
+    floor: "8",
     tag: "בלעדי",
     features: { mamad: true, elevator: true, parking: true, balcony: true },
     description:
-      "פנטהאוז מפואר עם מרפסת גג ענקית ונוף פתוח לים. שתי חניות, מחסן, מיזוג מיני מרכזי ומטבח מעוצב.",
-    images: [prop1, prop4, prop2],
+      'דירת 4 חדרים בקריית השרון, 112 מ"ר בקומה 8, עם חניה וממ"ד. נכס בבלעדיות המשרד.',
+    images: [prop3],
   },
   {
-    id: "p5",
-    title: "דירת 3.5 חדרים בבניין חדש",
+    id: "prop4",
+    title: 'דירת 4 חדרים, 92 מ"ר, שמואל הנציב 39',
     deal: "מכירה",
-    price: 1_780_000,
-    neighborhood: "אזורים",
-    address: "רחוב [להשלמה], שכונת אזורים, נתניה",
-    rooms: 3.5,
-    size: 85,
-    floor: "5 מתוך 8",
-    features: { mamad: true, elevator: true, parking: true, balcony: true },
+    price: 1_830_000,
+    neighborhood: "צפון מערב מרכז העיר",
+    address: "שמואל הנציב 39, צפון מערב מרכז העיר, נתניה",
+    rooms: 4,
+    size: 92,
+    floor: "3",
+    tag: "בלעדי",
+    features: { mamad: false, elevator: true, parking: false, balcony: true },
     description:
-      "דירה בבניין חדש עם לובי מעוצב, ממ״ד, חניה תת קרקעית ומרפסת שמש. כניסה מיידית.",
-    images: [prop4, prop3, prop2],
+      'דירת 4 חדרים בצפון מערב מרכז העיר, 92 מ"ר בקומה 3. נכס בבלעדיות המשרד.',
+    images: [prop4],
   },
   {
-    id: "p6",
-    title: "דירת 2 חדרים להשקעה במרכז",
-    deal: "השכרה",
-    price: 1_300_000,
-    neighborhood: "קריית השרון",
-    address: "רחוב [להשלמה], קריית השרון, נתניה",
-    rooms: 2,
-    size: 55,
-    floor: "1 מתוך 4",
-    tag: "חדש",
-    features: { mamad: false, elevator: false, parking: true, balcony: true },
+    id: "prop5",
+    title: 'דירת 4 חדרים, 90 מ"ר, יהודה הנשיא 15',
+    deal: "מכירה",
+    price: 1_850_000,
+    neighborhood: "צפון מערב מרכז העיר",
+    address: "יהודה הנשיא 15, צפון מערב מרכז העיר, נתניה",
+    rooms: 4,
+    size: 90,
+    floor: "3",
+    tag: "בלעדי",
+    features: { mamad: false, elevator: true, parking: false, balcony: true },
     description:
-      "דירה קומפקטית ומשופצת עם שוכר קיים ותשואה יציבה. נקודת פתיחה מעולה למשקיעים.",
-    images: [prop3, prop2, prop1],
+      'דירת 4 חדרים בצפון מערב מרכז העיר, 90 מ"ר בקומה 3. נכס בבלעדיות המשרד.',
+    images: [prop5],
+  },
+  {
+    id: "prop6",
+    title: 'דירת 4 חדרים, 95 מ"ר, הרב קוק 43',
+    deal: "מכירה",
+    price: 1_790_000,
+    neighborhood: "צפון מערב מרכז העיר",
+    address: "הרב קוק 43, צפון מערב מרכז העיר, נתניה",
+    rooms: 4,
+    size: 95,
+    floor: "8",
+    features: { mamad: false, elevator: true, parking: true, balcony: true },
+    description:
+      'דירת 4 חדרים, 95 מ"ר בקומה 8, עם חניה ובמרחק קצר מהים.',
+    images: [prop6],
+  },
+  {
+    id: "prop7",
+    title: 'דירת 4 חדרים, 94 מ"ר, יהודה הלוי 26',
+    deal: "מכירה",
+    price: 1_790_000,
+    neighborhood: "מרכז העיר",
+    address: "יהודה הלוי 26, מרכז העיר דרום, נתניה",
+    rooms: 4,
+    size: 94,
+    floor: "5",
+    tag: "בלעדי",
+    features: { mamad: false, elevator: true, parking: false, balcony: true },
+    description: 'דירת 4 חדרים במרכז העיר דרום, 94 מ"ר בקומה 5. נכס בבלעדיות המשרד.',
+    images: [prop7],
+  },
+  {
+    id: "prop8",
+    title: 'דירת 4 חדרים, 79 מ"ר, בנימין מינץ 8',
+    deal: "מכירה",
+    price: 1_590_000,
+    neighborhood: "נאות הרצל",
+    address: "בנימין מינץ 8, נאות הרצל, נתניה",
+    rooms: 4,
+    size: 79,
+    floor: "2",
+    tag: "בלעדי",
+    features: { mamad: false, elevator: true, parking: false, balcony: true },
+    description: 'דירת 4 חדרים בנאות הרצל, 79 מ"ר בקומה 2. נכס בבלעדיות המשרד.',
+    images: [prop8],
   },
 ];
 
 export const neighborhoods = [
-  "מרכז העיר",
-  "קריית נורדאו",
-  "עיר ימים",
-  "רמת פולג",
-  "אזורים",
   "קריית השרון",
+  "קריית נורדאו",
+  "קריית צאנז",
+  "רמת אפרים",
+  "רמת פולג",
+  "עיר ימים",
+  "נאות הרצל",
+  "אגמים",
+  "פרדס הגדוד",
+  "מרכז העיר",
+  "צפון מערב מרכז העיר",
+  "נוף הטיילת",
+  "עין התכלת",
+  "גבעת האירוסים",
 ];
 
 export const priceRanges = [
@@ -253,15 +332,45 @@ export const priceRanges = [
 
 export const formatPrice = (n: number) => `${n.toLocaleString("he-IL")} ₪`;
 
-/* ---------------------------- עדויות [תוכן להשלמה] ---------------------------- */
+/* ---------------------------- המלצות ---------------------------- */
 
 export const testimonials = [
-  { quote: "מכרנו את הדירה תוך שלושה שבועות במחיר גבוה ממה שציפינו. ליווי צמוד בכל שלב. [להשלמה]", name: "רונית ל.", type: "מכר דירה" },
-  { quote: "קיבלתי נכסים בוואטסאפ לפני שהם עלו לאינטרנט, וכך סגרנו את הדירה הראשונה שלנו. [להשלמה]", name: "אביב מ.", type: "קנה דירה" },
-  { quote: "הערכת השווי הייתה מדויקת ומקצועית, בלי לחץ ובלי התחייבות. [להשלמה]", name: "יוסי ד.", type: "מכר דירה" },
-  { quote: "בניתי איתם תיק של שתי דירות להשקעה בנתניה, הכל מלווה במספרים. [להשלמה]", name: "מיכל ש.", type: "השקיע" },
-  { quote: "מכירים כל רחוב בעיר וחסכו לנו זמן בבחירת השכונה הנכונה. [להשלמה]", name: "דנה ק.", type: "קנה דירה" },
-  { quote: "שירות אישי וזמינות גם בערב. ממש נדיר בתחום הזה. [להשלמה]", name: "אלכס ב.", type: "מכר דירה" },
+  {
+    quote:
+      "אני רוצה להודות על העבודה המעולה במכירת הדירה. כבר בשיחה הראשונה הרגשתי חיבור אמיתי וביטחון. קיבלתי הרבה יותר ממה שציפיתי ובעיקר שקט נפשי.",
+    name: "אריקה ש.",
+    type: "קניית דירה בנתניה",
+  },
+  {
+    quote:
+      "עבודה מקצועית, מסורה ובלתי פוסקת. תמיד עבדה, תמיד שיווקה, תמיד הביאה קונים. הכרתי לא מעט מתווכים, אבל מתווכת כזאת עוד לא פגשתי.",
+    name: "אנה ק.",
+    type: "מכירת דירה בנתניה",
+  },
+  {
+    quote:
+      "צוות יוצא דופן. תקשורת פתוחה, שקיפות מלאה ותחושת ביטחון. ידענו בכל שלב מה קורה. הזמינות שלהם הייתה בלתי מתפשרת.",
+    name: "אריק",
+    type: "מכירת דירה",
+  },
+  {
+    quote:
+      'ליווי וניהול מו"מ מושלמים לכל אורכו. מקצועיות, שיקול דעת ושירותיות בהכי הכי שאפשר.',
+    name: "שראל ד.",
+    type: "קניית דירה להשקעה",
+  },
+  {
+    quote:
+      "ראינו כמה מתווכים ובחרנו בהם כי הם אנשים אותנטיים ונעימים. עשו עבורנו עבודה מופלאה בתקופה מאתגרת.",
+    name: "אוריאל נ.",
+    type: "נתניה",
+  },
+  {
+    quote:
+      "אחרי שלא הצלחתי להשכיר בעצמי, פניתי למשרד ומצאתי מתווך רציני והגון שמציב מטרה ולא נח עד שמשיג אותה.",
+    name: "דני א.",
+    type: "ביקורת גוגל",
+  },
 ];
 
 /* ---------------------------- שאלות נפוצות ---------------------------- */
@@ -269,7 +378,7 @@ export const testimonials = [
 export const faq = [
   {
     q: "כמה עולה שירות תיווך?",
-    a: "דמי התיווך נקבעים מראש בהסכם בכתב, בהתאם לסוג העסקה ולהיקפה, ומשולמים רק בסיום עסקה מוצלחת. הכל שקוף ומוסכם לפני שמתחילים.",
+    a: "התשלום הוא על בסיס הצלחה בלבד — משלמים רק כשסוגרים עסקה. דמי התיווך נקבעים מראש בהסכם בכתב, בהתאם לסוג העסקה ולהיקפה.",
   },
   {
     q: "כמה זמן לוקח למכור דירה בנתניה?",
@@ -285,7 +394,7 @@ export const faq = [
   },
   {
     q: "אילו שכונות אתם מכסים?",
-    a: "כל נתניה והסביבה: מרכז העיר, קריית נורדאו, עיר ימים, רמת פולג, אזורים, קריית השרון ועוד.",
+    a: "כל נתניה והסביבה: מרכז העיר, קריית השרון, קריית נורדאו, קריית צאנז, רמת אפרים, רמת פולג, עיר ימים, נאות הרצל, אגמים, פרדס הגדוד, נוף הטיילת, עין התכלת וגבעת האירוסים.",
   },
   {
     q: "מה צריך להביא לפגישה ראשונה?",

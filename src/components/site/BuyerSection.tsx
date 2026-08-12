@@ -16,31 +16,34 @@ export function BuyerSection() {
     window.open(whatsappLink(msg), "_blank", "noopener,noreferrer");
   };
 
-  const groupHref =
-    business.whatsappGroup.url.startsWith("http")
-      ? business.whatsappGroup.url
-      : whatsappLink(`שלום, אשמח להצטרף לקבוצת "${business.whatsappGroup.name}"`);
-
   return (
     <section id="buyers" className="mx-auto max-w-6xl px-4 py-14 md:py-20">
       <p className="text-sm font-bold text-sun">קונים דירה?</p>
       <h2 className="mt-2 text-3xl md:text-4xl">נכסים שמגיעים אליכם לפני שהם מגיעים ליד2</h2>
       <p className="mt-3 max-w-xl leading-relaxed text-foreground">
-        {business.whatsappGroup.members} חברים כבר מקבלים את הנכסים החדשים שלנו ראשונים.
+        חברי קבוצת "{business.whatsappGroup.name}" מקבלים את הנכסים החדשים שלנו ראשונים.
         ההצטרפות חינם.
       </p>
 
       <a
-        href={groupHref}
+        href={business.whatsappGroup.url1}
         target="_blank"
         rel="noopener noreferrer"
         className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-whatsapp px-6 py-4 text-lg font-bold text-whatsapp-foreground shadow-lift sm:w-auto"
       >
         <Users className="size-6" aria-hidden="true" />
-        להצטרפות לקבוצה
+        להצטרפות לקבוצת הנכסים
       </a>
       <p className="mt-2 text-xs text-muted-foreground">
-        קבוצת "{business.whatsappGroup.name}" · קישור הקבוצה: [להשלמה]
+        הקבוצה מלאה?{" "}
+        <a
+          href={business.whatsappGroup.url2}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-bold text-primary underline"
+        >
+          הצטרפו לקבוצה השנייה
+        </a>
       </p>
 
       <form
