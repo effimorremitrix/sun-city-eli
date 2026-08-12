@@ -1,5 +1,6 @@
 import heroImg from "@/assets/hero-apartment.jpg";
 import logo from "@/assets/sun-city-logo.png";
+import { SITE_CONFIG } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
 
 const scrollTo = (id: string) => (e: React.MouseEvent) => {
@@ -66,7 +67,7 @@ export function Hero() {
           <ul className="mt-10 flex flex-wrap gap-2">
             <li>
               <a
-                href={business.madlanUrl}
+                href={SITE_CONFIG.madlanUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block rounded-full bg-[oklch(1_0_0/0.12)] px-4 py-2 text-sm font-semibold text-primary-foreground backdrop-blur"
@@ -76,7 +77,7 @@ export function Hero() {
             </li>
             <li>
               <a
-                href={business.whatsappGroup.url1}
+                href={SITE_CONFIG.whatsappGroup.url1}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block rounded-full bg-[oklch(1_0_0/0.12)] px-4 py-2 text-sm font-semibold text-primary-foreground backdrop-blur"
