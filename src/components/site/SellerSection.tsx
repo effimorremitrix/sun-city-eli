@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ClipboardList, Home, FileCheck2 } from "lucide-react";
-import { business, buildWa, openWa } from "@/lib/site-data";
+import { business, openWa } from "@/lib/site-data";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
 
 const steps = [

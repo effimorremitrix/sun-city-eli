@@ -1,5 +1,5 @@
 import { Phone, MessageCircle } from "lucide-react";
-import { team, business, buildWa } from "@/lib/site-data";
+import { team, business, waProps } from "@/lib/site-data";
 import { Reveal } from "./Reveal";
 
 const initials = (name: string) =>
@@ -47,11 +47,9 @@ export function Team() {
                   {m.phone ? (
                     <div className="mt-4 flex gap-2">
                       <a
-                        href={buildWa(
+                        {...waProps(
                           `שלום ${m.name}, הגעתי מהאתר של ${business.name} ואשמח לדבר.`,
                         )}
-                        target="_blank"
-                        rel="noopener noreferrer"
                         className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-whatsapp py-2.5 text-sm font-bold text-whatsapp-foreground"
                         aria-label={`שליחת וואטסאפ ל${m.name}`}
                       >
@@ -69,11 +67,9 @@ export function Team() {
                     </div>
                   ) : (
                     <a
-                      href={buildWa(
+                      {...waProps(
                         `שלום ${business.name}, אשמח לפנייה למשרד בנוגע ל${m.name}.`,
                       )}
-                      target="_blank"
-                      rel="noopener noreferrer"
                       className="mt-4 flex items-center justify-center gap-1.5 rounded-xl bg-whatsapp py-2.5 text-sm font-bold text-whatsapp-foreground"
                       aria-label={`לפנייה למשרד בנוגע ל${m.name}`}
                     >
