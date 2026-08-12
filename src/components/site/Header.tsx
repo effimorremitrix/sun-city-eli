@@ -1,29 +1,43 @@
 import { useState } from "react";
-import { Menu, X, Sun } from "lucide-react";
+import { Menu, X, Phone } from "lucide-react";
+import logo from "@/assets/sun-city-logo.png";
 import { business } from "@/lib/site-data";
 
 const links = [
-  { href: "#properties", label: "נכסים" },
-  { href: "#sellers", label: "מוכרים דירה" },
-  { href: "#buyers", label: "לקונים" },
-  { href: "#investments", label: "השקעות" },
-  { href: "#team", label: "הצוות" },
-  { href: "#contact", label: "צור קשר" },
+  { id: "properties", label: "נכסים" },
+  { id: "sellers", label: "מוכרים דירה" },
+  { id: "buyers", label: "לקונים" },
+  { id: "services", label: "השירותים שלנו" },
+  { id: "team", label: "הצוות" },
+  { id: "contact", label: "צור קשר" },
 ];
+
+const scrollTo = (id: string) => {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+};
 
 export function Header() {
   const [open, setOpen] = useState(false);
 
+  const go = (id: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    setOpen(false);
+    scrollTo(id);
+  };
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-        <a href="#top" className="flex items-center gap-2" aria-label={`${business.name} — לראש העמוד`}>
-          <span className="flex size-9 items-center justify-center rounded-full bg-sun text-sun-foreground">
-            <Sun className="size-5" aria-hidden="true" />
-          </span>
+        <a
+          href="#top"
+          onClick={go("top")}
+          className="flex items-center gap-2"
+          aria-label={`${business.name} — לראש העמוד`}
+        >
+          <img src={logo} alt='לוגו סאן סיטי נדל"ן' width={40} height={40} className="size-10" />
           <span className="flex flex-col leading-none">
             <span className="font-display text-base font-extrabold text-primary">
-              {business.nameEn} <span className="text-sun">נדל"ן</span>
+              Sun City <span className="text-sun">נדל"ן</span>
             </span>
             <span className="mt-0.5 text-[10px] text-muted-foreground">{business.tagline}</span>
           </span>
@@ -32,15 +46,26 @@ export function Header() {
         <nav aria-label="ניווט ראשי" className="hidden items-center gap-5 lg:flex">
           {links.map((l) => (
             <a
-              key={l.href}
-              href={l.href}
+              key={l.id}
+              href={`#${l.id}`}
+              onClick={go(l.id)}
               className="text-sm font-semibold text-foreground transition-colors hover:text-sun"
             >
               {l.label}
             </a>
           ))}
           <a
+            href={`tel:${business.phoneTel}`}
+            className="flex items-center gap-1.5 text-sm font-bold text-primary"
+            aria-label={`התקשרות למשרד ${business.phone}`}
+            dir="ltr"
+          >
+            <Phone className="size-4 text-sun" aria-hidden="true" />
+            {business.phone}
+          </a>
+          <a
             href="#sellers"
+            onClick={go("sellers")}
             className="rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground shadow-soft transition-transform hover:-translate-y-0.5"
           >
             הערכת שווי חינם
@@ -62,20 +87,29 @@ export function Header() {
         <nav aria-label="ניווט במובייל" className="border-t border-border bg-card lg:hidden">
           <ul className="mx-auto max-w-6xl px-4 py-2">
             {links.map((l) => (
-              <li key={l.href}>
+              <li key={l.id}>
                 <a
-                  href={l.href}
-                  onClick={() => setOpen(false)}
+                  href={`#${l.id}`}
+                  onClick={go(l.id)}
                   className="block border-b border-border/70 py-3 text-base font-semibold text-foreground"
                 >
                   {l.label}
                 </a>
               </li>
             ))}
+            <li>
+              <a
+                href={`tel:${business.phoneTel}`}
+                className="block border-b border-border/70 py-3 text-base font-semibold text-primary"
+                dir="ltr"
+              >
+                {business.phone}
+              </a>
+            </li>
             <li className="py-3">
               <a
                 href="#sellers"
-                onClick={() => setOpen(false)}
+                onClick={go("sellers")}
                 className="block rounded-xl bg-sun py-3 text-center text-base font-bold text-sun-foreground"
               >
                 הערכת שווי חינם
