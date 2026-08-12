@@ -132,6 +132,15 @@ export function PropertySection() {
         </div>
       )}
 
+      <a
+        href={business.yad2Url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-8 flex w-full items-center justify-center rounded-2xl bg-primary px-6 py-4 text-base font-bold text-primary-foreground shadow-soft sm:w-auto"
+      >
+        לכל 22 הנכסים ביד2
+      </a>
+
       {selected && <PropertyModal property={selected} onClose={() => setSelected(null)} />}
     </section>
   );
@@ -198,7 +207,7 @@ function PropertyCard({ property: p, onOpen }: { property: Property; onOpen: () 
             onClick={onOpen}
             className="flex-1 rounded-xl border border-primary/30 py-2.5 text-sm font-bold text-primary"
           >
-            כל הפרטים
+            לפרטים
           </button>
           <a
             href={whatsappLink(

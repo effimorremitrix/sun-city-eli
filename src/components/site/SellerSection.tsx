@@ -35,6 +35,10 @@ export function SellerSection() {
           ברחוב שלכם.
         </p>
 
+        <p className="mt-4 inline-flex rounded-xl bg-[oklch(1_0_0/0.1)] px-4 py-2 text-sm font-bold text-sun">
+          {business.successFeeNote}
+        </p>
+
         <form
           onSubmit={submit}
           noValidate
