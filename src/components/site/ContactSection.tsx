@@ -30,17 +30,36 @@ export function ContactSection() {
               <div>
                 <p className="font-bold text-primary">כתובת</p>
                 <p className="text-sm text-muted-foreground">{business.address}</p>
+                <div className="mt-2 flex gap-2">
+                  <a
+                    href={business.wazeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-lg border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary"
+                  >
+                    ניווט בוויז
+                  </a>
+                  <a
+                    href={business.mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-lg border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary"
+                  >
+                    ניווט בגוגל מפות
+                  </a>
+                </div>
               </div>
             </li>
             <li className="flex items-start gap-3 py-4">
               <Phone className="mt-0.5 size-5 shrink-0 text-sun" aria-hidden="true" />
               <div>
-                <p className="font-bold text-primary">טלפון</p>
-                <a href={`tel:${business.phone}`} className="text-sm text-muted-foreground underline">
+                <p className="font-bold text-primary">טלפון המשרד</p>
+                <a href={`tel:${business.phoneTel}`} className="text-sm text-muted-foreground underline" dir="ltr">
                   {business.phone}
                 </a>
               </div>
             </li>
+
             <li className="flex items-start gap-3 py-4">
               <Mail className="mt-0.5 size-5 shrink-0 text-sun" aria-hidden="true" />
               <div>
@@ -190,12 +209,18 @@ export function Footer() {
             </li>
             <li>
               <a
-                href={business.yad2Url.startsWith("http") ? business.yad2Url : "#contact"}
+                href={business.madlanUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="underline"
               >
-                דף הסוכנות ביד2 [להשלמה]
+                דף הסוכנות במדל"ן
               </a>
             </li>
+            <li>
+              <a href="#team" className="underline">הצוות</a>
+            </li>
+
             <li>
               <Link to="/accessibility" className="underline">הצהרת נגישות</Link>
             </li>
