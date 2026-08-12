@@ -211,7 +211,7 @@ function PropertyCard({ property: p, onOpen }: { property: Property; onOpen: () 
           </button>
           <a
             href={buildWa(
-              `שלום, מעניין אותי הנכס: ${p.title} (${p.neighborhood}), ${formatPrice(p.price)}. אפשר פרטים?`,
+              `שלום, הגעתי מהאתר של סאן סיטי נדל"ן.\nמעוניין בפרטים על הנכס:\n${p.address}\n${p.rooms} חדרים, ${p.size} מ"ר\nמחיר: ${formatPrice(p.price)}`,
             )}
             target="_blank"
             rel="noopener noreferrer"
