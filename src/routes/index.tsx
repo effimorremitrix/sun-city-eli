@@ -11,7 +11,7 @@ import { ContactSection, Footer } from "@/components/site/ContactSection";
 import { MobileBar } from "@/components/site/MobileBar";
 import { FloatingWhatsApp } from "@/components/site/FloatingWhatsApp";
 import { AccessibilityWidget } from "@/components/site/AccessibilityWidget";
-import { SITE_CONFIG, properties, formatPrice } from "@/lib/site-data";
+import { SITE_CONFIG, properties } from "@/lib/site-data";
 
 const title = 'תיווך נתניה | סאן סיטי נדל"ן — דירות למכירה בנתניה';
 const description =
@@ -46,7 +46,6 @@ const schema = {
         addressLocality: "נתניה",
         addressCountry: "IL",
       },
-      description2: formatPrice(p.price),
     })),
   ],
 };
