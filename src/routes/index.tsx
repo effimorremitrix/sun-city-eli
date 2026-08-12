@@ -66,29 +66,47 @@ export const Route = createFileRoute("/")({
     ],
     scripts: [{ type: "application/ld+json", children: JSON.stringify(schema) }],
   }),
+  loader: () => getPublicSite(),
   component: Index,
+  errorComponent: () => (
+    <main className="mx-auto max-w-lg px-4 py-16 text-center">
+      <h1 className="text-xl font-bold text-primary">העמוד לא נטען</h1>
+      <p className="mt-2 text-sm text-muted-foreground">נסו לרענן את העמוד.</p>
+    </main>
+  ),
+  notFoundComponent: () => (
+    <main className="mx-auto max-w-lg px-4 py-16 text-center">
+      <h1 className="text-xl font-bold text-primary">העמוד לא נמצא</h1>
+    </main>
+  ),
 });
 
 function Index() {
+  const live = Route.useLoaderData();
+
   return (
-    <div className="min-h-screen">
-      <Header />
-      <main>
-        <Hero />
-        <Team />
-        <PropertySection />
-        <SellerSection />
-        <BuyerSection />
-        <Services />
-        <WhyUs />
-        <Testimonials />
-        <Faq />
-        <ContactSection />
-      </main>
-      <Footer />
-      <MobileBar />
-      <FloatingWhatsApp />
-      <AccessibilityWidget />
-    </div>
+    <SiteLiveProvider value={live}>
+      <div className="min-h-screen">
+        <Header />
+        <main>
+          <Hero />
+          <Team />
+          <PropertySection />
+          <ItemsSection />
+          <SellerSection />
+          <BuyerSection />
+          <Services />
+          <WhyUs />
+          <Testimonials />
+          <Faq />
+          <ContactSection />
+        </main>
+        <Footer />
+        <MobileBar />
+        <FloatingWhatsApp />
+        <AccessibilityWidget />
+      </div>
+    </SiteLiveProvider>
   );
+
 }
