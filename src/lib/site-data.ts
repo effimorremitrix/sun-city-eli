@@ -6,6 +6,12 @@ import prop5 from "@/assets/prop-5.jpg";
 import prop6 from "@/assets/prop-6.jpg";
 import prop7 from "@/assets/prop-7.jpg";
 import prop8 from "@/assets/prop-8.jpg";
+import agentInbal from "@/assets/agent-inbal.jpg.asset.json";
+import agentKobi from "@/assets/agent-kobi.jpg.asset.json";
+import agentYelena from "@/assets/agent-yelena.jpg.asset.json";
+import agentElad from "@/assets/agent-elad.jpg.asset.json";
+import agentKoral from "@/assets/agent-koral.jpg.asset.json";
+import agentDaniel from "@/assets/agent-daniel.jpg.asset.json";
 
 /* ============================================================
  * SITE_CONFIG — מספר טלפון אחד בלבד לכל האתר, וכל הקישורים במקום אחד.
