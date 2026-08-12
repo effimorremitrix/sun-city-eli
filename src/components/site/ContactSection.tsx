@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { MapPin, Phone, Mail, Clock, MessageCircle, Sun, Facebook, Instagram } from "lucide-react";
-import { business, mapsEmbedUrl, mapsUrl, wazeUrl, buildWa, openWa } from "@/lib/site-data";
+import { business, mapsEmbedUrl, mapsUrl, wazeUrl, waProps, openWa } from "@/lib/site-data";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
 
 export function ContactSection() {
@@ -85,9 +85,7 @@ export function ContactSection() {
           </ul>
 
           <a
-            href={buildWa(`שלום ${business.name}, אשמח לקבל פרטים`)}
-            target="_blank"
-            rel="noopener noreferrer"
+            {...waProps(`שלום ${business.name}, אשמח לקבל פרטים`)}
             className="flex items-center justify-center gap-2 rounded-xl bg-whatsapp py-3 text-sm font-bold text-whatsapp-foreground"
           >
             <MessageCircle className="size-5" aria-hidden="true" />
