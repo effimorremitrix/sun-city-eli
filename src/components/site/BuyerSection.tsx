@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Users } from "lucide-react";
-import { business, neighborhoods, buildWa, openWa } from "@/lib/site-data";
+import { business, neighborhoods, openWa } from "@/lib/site-data";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
 
 export function BuyerSection() {

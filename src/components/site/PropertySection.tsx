@@ -16,7 +16,7 @@ import {
   neighborhoods,
   priceRanges,
   formatPrice,
-  buildWa,
+  waProps,
   openWa,
   business,
   type Property,
@@ -123,9 +123,7 @@ export function PropertySection() {
             ספרו לנו מה אתם מחפשים ונאתר עבורכם נכס מתאים.
           </p>
           <a
-            href={buildWa("שלום, אני מחפש נכס בנתניה. הפרטים שלי: ")}
-            target="_blank"
-            rel="noopener noreferrer"
+            {...waProps("שלום, אני מחפש נכס בנתניה. הפרטים שלי: ")}
             className="mt-4 inline-block rounded-xl bg-whatsapp px-5 py-3 text-sm font-bold text-whatsapp-foreground"
           >
             נכס לפי דרישה בוואטסאפ
@@ -211,11 +209,9 @@ function PropertyCard({ property: p, onOpen }: { property: Property; onOpen: () 
             לפרטים
           </button>
           <a
-            href={buildWa(
+            {...waProps(
               `שלום, הגעתי מהאתר של סאן סיטי נדל"ן.\nמעוניין בפרטים על הנכס:\n${p.address}\n${p.rooms} חדרים, ${p.size} מ"ר\nמחיר: ${formatPrice(p.price)}`,
             )}
-            target="_blank"
-            rel="noopener noreferrer"
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-whatsapp py-2.5 text-sm font-bold text-whatsapp-foreground"
           >
             <MessageCircle className="size-4" aria-hidden="true" />

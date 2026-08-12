@@ -1,5 +1,5 @@
 import { BadgeCheck, Calculator, Handshake, Scale, ShieldCheck, Eye, Award } from "lucide-react";
-import { services, values, business, about, story, buildWa } from "@/lib/site-data";
+import { services, values, business, about, story, waProps } from "@/lib/site-data";
 import { Reveal } from "./Reveal";
 
 const svcIcons = [BadgeCheck, Calculator, Handshake, Scale];
@@ -21,9 +21,7 @@ export function Services() {
                   <h3 className="mt-3 text-lg">{s.title}</h3>
                   <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{s.text}</p>
                   <a
-                    href={buildWa(`שלום ${business.name}, אשמח לפרטים בנושא: ${s.title}. שם: `)}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    {...waProps(`שלום ${business.name}, אשמח לפרטים בנושא: ${s.title}. שם: `)}
                     className="mt-4 rounded-xl bg-primary py-2.5 text-center text-sm font-bold text-primary-foreground"
                   >
                     לפרטים בוואטסאפ
