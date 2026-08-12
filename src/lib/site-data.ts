@@ -4,42 +4,47 @@ import prop3 from "@/assets/prop-3.jpg";
 import prop4 from "@/assets/prop-4.jpg";
 
 /* ============================================================
- * כל התוכן הניתן לעריכה מרוכז בקובץ הזה.
+ * SITE_CONFIG — כל המספרים, המיילים והקישורים במקום אחד.
  * ============================================================ */
 
-export const business = {
+export const SITE_CONFIG = {
   name: 'סאן סיטי נדל"ן',
-  nameEn: "SUN CITY",
-  tagline: "מכירה | קנייה | השכרת נכסים",
-  address: "שמואל הנציב 20, נתניה, קומת קרקע (ליד בנק מרכנתיל)",
+  nameEn: "Sun City",
+  tagline: "מחברים בין אנשים לנכסים",
+  subtitle: "מכירה | קנייה | השכרת נכסים",
+  address: "רחוב שמואל הנציב 20, נתניה, קומת קרקע (ליד בנק מרכנתיל)",
   addressShort: "שמואל הנציב 20, נתניה",
   phone: "073-2113213",
-  phoneIntl: "972732113213",
+  phoneTel: "0732113213",
+  whatsappDisplay: "052-5556288",
+  whatsappIntl: "972525556288",
   email: "sun.city.netanya@gmail.com",
   areaServed: "נתניה והסביבה",
   hours: [
-    { day: "ראשון – חמישי", value: "09:00 – 19:00" },
-    { day: "שישי", value: "09:00 – 13:00" },
+    { day: "ראשון – חמישי", value: "[להשלמה]" },
+    { day: "שישי", value: "[להשלמה]" },
     { day: "שבת", value: "סגור" },
   ],
   whatsappGroup: {
     name: 'זה הזמן לקנות נדל"ן',
     members: 945,
-    url: "[להשלמה]", // קישור לקבוצת הוואטסאפ
+    url: "[להשלמה]", // קישור קבוצת הוואטסאפ
   },
-  yad2Url: "[להשלמה]", // קישור לדף הסוכנות ביד2
+  madlanUrl:
+    "https://www.madlan.co.il/agentsOffice/re_office_cFjv57RxrAL?source=madad_index",
   social: {
-    facebook: "[להשלמה]",
-    instagram: "[להשלמה]",
+    facebook: "https://www.facebook.com/sun.city.netanya",
+    instagram: "https://www.instagram.com/sun_city_netanya/",
   },
+  badge: "בין 10 סוכנויות הנדל\"ן המובילות בנתניה, בדירוג אתר מדל\"ן",
+  wazeUrl: "https://waze.com/ul?q=" + encodeURIComponent("שמואל הנציב 20, נתניה"),
+  mapsUrl:
+    "https://www.google.com/maps/search/?api=1&query=" +
+    encodeURIComponent("שמואל הנציב 20, נתניה"),
 };
 
-/** סטטיסטיקות ההירו — לעדכון מול המשרד */
-export const stats = [
-  { value: "[X]", label: "עסקאות שנסגרו" },
-  { value: "[X]", label: "שנות ניסיון" },
-  { value: "945", label: "חברים בקבוצת הנכסים" },
-];
+/** שם נוח לשימוש בקומפוננטות */
+export const business = SITE_CONFIG;
 
 export const mapsEmbedUrl =
   "https://www.google.com/maps?q=" +
@@ -47,7 +52,74 @@ export const mapsEmbedUrl =
   "&output=embed";
 
 export const whatsappLink = (text: string) =>
-  `https://wa.me/${business.phoneIntl}?text=${encodeURIComponent(text)}`;
+  `https://wa.me/${SITE_CONFIG.whatsappIntl}?text=${encodeURIComponent(text)}`;
+
+export const agentWhatsappLink = (phone: string, text: string) => {
+  const digits = phone.replace(/[^\d]/g, "");
+  const intl = digits.startsWith("0") ? `972${digits.slice(1)}` : digits;
+  if (!/^9725\d{8}$/.test(intl)) return whatsappLink(text);
+  return `https://wa.me/${intl}?text=${encodeURIComponent(text)}`;
+};
+
+/* ---------------------------- טקסטים ---------------------------- */
+
+export const about =
+  'סאן סיטי היא סוכנות הנדל"ן המובילה בנתניה, המתמחה במתן שירותים מקיפים בתחום הנדל"ן. אנו מספקים ללקוחותינו ליווי מקצועי ואישי לכל אורך תהליך רכישת או מכירת הנכס. עם ניסיון עשיר בשוק המקומי ומחויבות למצוינות, אנו כאן כדי לעזור לכם להפוך את חלום הנדל"ן שלכם למציאות.';
+
+export const story =
+  'סאן סיטי נדל"ן הוקמה מתוך תשוקה לשוק הנדל"ן ומחויבות לשירות איכותי ללקוחותינו. מאז הקמתנו, עזרנו למאות לקוחות למצוא את הנכס המושלם, למכור את דירתם בצורה המהירה והמשתלמת ביותר, ולהשקיע בנדל"ן בצורה חכמה ומושכלת.';
+
+export const values = [
+  { title: "מקצועיות", text: "שירות מקצועי ברמה הגבוהה ביותר." },
+  { title: "שקיפות", text: "שיתוף מלא של כל המידע הרלוונטי עם הלקוחות." },
+  { title: "אמינות", text: "יושרה ואחריות בכל פעולה." },
+];
+
+export const services = [
+  {
+    title: 'ייעוץ נדל"ן מקצועי',
+    text: "ליווי אישי בכל שלב בתהליך הרכישה או המכירה, מהערכת שווי נכס ועד סגירת עסקה מוצלחת.",
+  },
+  {
+    title: "הערכת שווי נכסים",
+    text: "הערכה מדויקת על בסיס נתוני שוק עדכניים ומידע מפורט על הסביבה.",
+  },
+  {
+    title: "תיווך וניהול עסקאות",
+    text: 'איתור קונים או מוכרים, ניהול מו"מ וליווי עד הסגירה.',
+  },
+  {
+    title: "ייעוץ משפטי",
+    text: 'בשיתוף עו"ד מומחה לנדל"ן, לביטחון משפטי מלא בעסקה.',
+  },
+];
+
+/* ---------------------------- צוות ---------------------------- */
+
+export type Agent = {
+  name: string;
+  role: string;
+  phone: string;
+  email: string;
+};
+
+export const team: Agent[] = [
+  {
+    name: "ענבל קובל בוזגלו",
+    role: "סוכנת ושותפה",
+    phone: "052-5556288",
+    email: "inbalkoval@suncity.org.il",
+  },
+  { name: "אלי כליף", role: "סוכן ושותף", phone: "[להשלמה]", email: "[להשלמה]" },
+  {
+    name: "קובי בוזגלו",
+    role: 'יועץ נדל"ן ומשכנתאות',
+    phone: "[להשלמה]",
+    email: "[להשלמה]",
+  },
+  { name: "ילנה גנדלין", role: 'סוכנת נדל"ן', phone: "[להשלמה]", email: "[להשלמה]" },
+  { name: "אלעד אבוטבול", role: 'סוכן נדל"ן', phone: "[להשלמה]", email: "[להשלמה]" },
+];
 
 /* ---------------------------- נכסים ---------------------------- */
 
@@ -61,7 +133,7 @@ export type Property = {
   rooms: number;
   size: number;
   floor: string;
-  tag?: "חדש" | "במכירה בלעדית";
+  tag?: "חדש" | "בלעדי";
   features: { mamad: boolean; elevator: boolean; parking: boolean; balcony: boolean };
   description: string;
   images: string[];
@@ -70,7 +142,7 @@ export type Property = {
 export const properties: Property[] = [
   {
     id: "p1",
-    title: 'דירת 4 חדרים מרווחת עם מרפסת שמש',
+    title: "דירת 4 חדרים מרווחת עם מרפסת שמש",
     deal: "מכירה",
     price: 1_390_000,
     neighborhood: "קריית נורדאו",
@@ -109,7 +181,7 @@ export const properties: Property[] = [
     rooms: 4,
     size: 108,
     floor: "קרקע",
-    tag: "במכירה בלעדית",
+    tag: "בלעדי",
     features: { mamad: true, elevator: true, parking: true, balcony: false },
     description:
       "דירת גן בבניין בוטיק, חצר פרטית מרוצפת, ממ״ד וחניה בטאבו. שכנות איכותית ומרחק הליכה מהחוף.",
@@ -125,7 +197,7 @@ export const properties: Property[] = [
     rooms: 5,
     size: 140,
     floor: "9 מתוך 9",
-    tag: "במכירה בלעדית",
+    tag: "בלעדי",
     features: { mamad: true, elevator: true, parking: true, balcony: true },
     description:
       "פנטהאוז מפואר עם מרפסת גג ענקית ונוף פתוח לים. שתי חניות, מחסן, מיזוג מיני מרכזי ומטבח מעוצב.",
@@ -149,7 +221,7 @@ export const properties: Property[] = [
   {
     id: "p6",
     title: "דירת 2 חדרים להשקעה במרכז",
-    deal: "מכירה",
+    deal: "השכרה",
     price: 1_300_000,
     neighborhood: "קריית השרון",
     address: "רחוב [להשלמה], קריית השרון, נתניה",
@@ -181,62 +253,15 @@ export const priceRanges = [
 
 export const formatPrice = (n: number) => `${n.toLocaleString("he-IL")} ₪`;
 
-/* ---------------------------- השקעות ושירותים ---------------------------- */
-
-export const investments = [
-  {
-    title: "דירות להשקעה בנתניה",
-    text: "איתור דירות עם פוטנציאל השבחה ותשואה, כולל בדיקת שכירות ריאלית באזור.",
-  },
-  {
-    title: "נכסים מניבים",
-    text: "חנויות, משרדים ודירות עם שוכרים קיימים — הכנסה חודשית מהיום הראשון.",
-  },
-  {
-    title: "ליווי משקיעים",
-    text: "בניית תיק נכסים, חישוב תשואה, מיסוי ומשכנתא — ליווי מקצה לקצה.",
-  },
-];
-
-export const services = [
-  { title: 'ייעוץ נדל"ן', text: "מפגש אבחון אישי והתאמת אסטרטגיה לנכס ולתקציב." },
-  { title: "הערכת שווי נכסים", text: "הערכה מבוססת עסקאות אמיתיות שנסגרו באזור." },
-  { title: 'תיווך וניהול מו"מ', text: "שיווק ממוקד וניהול מו״מ עד לחתימה על החוזה." },
-  { title: "ליווי משפטי ומשכנתאות", text: "חיבור לעורכי דין ויועצי משכנתאות מנוסים." },
-];
-
-/* ---------------------------- צוות ---------------------------- */
-
-export const team = [
-  {
-    name: "[להשלמה]",
-    role: "בעל המשרד ומתווך מוסמך",
-    area: "מרכז העיר ורמת פולג",
-    phone: business.phone,
-  },
-  {
-    name: "[להשלמה]",
-    role: "סוכנת נדל״ן",
-    area: "קריית נורדאו ואזורים",
-    phone: business.phone,
-  },
-  {
-    name: "[להשלמה]",
-    role: "סוכן נדל״ן ומשקיעים",
-    area: "עיר ימים וקריית השרון",
-    phone: business.phone,
-  },
-];
-
-/* ---------------------------- עדויות ---------------------------- */
+/* ---------------------------- עדויות [תוכן להשלמה] ---------------------------- */
 
 export const testimonials = [
-  { quote: "מכרנו את הדירה תוך שלושה שבועות במחיר גבוה ממה שציפינו. ליווי צמוד בכל שלב.", name: "רונית ל.", type: "מכר דירה" },
-  { quote: "קיבלתי נכסים בוואטסאפ לפני שהם עלו לאינטרנט, וכך סגרנו את הדירה הראשונה שלנו.", name: "אביב מ.", type: "קנה דירה" },
-  { quote: "הערכת השווי הייתה מדויקת ומקצועית, בלי לחץ ובלי התחייבות. יושרה אמיתית.", name: "יוסי ד.", type: "מכר דירה" },
-  { quote: "בניתי איתם תיק של שתי דירות להשקעה בנתניה. הכל מלווה במספרים ולא בהבטחות.", name: "מיכל ש.", type: "השקיע" },
-  { quote: "מכירים כל רחוב בעיר. חסכו לנו זמן וכסף בבחירת השכונה הנכונה למשפחה.", name: "דנה ק.", type: "קנה דירה" },
-  { quote: "שירות אישי, זמינים בטלפון גם בערב. ממש נדיר בתחום הזה.", name: "אלכס ב.", type: "מכר דירה" },
+  { quote: "מכרנו את הדירה תוך שלושה שבועות במחיר גבוה ממה שציפינו. ליווי צמוד בכל שלב. [להשלמה]", name: "רונית ל.", type: "מכר דירה" },
+  { quote: "קיבלתי נכסים בוואטסאפ לפני שהם עלו לאינטרנט, וכך סגרנו את הדירה הראשונה שלנו. [להשלמה]", name: "אביב מ.", type: "קנה דירה" },
+  { quote: "הערכת השווי הייתה מדויקת ומקצועית, בלי לחץ ובלי התחייבות. [להשלמה]", name: "יוסי ד.", type: "מכר דירה" },
+  { quote: "בניתי איתם תיק של שתי דירות להשקעה בנתניה, הכל מלווה במספרים. [להשלמה]", name: "מיכל ש.", type: "השקיע" },
+  { quote: "מכירים כל רחוב בעיר וחסכו לנו זמן בבחירת השכונה הנכונה. [להשלמה]", name: "דנה ק.", type: "קנה דירה" },
+  { quote: "שירות אישי וזמינות גם בערב. ממש נדיר בתחום הזה. [להשלמה]", name: "אלכס ב.", type: "מכר דירה" },
 ];
 
 /* ---------------------------- שאלות נפוצות ---------------------------- */
