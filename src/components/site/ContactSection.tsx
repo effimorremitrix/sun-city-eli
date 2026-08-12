@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { MapPin, Phone, Mail, Clock, MessageCircle, Sun, Facebook, Instagram } from "lucide-react";
-import { business, mapsEmbedUrl, mapsUrl, wazeUrl, waProps, openWa } from "@/lib/site-data";
+import { SITE_CONFIG, mapsEmbedUrl, mapsUrl, wazeUrl, waProps, openWa } from "@/lib/site-data";
+import { useLive } from "@/lib/site-live";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
 
 export function ContactSection() {
+  const { business } = useLive();
   const [form, setForm] = useState({ name: "", phone: "", topic: "", message: "" });
   const [err, setErr] = useState<string | null>(null);
 
@@ -154,6 +156,8 @@ export function ContactSection() {
 }
 
 export function Footer() {
+  const { business } = useLive();
+
   return (
     <footer className="border-t border-border bg-navy px-4 py-10 pb-28 text-navy-foreground lg:pb-10">
       <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-3">
@@ -165,7 +169,7 @@ export function Footer() {
           <p className="mt-1 text-sm text-navy-foreground/75">{business.tagline}</p>
           <div className="mt-4 flex gap-2">
             <a
-              href={business.social.facebook}
+              href={SITE_CONFIG.social.facebook}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="עמוד הפייסבוק שלנו"
@@ -174,7 +178,7 @@ export function Footer() {
               <Facebook className="size-4" aria-hidden="true" />
             </a>
             <a
-              href={business.social.instagram}
+              href={SITE_CONFIG.social.instagram}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="עמוד האינסטגרם שלנו"
@@ -211,7 +215,7 @@ export function Footer() {
             </li>
             <li>
               <a
-                href={business.madlanUrl}
+                href={SITE_CONFIG.madlanUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline"

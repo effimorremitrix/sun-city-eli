@@ -1,6 +1,7 @@
 import heroImg from "@/assets/hero-apartment.jpg";
 import logo from "@/assets/sun-city-logo.png";
-import { business } from "@/lib/site-data";
+import { SITE_CONFIG } from "@/lib/site-data";
+import { useLive } from "@/lib/site-live";
 
 const scrollTo = (id: string) => (e: React.MouseEvent) => {
   e.preventDefault();
@@ -8,6 +9,8 @@ const scrollTo = (id: string) => (e: React.MouseEvent) => {
 };
 
 export function Hero() {
+  const { business, texts } = useLive();
+
   return (
     <section id="top">
       <div className="mx-auto flex max-w-6xl flex-col items-center px-4 pt-10 pb-8 text-center md:pt-14">
@@ -38,10 +41,10 @@ export function Hero() {
 
         <div className="relative mx-auto max-w-6xl px-4 py-16 md:py-28">
           <h1 className="max-w-2xl font-display text-3xl font-extrabold text-primary-foreground md:text-5xl">
-            ברוכים הבאים ל‑Sun City, סוכנות הנדל"ן שלכם בנתניה
+            {texts.heroTitle}
           </h1>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-primary-foreground/90 md:text-lg">
-            {business.tagline}. ליווי אישי ממכירה ועד מסירת מפתח.
+            {texts.heroSubtitle}
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -64,7 +67,7 @@ export function Hero() {
           <ul className="mt-10 flex flex-wrap gap-2">
             <li>
               <a
-                href={business.madlanUrl}
+                href={SITE_CONFIG.madlanUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block rounded-full bg-[oklch(1_0_0/0.12)] px-4 py-2 text-sm font-semibold text-primary-foreground backdrop-blur"
@@ -74,7 +77,7 @@ export function Hero() {
             </li>
             <li>
               <a
-                href={business.whatsappGroup.url1}
+                href={SITE_CONFIG.whatsappGroup.url1}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block rounded-full bg-[oklch(1_0_0/0.12)] px-4 py-2 text-sm font-semibold text-primary-foreground backdrop-blur"
