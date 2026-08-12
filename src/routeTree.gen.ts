@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AccessibilityRouteImport } from './routes/accessibility'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as EditRouteImport } from './routes/edit'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 
@@ -35,6 +36,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EditRoute = EditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -50,6 +56,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accessibility': typeof AccessibilityRoute
   '/auth': typeof AuthRoute
+  '/edit': typeof EditRoute
   '/privacy': typeof PrivacyRoute
   '/admin': typeof AuthenticatedAdminRoute
 }
@@ -57,6 +64,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accessibility': typeof AccessibilityRoute
   '/auth': typeof AuthRoute
+  '/edit': typeof EditRoute
   '/privacy': typeof PrivacyRoute
   '/admin': typeof AuthenticatedAdminRoute
 }
@@ -66,20 +74,22 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/accessibility': typeof AccessibilityRoute
   '/auth': typeof AuthRoute
+  '/edit': typeof EditRoute
   '/privacy': typeof PrivacyRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/accessibility' | '/auth' | '/privacy' | '/admin'
+  fullPaths: '/' | '/accessibility' | '/auth' | '/edit' | '/privacy' | '/admin'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/accessibility' | '/auth' | '/privacy' | '/admin'
+  to: '/' | '/accessibility' | '/auth' | '/edit' | '/privacy' | '/admin'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/accessibility'
     | '/auth'
+    | '/edit'
     | '/privacy'
     | '/_authenticated/admin'
   fileRoutesById: FileRoutesById
@@ -89,6 +99,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AccessibilityRoute: typeof AccessibilityRoute
   AuthRoute: typeof AuthRoute
+  EditRoute: typeof EditRoute
   PrivacyRoute: typeof PrivacyRoute
 }
 
@@ -120,6 +131,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/edit': {
+      id: '/edit'
+      path: '/edit'
+      fullPath: '/edit'
+      preLoaderRoute: typeof EditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -155,6 +173,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AccessibilityRoute: AccessibilityRoute,
   AuthRoute: AuthRoute,
+  EditRoute: EditRoute,
   PrivacyRoute: PrivacyRoute,
 }
 export const routeTree = rootRouteImport

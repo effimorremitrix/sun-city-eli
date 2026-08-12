@@ -13,6 +13,7 @@ import {
   listAllSites,
 } from "@/lib/site.functions";
 import { DEFAULT_BUSINESS, DEFAULT_TEXTS, type LiveBusiness, type LiveTexts } from "@/lib/site-live";
+import { EditLinksPanel } from "@/components/admin/EditLinksPanel";
 
 const title = 'ניהול תוכן האתר | סאן סיטי נדל"ן';
 const description = 'אזור הניהול הפרטי של סאן סיטי נדל"ן — עריכת פרטי העסק, טקסטים ופריטים לאתר.';
@@ -409,6 +410,8 @@ function AdminPage() {
               {items.length === 0 && <li className="py-3 text-sm text-muted-foreground">אין פריטים עדיין.</li>}
             </ul>
           </section>
+
+          <EditLinksPanel siteId={site.id} siteName={site.name} />
         </>
       )}
 
@@ -516,6 +519,7 @@ function DeveloperPanel({ onDone }: { onDone: () => void }) {
             <span className="text-muted-foreground" dir="ltr">
               /{s.slug} · {s.profiles?.email ?? s.owner_id}
             </span>
+            <EditLinksPanel siteId={s.id} siteName={s.name} />
           </li>
         ))}
       </ul>
