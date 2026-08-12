@@ -187,7 +187,7 @@ export function Footer() {
           <p className="font-bold text-navy-foreground">פרטי קשר</p>
           <p className="mt-2">{business.address}</p>
           <p className="mt-1">
-            <a href={`tel:${business.phone}`} className="underline">
+            <a href={`tel:${business.phoneTel}`} className="underline">
               {business.phone}
             </a>
           </p>
