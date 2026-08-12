@@ -154,6 +154,7 @@ export const team: Agent[] = [
     name: "אלי כליף",
     role: 'שותף ובעלים, מומחה נדל"ן דרום נתניה',
     photo: "photo1",
+    image: agentEli.url,
     phone: PHONE,
   },
   {
