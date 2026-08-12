@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { MapPin, Phone, Mail, Clock, MessageCircle, Sun, Facebook, Instagram } from "lucide-react";
-import { business, mapsEmbedUrl, mapsUrl, wazeUrl, waProps, openWa } from "@/lib/site-data";
+import { mapsEmbedUrl, mapsUrl, wazeUrl, waProps, openWa } from "@/lib/site-data";
+import { useLive } from "@/lib/site-live";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
 
 export function ContactSection() {
+  const { business } = useLive();
   const [form, setForm] = useState({ name: "", phone: "", topic: "", message: "" });
   const [err, setErr] = useState<string | null>(null);
 
@@ -154,6 +156,8 @@ export function ContactSection() {
 }
 
 export function Footer() {
+  const { business } = useLive();
+
   return (
     <footer className="border-t border-border bg-navy px-4 py-10 pb-28 text-navy-foreground lg:pb-10">
       <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-3">

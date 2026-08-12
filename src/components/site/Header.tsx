@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Menu, X, Phone } from "lucide-react";
 import logo from "@/assets/sun-city-logo.png";
-import { business } from "@/lib/site-data";
+import { useLive } from "@/lib/site-live";
 
 const links = [
   { id: "properties", label: "נכסים" },
@@ -17,6 +17,7 @@ const scrollTo = (id: string) => {
 };
 
 export function Header() {
+  const { business } = useLive();
   const [open, setOpen] = useState(false);
 
   const go = (id: string) => (e: React.MouseEvent) => {
