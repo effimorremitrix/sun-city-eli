@@ -6,7 +6,3 @@ export const isValidIsraeliPhone = (raw: string) => {
 };
 
 export const phoneError = "נא להזין מספר טלפון ישראלי תקין (לדוגמה 050-1234567)";
-
-export const openWhatsApp = (url: string) => {
-  window.open(url, "_blank", "noopener,noreferrer");
-};

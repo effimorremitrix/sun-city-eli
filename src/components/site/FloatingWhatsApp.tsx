@@ -1,10 +1,10 @@
 import { MessageCircle } from "lucide-react";
-import { business, whatsappLink } from "@/lib/site-data";
+import { business, buildWa } from "@/lib/site-data";
 
 export function FloatingWhatsApp() {
   return (
     <a
-      href={whatsappLink(`שלום ${business.name}, הגעתי מהאתר ואשמח לקבל פרטים 🙂`)}
+      href={buildWa(`שלום ${business.name}, הגעתי מהאתר ואשמח לקבל פרטים 🙂`)}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="שליחת הודעת וואטסאפ למשרד"
