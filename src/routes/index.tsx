@@ -8,10 +8,14 @@ import { BuyerSection } from "@/components/site/BuyerSection";
 import { Services, WhyUs } from "@/components/site/Investments";
 import { Testimonials, Faq } from "@/components/site/Testimonials";
 import { ContactSection, Footer } from "@/components/site/ContactSection";
+import { ItemsSection } from "@/components/site/ItemsSection";
 import { MobileBar } from "@/components/site/MobileBar";
 import { FloatingWhatsApp } from "@/components/site/FloatingWhatsApp";
 import { AccessibilityWidget } from "@/components/site/AccessibilityWidget";
 import { SITE_CONFIG, properties } from "@/lib/site-data";
+import { SiteLiveProvider } from "@/lib/site-live";
+import { getPublicSite } from "@/lib/site.functions";
+
 
 const title = 'תיווך נתניה | סאן סיטי נדל"ן — דירות למכירה בנתניה';
 const description =
