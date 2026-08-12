@@ -17,6 +17,7 @@ import {
   priceRanges,
   formatPrice,
   buildWa,
+  openWa,
   business,
   type Property,
 } from "@/lib/site-data";
