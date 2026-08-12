@@ -1,3 +1,4 @@
+import { DataSource } from "@/components/site/DataSource";
 import { useState } from "react";
 import { ChevronRight, ChevronLeft, Quote, Plus, Minus } from "lucide-react";
 import { testimonials, faq } from "@/lib/site-data";
@@ -10,6 +11,7 @@ export function Testimonials() {
     <section className="mx-auto max-w-3xl px-4 py-14 md:py-20">
       <p className="text-sm font-bold text-sun">לקוחות מספרים</p>
       <h2 className="mt-2 text-3xl md:text-4xl">עדויות לקוחות</h2>
+      <DataSource source="office" updatedAt={null} className="mt-2" />
 
       <div className="soft-card mt-6 p-6">
         <Quote className="size-7 text-sun" aria-hidden="true" />

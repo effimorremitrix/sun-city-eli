@@ -1,3 +1,4 @@
+import { DataSource } from "@/components/site/DataSource";
 import { useMemo, useState } from "react";
 import {
   ShieldCheck,
@@ -57,6 +58,7 @@ export function PropertySection() {
     <section id="properties" className="mx-auto max-w-6xl px-4 py-14 md:py-20">
       <p className="text-sm font-bold text-sun">נכסים בנתניה</p>
       <h2 className="mt-2 text-3xl md:text-4xl">נכסים למכירה ולהשכרה</h2>
+      <DataSource source="office" updatedAt={null} className="mt-2" />
 
       {/* חיפוש מהיר */}
       <div className="soft-card mt-6 grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">

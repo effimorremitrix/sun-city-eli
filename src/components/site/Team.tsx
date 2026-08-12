@@ -1,3 +1,4 @@
+import { DataSource } from "@/components/site/DataSource";
 import { Phone, MessageCircle } from "lucide-react";
 import { team, business, waProps } from "@/lib/site-data";
 import { Reveal } from "./Reveal";
@@ -15,6 +16,7 @@ export function Team() {
       <div className="mx-auto max-w-6xl px-4">
         <p className="text-sm font-bold text-sun">אנשים, לא חברה</p>
         <h2 className="mt-2 text-3xl md:text-4xl">הצוות שלנו</h2>
+        <DataSource source="office" updatedAt={null} className="mt-2" />
         <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">
           בוחרים סוכן, לא חברה. דברו ישירות עם מי שיטפל בכם.
         </p>
