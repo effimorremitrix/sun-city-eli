@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Menu, X, Phone } from "lucide-react";
-import logo from "@/assets/sun-city-logo.png";
+import logoAsset from "@/assets/sun-city-logo-real.png.asset.json";
+
+const logo = logoAsset.url;
 import { useLive } from "@/lib/site-live";
 
 const links = [

@@ -1,5 +1,7 @@
 import heroImg from "@/assets/hero-apartment.jpg";
-import logo from "@/assets/sun-city-logo.png";
+import logoAsset from "@/assets/sun-city-logo-real.png.asset.json";
+
+const logo = logoAsset.url;
 import { SITE_CONFIG } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
 

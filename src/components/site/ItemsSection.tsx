@@ -1,14 +1,16 @@
 import { useLive } from "@/lib/site-live";
+import { DataSource } from "@/components/site/DataSource";
 import { waProps } from "@/lib/site-data";
 
 export function ItemsSection() {
-  const { items, business } = useLive();
+  const { items, business, updatedAt } = useLive();
   if (items.length === 0) return null;
 
   return (
     <section id="live-items" className="mx-auto max-w-6xl px-4 py-14 md:py-20">
       <p className="text-sm font-bold text-sun">מהמשרד</p>
       <h2 className="mt-2 text-3xl md:text-4xl">עדכונים והזדמנויות</h2>
+      <DataSource source="db" updatedAt={updatedAt} className="mt-2" />
 
       <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => (

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { MapPin, Phone, Mail, Clock, MessageCircle, Sun, Facebook, Instagram } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, MessageCircle, Facebook, Instagram } from "lucide-react";
 import { SITE_CONFIG, mapsEmbedUrl, mapsUrl, wazeUrl, waProps, openWa } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
+import logoAsset from "@/assets/sun-city-logo-real.png.asset.json";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
 
 export function ContactSection() {
@@ -163,8 +164,14 @@ export function Footer() {
       <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-3">
         <div>
           <p className="flex items-center gap-2 font-display text-lg font-extrabold text-navy-foreground">
-            <Sun className="size-5 text-sun" aria-hidden="true" />
-            Sun City נדל"ן
+            <img
+              src={logoAsset.url}
+              alt='לוגו סאן סיטי נדל"ן'
+              width={48}
+              height={48}
+              className="size-12 rounded-lg bg-white object-contain p-1"
+            />
+            {business.name}
           </p>
           <p className="mt-1 text-sm text-navy-foreground/75">{business.tagline}</p>
           <div className="mt-4 flex gap-2">
