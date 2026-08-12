@@ -519,6 +519,7 @@ function DeveloperPanel({ onDone }: { onDone: () => void }) {
             <span className="text-muted-foreground" dir="ltr">
               /{s.slug} · {s.profiles?.email ?? s.owner_id}
             </span>
+            <EditLinksPanel siteId={s.id} siteName={s.name} />
           </li>
         ))}
       </ul>
