@@ -63,16 +63,21 @@ export const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat}%2
 export const mapsEmbedUrl = `https://www.google.com/maps?q=${lat},${lng}&z=17&output=embed`;
 
 /* ---------------------------- וואטסאפ ---------------------------- */
+/** מקור אמת אחד ויחיד לכל קישורי הוואטסאפ באתר. אין להרכיב קישור ידנית בשום מקום. */
+
+export const WA_PHONE = "0525551200";
 
 export const toIntl = (p: string) => "972" + p.replace(/\D/g, "").replace(/^0/, "");
 
-export const buildWa = (phone: string, msg: string) =>
-  `https://wa.me/${toIntl(phone)}?text=${encodeURIComponent(msg)}`;
+export const buildWa = (msg: string) =>
+  "https://wa.me/" + toIntl(WA_PHONE) + "?text=" + encodeURIComponent(msg);
 
-export const whatsappLink = (text: string) => buildWa(SITE_CONFIG.phone, text);
+export const openWa = (msg: string) =>
+  window.open(buildWa(msg), "_blank", "noopener,noreferrer");
 
-/** כל פנייה נשלחת למספר הראשי היחיד של המשרד */
-export const agentWhatsappLink = (_phone: string, text: string) => whatsappLink(text);
+/** שמות תאימות – מפנים לאותה פונקציה יחידה */
+export const whatsappLink = (text: string) => buildWa(text);
+export const agentWhatsappLink = (_phone: string, text: string) => buildWa(text);
 
 /* ---------------------------- טקסטים ---------------------------- */
 
