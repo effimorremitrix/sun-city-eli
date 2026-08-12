@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ClipboardList, Home, FileCheck2 } from "lucide-react";
-import { business, whatsappLink } from "@/lib/site-data";
+import { business, buildWa, openWa } from "@/lib/site-data";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
 
 const steps = [
@@ -20,7 +20,7 @@ export function SellerSection() {
     if (!form.address.trim()) return setErr("נא להזין את כתובת הנכס");
     setErr(null);
     const msg = `שלום ${business.name},\nאני מעוניין בהערכת שווי חינם לנכס שלי.\nשם: ${form.name}\nטלפון: ${form.phone}\nכתובת הנכס: ${form.address}\nמספר חדרים: ${form.rooms || "לא צוין"}`;
-    window.open(whatsappLink(msg), "_blank", "noopener,noreferrer");
+    openWa(msg);
   };
 
   return (

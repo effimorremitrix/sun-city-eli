@@ -16,7 +16,7 @@ import {
   neighborhoods,
   priceRanges,
   formatPrice,
-  whatsappLink,
+  buildWa,
   business,
   type Property,
 } from "@/lib/site-data";
@@ -122,7 +122,7 @@ export function PropertySection() {
             ספרו לנו מה אתם מחפשים ונאתר עבורכם נכס מתאים.
           </p>
           <a
-            href={whatsappLink("שלום, אני מחפש נכס בנתניה. הפרטים שלי: ")}
+            href={buildWa("שלום, אני מחפש נכס בנתניה. הפרטים שלי: ")}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-4 inline-block rounded-xl bg-whatsapp px-5 py-3 text-sm font-bold text-whatsapp-foreground"
@@ -210,7 +210,7 @@ function PropertyCard({ property: p, onOpen }: { property: Property; onOpen: () 
             לפרטים
           </button>
           <a
-            href={whatsappLink(
+            href={buildWa(
               `שלום, מעניין אותי הנכס: ${p.title} (${p.neighborhood}), ${formatPrice(p.price)}. אפשר פרטים?`,
             )}
             target="_blank"
@@ -258,7 +258,7 @@ function PropertyModal({ property: p, onClose }: { property: Property; onClose: 
     if (!isValidIsraeliPhone(form.phone)) return setErr(phoneError);
     setErr(null);
     const msg = `שלום ${business.name},\nאני מעוניין בנכס: ${p.title}\nאזור: ${p.neighborhood}\nמחיר: ${formatPrice(p.price)}\nשם: ${form.name}\nטלפון: ${form.phone}`;
-    window.open(whatsappLink(msg), "_blank", "noopener,noreferrer");
+    openWa(msg);
   };
 
   return (

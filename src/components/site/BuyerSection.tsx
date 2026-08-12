@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Users } from "lucide-react";
-import { business, neighborhoods, whatsappLink } from "@/lib/site-data";
+import { business, neighborhoods, buildWa, openWa } from "@/lib/site-data";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
 
 export function BuyerSection() {
@@ -13,7 +13,7 @@ export function BuyerSection() {
     if (!isValidIsraeliPhone(form.phone)) return setErr(phoneError);
     setErr(null);
     const msg = `שלום ${business.name},\nאני מחפש נכס לפי דרישה.\nשם: ${form.name}\nטלפון: ${form.phone}\nתקציב: ${form.budget || "לא צוין"}\nחדרים: ${form.rooms || "לא צוין"}\nאזור מועדף: ${form.area || "לא צוין"}`;
-    window.open(whatsappLink(msg), "_blank", "noopener,noreferrer");
+    openWa(msg);
   };
 
   return (

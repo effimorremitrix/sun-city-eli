@@ -1,5 +1,5 @@
 import { Phone, MessageCircle } from "lucide-react";
-import { team, business, whatsappLink } from "@/lib/site-data";
+import { team, business, buildWa } from "@/lib/site-data";
 import { Reveal } from "./Reveal";
 
 const initials = (name: string) =>
@@ -47,7 +47,7 @@ export function Team() {
                   {m.phone ? (
                     <div className="mt-4 flex gap-2">
                       <a
-                        href={whatsappLink(
+                        href={buildWa(
                           `שלום ${m.name}, הגעתי מהאתר של ${business.name} ואשמח לדבר.`,
                         )}
                         target="_blank"
@@ -69,7 +69,7 @@ export function Team() {
                     </div>
                   ) : (
                     <a
-                      href={whatsappLink(
+                      href={buildWa(
                         `שלום ${business.name}, אשמח לפנייה למשרד בנוגע ל${m.name}.`,
                       )}
                       target="_blank"
