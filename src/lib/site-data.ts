@@ -12,6 +12,7 @@ import agentYelena from "@/assets/agent-yelena.jpg.asset.json";
 import agentElad from "@/assets/agent-elad.jpg.asset.json";
 import agentKoral from "@/assets/agent-koral.jpg.asset.json";
 import agentDaniel from "@/assets/agent-daniel.jpg.asset.json";
+import agentEli from "@/assets/agent-eli.jpg.asset.json";
 
 /* ============================================================
  * SITE_CONFIG — מספר טלפון אחד בלבד לכל האתר, וכל הקישורים במקום אחד.
