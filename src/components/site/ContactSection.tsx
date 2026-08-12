@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { MapPin, Phone, Mail, Clock, MessageCircle, Sun, Facebook, Instagram } from "lucide-react";
-import { business, mapsEmbedUrl, whatsappLink } from "@/lib/site-data";
+import { business, mapsEmbedUrl, mapsUrl, wazeUrl, whatsappLink } from "@/lib/site-data";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
 
 export function ContactSection() {
@@ -32,7 +32,7 @@ export function ContactSection() {
                 <p className="text-sm text-muted-foreground">{business.address}</p>
                 <div className="mt-2 flex gap-2">
                   <a
-                    href={business.wazeUrl}
+                    href={wazeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="rounded-lg border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary"
@@ -40,7 +40,7 @@ export function ContactSection() {
                     ניווט בוויז
                   </a>
                   <a
-                    href={business.mapsUrl}
+                    href={mapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="rounded-lg border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary"
@@ -167,14 +167,18 @@ export function Footer() {
           <p className="mt-1 text-sm text-navy-foreground/75">{business.tagline}</p>
           <div className="mt-4 flex gap-2">
             <a
-              href={business.social.facebook.startsWith("http") ? business.social.facebook : "#contact"}
+              href={business.social.facebook}
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label="עמוד הפייסבוק שלנו"
               className="inline-flex size-9 items-center justify-center rounded-lg bg-[oklch(1_0_0/0.1)]"
             >
               <Facebook className="size-4" aria-hidden="true" />
             </a>
             <a
-              href={business.social.instagram.startsWith("http") ? business.social.instagram : "#contact"}
+              href={business.social.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label="עמוד האינסטגרם שלנו"
               className="inline-flex size-9 items-center justify-center rounded-lg bg-[oklch(1_0_0/0.1)]"
             >
