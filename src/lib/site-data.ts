@@ -6,6 +6,12 @@ import prop5 from "@/assets/prop-5.jpg";
 import prop6 from "@/assets/prop-6.jpg";
 import prop7 from "@/assets/prop-7.jpg";
 import prop8 from "@/assets/prop-8.jpg";
+import agentInbal from "@/assets/agent-inbal.jpg.asset.json";
+import agentKobi from "@/assets/agent-kobi.jpg.asset.json";
+import agentYelena from "@/assets/agent-yelena.jpg.asset.json";
+import agentElad from "@/assets/agent-elad.jpg.asset.json";
+import agentKoral from "@/assets/agent-koral.jpg.asset.json";
+import agentDaniel from "@/assets/agent-daniel.jpg.asset.json";
 
 /* ============================================================
  * SITE_CONFIG — מספר טלפון אחד בלבד לכל האתר, וכל הקישורים במקום אחד.
@@ -145,39 +151,45 @@ export type Agent = {
 export const team: Agent[] = [
   {
     name: "אלי כליף",
-    role: 'שותף ובעלים | מומחה נדל"ן, דרום נתניה',
+    role: 'שותף ובעלים, מומחה נדל"ן דרום נתניה',
     photo: "photo1",
     phone: PHONE,
   },
   {
     name: "עינבל קובל בוזגלו",
-    role: "מנהלת הצוות ושותפה | מומחית לדירות יד שנייה",
+    role: "מנהלת הצוות ושותפה, מומחית לדירות יד שנייה",
     photo: "photo2",
+    image: agentInbal.url,
   },
   {
     name: "קובי בוזגלו",
-    role: 'יועץ נדל"ן ומשכנתאות | מרכז וצפון נתניה, תושבי חוץ',
+    role: 'יועץ נדל"ן ומשכנתאות, מרכז וצפון נתניה ותושבי חוץ',
     photo: "photo3",
+    image: agentKobi.url,
   },
   {
     name: "ילנה גנדלין",
-    role: 'מומחית נדל"ן | מזרח ודרום נתניה, דוברת רוסית',
+    role: 'מומחית נדל"ן, מזרח ודרום נתניה, דוברת רוסית',
     photo: "photo4",
+    image: agentYelena.url,
   },
   {
     name: "אלעד אבוטבול",
-    role: "מומחה לדירות יד שנייה | מרכז ודרום נתניה",
+    role: "מומחה לדירות יד שנייה, מרכז ודרום נתניה",
     photo: "photo5",
+    image: agentElad.url,
   },
   {
     name: "קוראל בוחבוט",
-    role: 'יועצת נדל"ן | הערכות שווי וליווי תושבי חוץ',
+    role: 'יועצת נדל"ן, הערכות שווי וליווי תושבי חוץ',
     photo: "photo6",
+    image: agentKoral.url,
   },
   {
     name: "דניאל מוצא",
-    role: 'מומחה נדל"ן | דרום נתניה, ליווי קונים',
+    role: 'מומחה נדל"ן, דרום נתניה',
     photo: "photo7",
+    image: agentDaniel.url,
   },
 ];
 

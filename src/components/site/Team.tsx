@@ -28,21 +28,21 @@ export function Team() {
                     <img
                       src={m.image}
                       alt={`${m.name} — ${m.role}`}
-                      width={160}
-                      height={160}
+                      width={140}
+                      height={140}
                       loading="lazy"
-                      className="mx-auto size-28 rounded-full object-cover"
+                      className="mx-auto size-[140px] rounded-full border-2 border-sun object-cover object-top"
                     />
                   ) : (
                     <div
-                      className="mx-auto flex size-28 items-center justify-center rounded-full bg-sun/20 font-display text-2xl font-extrabold text-primary"
+                      className="mx-auto flex size-[140px] items-center justify-center rounded-full border-2 border-sun bg-sun/20 font-display text-3xl font-extrabold text-primary"
                       aria-hidden="true"
                     >
                       {initials(m.name)}
                     </div>
                   )}
-                  <h3 className="mt-3 text-lg">{m.name}</h3>
-                  <p className="text-sm font-semibold text-sun">{m.role}</p>
+                  <h3 className="mt-3 text-lg font-extrabold">{m.name}</h3>
+                  <p className="mt-1 text-sm font-semibold text-sun">{m.role}</p>
 
                   {m.phone ? (
                     <div className="mt-4 flex gap-2">
