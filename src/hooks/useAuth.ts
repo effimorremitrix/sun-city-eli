@@ -15,6 +15,9 @@ export function useAuth() {
   const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  const refresh = useCallback(() => setRefreshTick((t) => t + 1), []);
 
   const loadUser = useCallback(async () => {
     const {
