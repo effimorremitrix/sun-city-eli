@@ -1,14 +1,136 @@
-# Welcome to your Lovable project
+# sun city
+
+בנה לי אתר תדמית ומכירה למסעדה יהודית קטנה ומשפחתית בנתניה.
+
+האתר כולו בעברית, RTL מלא (dir="rtl", lang="he"), מותאם קודם כל למובייל.
+
+פונט: Heebo או Assistant מגוגל פונטס. כל הריווחים, החצים והאייקונים
+
+צריכים להתהפך נכון ל‑RTL.
+
+
+
+=== פרטי העסק ===
+
+שם: החצר של אייזיק
+
+סלוגן: אוכל יהודי ביתי, כמו של פעם
+
+כתובת: דר' ישראל בורגנסקי 6, נתניה
+
+אופי: מקום שכונתי חם וביתי, לא רשמי, מתאים לילדים ולקבוצות.
+
+מתמחה בצ'ולנט. יש אכילה במקום ואיסוף עצמי.
+
+טלפון: [להשלמה]
+
+שעות פתיחה: [להשלמה]
+
+כשרות: [להשלמה]
+
+
+
+=== שפה עיצובית ===
+
+חם ונוסטלגי, לא תאגידי. פלטה: בורדו עמוק #7A2E2E, קרם חמים #F7F1E6,
+
+זהב קלוי #C8964B, טקסט פחם #2B2119. פינות מעוגלות רכות, טקסטורת פשתן
+
+עדינה ברקע, הרבה אוויר, תמונות אוכל גדולות ומעוררות תיאבון.
+
+תחושה של שולחן בחצר, לא של רשת מסעדות. בלי גרדיאנטים ניאוניים,
+
+בלי glassmorphism, בלי מראה SaaS גנרי.
+
+
+
+=== מבנה העמוד (לפי הסדר) ===
+
+
+
+1. הדר דביק
+
+   לוגו טקסטואלי מימין, תפריט המבורגר משמאל במובייל.
+
+   ניווט: תפריט, הזמנת שבת, הסיפור שלנו, גלריה, צור קשר.
+
+   בר תחתון קבוע במובייל עם שני כפתורים:
+
+   "הזמנה בוואטסאפ" (ירוק) ו"ניווט" (מתאר בלבד).
+
+
+
+2. הירו
+
+   תמונת אוכל רוחב מלא עם שכבת כהות.
+
+   כותרת ראשית: החצר של אייזיק
+
+   משנה: אוכל יהודי ביתי בנתניה. צ'ולנט, קוגל וחמין כמו בבית סבתא.
+
+   כפתור ראשי: להזמנת שבת
+
+   כפתור משני: לתפריט המלא
+
+   שורת תגיות קטנה: כשר | איסוף עצמי | מקום לשבת
+
+
+
+3. רצועת אמון
+
+   ארבעה כרטיסי אייקון, גלילה אופקית במובייל:
+
+   חמים וביתי | מתאים לילדים | מארחים קבוצות | איסוף עצמי
+
+
+
+4. מנת הדגל: "הצ'ולנט שלנו"
+
+   תמונה גדולה מצד אחד, טקסט מהשני:
+
+   "הצ'ולנט של אייזיק מתבשל לאט מליל חמישי, בסיר אחד, בלי קיצורי דרך.
+
+   זו המנה שאנשים חוזרים אליה, ולא במקרה."
+
+   מתחת, כרטיס ציטוט מביקורת אמיתית:
+
+   "צולנט טעים מאוד! אוירה נחמדה!" ,בנימין ב.
+
+
+
+5. תפריט (קומפוננטה MenuSection)
+
+   טאבים דביקים לפי קטגוריה:
+
+   מנות חמות | מרקים | תוספות | קינוחים | מגשי אירוח
+
+   כל פריט: שם, שורת תיאור אחת, מחיר, ותגית "מומלץ" אופציונלית.
+
+   כל הנתונים במערך אחד בראש הקובץ, כדי שאפשר יהיה לעדכן מחירים
+
+   בלי לגעת בעיצוב.
+
+   פריטי דוגמה: צ'ולנט, קוגל תפוחי אדמה, קישקע, מרק עוף עם קניידלך,
+
+   גפילטע פיש, חמין ירושלמי. [המחירים להשלמה]
+
+
+
+6. הזמנת שבת (הסקשן החשוב ביותר להמרה)
+
+   כותרת: הזמנת שבת
 
 This project was built with [Lovable](https://lovable.dev).
 
+**Live app**: https://sun-city-eli.lovable.app
+
 ## Build with Lovable
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/fa1ddeb7-276a-43f9-9a11-88bf6cf82b41).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 
@@ -20,10 +142,3 @@ cd <repository-name>
 npm i
 npm run dev
 ```
-
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
