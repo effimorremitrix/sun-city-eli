@@ -68,12 +68,20 @@ const LOCAL_IMAGES: Record<string, string> = {
   "prop-8": prop8,
 };
 
-/** תמונת הנכס: קודם כתובת שהוזנה בניהול, אחרת תמונה מקומית לפי המזהה */
-export function listingImage(l: Pick<Listing, "image_url" | "image_key">): string | null {
-  if (l.image_url && l.image_url.trim()) return l.image_url;
-  if (l.image_key && LOCAL_IMAGES[l.image_key]) return LOCAL_IMAGES[l.image_key]!;
-  return null;
+/** כל תמונות הנכס: קודם הגלריה שהועלתה בניהול, אחרת כתובת/תמונה מקומית */
+export function listingImages(l: Pick<Listing, "image_url" | "image_key" | "images">): string[] {
+  const gallery = (l.images ?? []).map((i) => i.url).filter(Boolean);
+  if (gallery.length) return gallery;
+  if (l.image_url && l.image_url.trim()) return [l.image_url];
+  if (l.image_key && LOCAL_IMAGES[l.image_key]) return [LOCAL_IMAGES[l.image_key]!];
+  return [];
 }
+
+/** תמונת הנכס הראשית */
+export function listingImage(l: Pick<Listing, "image_url" | "image_key" | "images">): string | null {
+  return listingImages(l)[0] ?? null;
+}
+
 
 export const LISTING_FEATURES = [
   { key: "has_mamad", need: "needs_mamad", label: "ממ״ד" },
