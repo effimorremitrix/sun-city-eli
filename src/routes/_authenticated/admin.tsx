@@ -9,6 +9,8 @@ import { formatListingPrice, type Listing } from "@/lib/listings";
 import { neighborhoods } from "@/lib/site-data";
 import type { LiveBusiness, LiveTexts } from "@/lib/site-live";
 import { AdminUsers } from "@/components/site/AdminUsers";
+import AdminListingImages from "@/components/site/AdminListingImages";
+
 
 type TabKey = "listings" | "content" | "users";
 
