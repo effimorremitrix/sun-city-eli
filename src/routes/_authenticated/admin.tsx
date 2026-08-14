@@ -253,6 +253,7 @@ function AdminPage() {
         {(
           [
             ["listings", "נכסים"],
+            ["scout", newCount > 0 ? `סוכן סריקה (${newCount})` : "סוכן סריקה"],
             ["content", "תוכן העסק"],
             ["users", "משתמשים רשומים"],
             ["usage", "שימוש (Usage)"],
