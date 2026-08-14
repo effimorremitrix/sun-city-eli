@@ -37,8 +37,9 @@ export const getMyAccount = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
 
-    const [{ data: isAdmin }, { data: profiles }, { data: notifications }] = await Promise.all([
+    const [{ data: isAdmin }, { data: profile }, { data: profiles }, { data: notifications }] = await Promise.all([
       supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+      supabase.from("profiles").select("full_name").eq("id", userId).single(),
       supabase
         .from("search_profiles")
         .select(
@@ -56,9 +57,25 @@ export const getMyAccount = createServerFn({ method: "GET" })
 
     return {
       isAdmin: Boolean(isAdmin),
+      fullName: profile?.full_name ?? null,
       profiles: (profiles ?? []) as unknown as SearchProfileRow[],
       notifications: (notifications ?? []) as unknown as NotificationRow[],
     };
+  });
+
+export const updateMyProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => {
+    const parsed = input as { full_name?: string };
+    return { full_name: String(parsed.full_name ?? "").trim() };
+  })
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("profiles")
+      .update({ full_name: data.full_name })
+      .eq("id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 export const saveMySearchProfile = createServerFn({ method: "POST" })

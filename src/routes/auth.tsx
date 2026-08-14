@@ -23,6 +23,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
@@ -43,7 +44,10 @@ function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/account` },
+          options: {
+            emailRedirectTo: `${window.location.origin}/account`,
+            data: { full_name: fullName.trim() },
+          },
         });
         if (error) throw error;
         setMsg("נשלח אימות למייל. לאחר האישור אפשר להתחבר ולהגדיר את הסוכן האישי.");
@@ -64,6 +68,19 @@ function AuthPage() {
         </p>
 
         <form onSubmit={submit} className="mt-5 grid gap-3" noValidate>
+          {mode === "signup" && (
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">שם מלא</span>
+              <input
+                className="field"
+                type="text"
+                autoComplete="name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required={mode === "signup"}
+              />
+            </label>
+          )}
           <label className="block">
             <span className="mb-1 block text-xs font-bold text-muted-foreground">אימייל</span>
             <input
