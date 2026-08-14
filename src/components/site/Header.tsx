@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Menu, X, Phone } from "lucide-react";
+import { Menu, X, Phone, LogOut, User } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import logoAsset from "@/assets/sun-city-logo-real.png.asset.json";
+import { useLive } from "@/lib/site-live";
+import { useAuth } from "@/hooks/useAuth";
 
 const logo = logoAsset.url;
-import { useLive } from "@/lib/site-live";
 
 const links = [
   { id: "properties", label: "נכסים" },
