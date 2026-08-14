@@ -117,6 +117,36 @@ function AuthPage() {
           {mode === "signin" ? "אין לי חשבון — הרשמה חינם" : "יש לי חשבון, להתחברות"}
         </button>
 
+        {mode === "signin" && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setErr(null);
+              setMsg(null);
+              if (!email.trim() || !email.includes("@")) {
+                setErr("נא להזין את כתובת המייל שלכם ואז ללחוץ על שכחתי סיסמה");
+                return;
+              }
+              setBusy(true);
+              try {
+                const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+                  redirectTo: `${window.location.origin}/reset-password`,
+                });
+                if (error) throw error;
+                setMsg("נשלח קישור לאיפוס סיסמה לכתובת המייל שהזנתם.");
+              } catch (e) {
+                setErr(e instanceof Error ? e.message : "שליחת קישור האיפוס נכשלה");
+              } finally {
+                setBusy(false);
+              }
+            }}
+            className="mt-2 w-full text-xs text-muted-foreground underline"
+          >
+            שכחתי סיסמה — שליחת קישור איפוס למייל
+          </button>
+        )}
+
         <Link to="/" className="mt-4 block text-center text-xs text-muted-foreground underline">
           חזרה לאתר
         </Link>
