@@ -67,7 +67,7 @@ export function useAuth() {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [loadUser]);
+  }, [loadUser, refreshTick]);
 
   const logout = useCallback(async () => {
     await queryClient.cancelQueries();
