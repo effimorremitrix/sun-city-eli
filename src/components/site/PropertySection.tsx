@@ -336,7 +336,9 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
 function PropertyModal({ property: p, onClose }: { property: Listing; onClose: () => void }) {
   const [form, setForm] = useState({ name: "", phone: "" });
   const [err, setErr] = useState<string | null>(null);
-  const img = listingImage(p);
+  const gallery = listingImages(p);
+  const [index, setIndex] = useState(0);
+
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
