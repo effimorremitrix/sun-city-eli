@@ -163,8 +163,13 @@ function AccountPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-extrabold text-primary">האזור האישי שלי</h1>
-        <div className="flex gap-3 text-sm">
+        <div>
+          <h1 className="text-2xl font-extrabold text-primary">
+            {user?.fullName ? `שלום, ${user.fullName}` : "האזור האישי שלי"}
+          </h1>
+          {user?.email && <p className="text-xs text-muted-foreground">{user.email}</p>}
+        </div>
+        <div className="flex items-center gap-3 text-sm">
           <Link to="/" className="underline">
             לאתר
           </Link>
@@ -175,12 +180,10 @@ function AccountPage() {
           )}
           <button
             type="button"
-            onClick={async () => {
-              await supabase.auth.signOut();
-              window.location.href = "/";
-            }}
-            className="underline"
+            onClick={logout}
+            className="flex items-center gap-1 font-bold text-destructive underline"
           >
+            <LogOut className="size-4" aria-hidden="true" />
             יציאה
           </button>
         </div>
