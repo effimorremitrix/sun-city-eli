@@ -238,8 +238,38 @@ function AdminPage() {
         </p>
       )}
 
+      {/* טאבים */}
+      <div className="mt-6 flex flex-wrap gap-2" role="tablist">
+        {(
+          [
+            ["listings", "נכסים"],
+            ["content", "תוכן העסק"],
+            ["users", "משתמשים רשומים"],
+          ] as Array<[TabKey, string]>
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => setTab(key)}
+            className={
+              tab === key
+                ? "rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground"
+                : "rounded-xl border border-primary/30 px-4 py-2 text-sm font-bold text-primary"
+            }
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "users" && <AdminUsers />}
+
       {/* ניהול נכסים */}
+      {tab === "listings" && (
       <section className="soft-card mt-6 p-5">
+
         <h2 className="text-lg font-extrabold text-primary">{form.id ? "עריכת נכס" : "הוספת נכס"}</h2>
         <p className="mt-1 text-xs text-muted-foreground">
           כל נכס שמפורסם מייצר התראה אוטומטית לכל לקוח שהפרופיל שלו תואם. אין להזין נכס שאינו אמיתי.
