@@ -20,7 +20,8 @@ export const listPublicListings = createServerFn({ method: "GET" }).handler(
       console.error("listPublicListings failed", error.message);
       return [];
     }
-    return (data ?? []) as unknown as Listing[];
+    const { attachListingImages } = await import("@/lib/listing-images.server");
+    return attachListingImages((data ?? []) as unknown as Listing[]);
   },
 );
 
@@ -36,8 +37,10 @@ export const adminListListings = createServerFn({ method: "GET" })
       .select(LISTING_COLUMNS)
       .order("sort_order", { ascending: true });
     if (error) throw new Error(error.message);
-    return (data ?? []) as unknown as Listing[];
+    const { attachListingImages } = await import("@/lib/listing-images.server");
+    return attachListingImages((data ?? []) as unknown as Listing[]);
   });
+
 
 export const adminSaveListing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
