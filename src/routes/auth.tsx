@@ -68,6 +68,19 @@ function AuthPage() {
         </p>
 
         <form onSubmit={submit} className="mt-5 grid gap-3" noValidate>
+          {mode === "signup" && (
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">שם מלא</span>
+              <input
+                className="field"
+                type="text"
+                autoComplete="name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required={mode === "signup"}
+              />
+            </label>
+          )}
           <label className="block">
             <span className="mb-1 block text-xs font-bold text-muted-foreground">אימייל</span>
             <input
