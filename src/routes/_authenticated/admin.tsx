@@ -278,6 +278,9 @@ function AdminPage() {
 
       {tab === "users" && <AdminUsers />}
       {tab === "usage" && <AdminUsage />}
+      {tab === "scout" && <AdminScout />}
+
+
 
       {/* ניהול נכסים */}
       {tab === "listings" && (
