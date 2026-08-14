@@ -41,37 +41,72 @@ function sanitize(raw: unknown, neighborhoods: string[]): AiFilterResult {
   };
 }
 
-/** ממיר טקסט חופשי לפילטרים מובנים באמצעות Lovable AI */
-export async function extractFilters(query: string, neighborhoods: string[]): Promise<AiFilterResult> {
-  const apiKey = process.env["LOVABLE_API_KEY"];
-  if (!apiKey) throw new Error("חיפוש ה‑AI אינו זמין כרגע");
+/** ממיר טקסט חופשי לפילטרים מובנים באמצעות Anthropic Claude (מפתח חיצוני של בעל האתר) */
+export async function extractFilters(
+  query: string,
+  neighborhoods: string[],
+  userId: string | null = null,
+): Promise<AiFilterResult> {
+  const { AI_MODEL, logAiUsage } = await import("@/lib/ai-usage.server");
+  const apiKey = process.env["ANTHROPIC_API_KEY"];
+  if (!apiKey) {
+    await logAiUsage({ model: AI_MODEL, status: "error", errorMessage: "missing ANTHROPIC_API_KEY", userId });
+    throw new Error("חיפוש ה‑AI אינו זמין כרגע");
+  }
 
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-    body: JSON.stringify({
-      model: "openai/gpt-5.6-sol",
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: `${SYSTEM_PROMPT}\nשכונות מותרות: ${neighborhoods.join(", ")}` },
-        { role: "user", content: query },
-      ],
-    }),
-  });
-
-  if (res.status === 429) throw new Error("יותר מדי בקשות חיפוש. נסו שוב בעוד רגע");
-  if (!res.ok) {
-    console.error("ai search failed", res.status, await res.text().catch(() => ""));
+  let res: Response;
+  try {
+    res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: AI_MODEL,
+        max_tokens: 600,
+        system: `${SYSTEM_PROMPT}\nשכונות מותרות: ${neighborhoods.join(", ")}`,
+        messages: [{ role: "user", content: query }],
+      }),
+    });
+  } catch (err) {
+    await logAiUsage({ model: AI_MODEL, status: "error", errorMessage: String(err), userId });
     throw new Error("החיפוש החכם נכשל. נסו שוב או השתמשו בסינון הרגיל");
   }
 
-  const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  const content = json.choices?.[0]?.message?.content ?? "{}";
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    console.error("ai search failed", res.status, body);
+    await logAiUsage({ model: AI_MODEL, status: "error", errorMessage: `HTTP ${res.status}`, userId });
+    if (res.status === 429) throw new Error("יותר מדי בקשות חיפוש. נסו שוב בעוד רגע");
+    if (res.status === 401 || res.status === 403) throw new Error("חיפוש ה‑AI אינו זמין כרגע");
+    throw new Error("החיפוש החכם נכשל. נסו שוב או השתמשו בסינון הרגיל");
+  }
+
+  const json = (await res.json()) as {
+    content?: Array<{ type?: string; text?: string }>;
+    usage?: { input_tokens?: number; output_tokens?: number };
+  };
+
+  await logAiUsage({
+    model: AI_MODEL,
+    inputTokens: json.usage?.input_tokens ?? 0,
+    outputTokens: json.usage?.output_tokens ?? 0,
+    status: "success",
+    userId,
+  });
+
+  const raw = (json.content ?? []).map((c) => c?.text ?? "").join("").trim();
+  const cleaned = raw.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
   let parsed: unknown = {};
   try {
-    parsed = JSON.parse(content);
+    parsed = JSON.parse(start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned);
   } catch {
     parsed = {};
   }
   return sanitize(parsed, neighborhoods);
 }
+

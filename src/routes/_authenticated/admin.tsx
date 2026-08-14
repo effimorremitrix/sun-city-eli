@@ -9,10 +9,11 @@ import { formatListingPrice, type Listing } from "@/lib/listings";
 import { neighborhoods } from "@/lib/site-data";
 import type { LiveBusiness, LiveTexts } from "@/lib/site-live";
 import { AdminUsers } from "@/components/site/AdminUsers";
+import AdminUsage from "@/components/site/AdminUsage";
 import AdminListingImages from "@/components/site/AdminListingImages";
 
 
-type TabKey = "listings" | "content" | "users";
+type TabKey = "listings" | "content" | "users" | "usage";
 
 
 const title = 'אזור ניהול | סאן סיטי נדל"ן';
@@ -254,6 +255,7 @@ function AdminPage() {
             ["listings", "נכסים"],
             ["content", "תוכן העסק"],
             ["users", "משתמשים רשומים"],
+            ["usage", "שימוש (Usage)"],
           ] as Array<[TabKey, string]>
         ).map(([key, label]) => (
           <button
@@ -274,6 +276,7 @@ function AdminPage() {
       </div>
 
       {tab === "users" && <AdminUsers />}
+      {tab === "usage" && <AdminUsage />}
 
       {/* ניהול נכסים */}
       {tab === "listings" && (
