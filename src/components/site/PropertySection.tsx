@@ -369,16 +369,61 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
         </div>
 
         <div className="p-4">
-          {img && (
-            <img
-              src={img}
-              alt={`${p.title} ב${p.neighborhood ?? "נתניה"}`}
-              width={1200}
-              height={800}
-              loading="lazy"
-              className="aspect-[3/2] w-full rounded-xl object-cover"
-            />
+          {gallery.length > 0 && (
+            <div>
+              <div className="relative">
+                <img
+                  src={gallery[index]!}
+                  alt={`${p.title} ב${p.neighborhood ?? "נתניה"} — תמונה ${index + 1} מתוך ${gallery.length}`}
+                  width={1200}
+                  height={800}
+                  loading="lazy"
+                  className="aspect-[3/2] w-full rounded-xl object-cover"
+                />
+                {gallery.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setIndex((i) => (i + 1) % gallery.length)}
+                      aria-label="התמונה הבאה"
+                      className="absolute top-1/2 left-2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 text-primary shadow"
+                    >
+                      <ChevronLeft className="size-5" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIndex((i) => (i - 1 + gallery.length) % gallery.length)}
+                      aria-label="התמונה הקודמת"
+                      className="absolute top-1/2 right-2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 text-primary shadow"
+                    >
+                      <ChevronRight className="size-5" aria-hidden="true" />
+                    </button>
+                    <span className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-primary/85 px-2.5 py-1 text-xs font-bold text-primary-foreground">
+                      {index + 1} / {gallery.length}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {gallery.length > 1 && (
+                <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                  {gallery.map((src, i) => (
+                    <button
+                      key={src}
+                      type="button"
+                      onClick={() => setIndex(i)}
+                      aria-label={`הצגת תמונה ${i + 1}`}
+                      aria-current={i === index}
+                      className={`shrink-0 overflow-hidden rounded-lg border-2 ${i === index ? "border-sun" : "border-transparent"}`}
+                    >
+                      <img src={src} alt="" className="h-16 w-24 object-cover" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
+
 
           <p className="mt-4 font-display text-2xl font-extrabold text-primary">
             {formatListingPrice(p.price)}
