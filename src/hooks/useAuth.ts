@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface AuthUser {
   id: string;
-  email?: string;
+  email: string | undefined;
   fullName: string | null;
   isAdmin: boolean;
 }
