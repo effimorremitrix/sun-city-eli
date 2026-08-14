@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      listing_images: {
+        Row: {
+          created_at: string
+          external_url: string | null
+          id: string
+          listing_id: string
+          sort_order: number
+          storage_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_url?: string | null
+          id?: string
+          listing_id: string
+          sort_order?: number
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_url?: string | null
+          id?: string
+          listing_id?: string
+          sort_order?: number
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_images_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_notifications: {
         Row: {
           created_at: string

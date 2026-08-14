@@ -9,6 +9,8 @@ import { formatListingPrice, type Listing } from "@/lib/listings";
 import { neighborhoods } from "@/lib/site-data";
 import type { LiveBusiness, LiveTexts } from "@/lib/site-live";
 import { AdminUsers } from "@/components/site/AdminUsers";
+import AdminListingImages from "@/components/site/AdminListingImages";
+
 
 type TabKey = "listings" | "content" | "users";
 
@@ -170,11 +172,12 @@ function AdminPage() {
           is_published: form.is_published,
           sort_order: Number(form.sort_order) || 0,
         },
-      })) as { matched: number; emailsSent: number; emailsPending: number };
-      setForm(emptyForm);
+      })) as { id: string; matched: number; emailsSent: number; emailsPending: number };
+      setForm((f) => ({ ...f, id: res.id }));
       setMsg(
-        `הנכס נשמר. נשלחו התראות ל-${res.matched} פרופילי חיפוש (מיילים שנשלחו: ${res.emailsSent}, ממתינים: ${res.emailsPending}).`,
+        `הנכס נשמר. אפשר להעלות עכשיו תמונות לנכס. נשלחו התראות ל-${res.matched} פרופילי חיפוש (מיילים שנשלחו: ${res.emailsSent}, ממתינים: ${res.emailsPending}).`,
       );
+
     }, "הנכס נשמר");
 
   if (site.isLoading) {
@@ -328,10 +331,16 @@ function AdminPage() {
             <span className="mb-1 block text-xs font-bold text-muted-foreground">תג (למשל: חדש)</span>
             <input className="field" value={form.tag} maxLength={20} onChange={(e) => setForm({ ...form, tag: e.target.value })} />
           </label>
+          <div className="sm:col-span-2">
+            <AdminListingImages listingId={form.id ?? null} onChanged={() => void listings.refetch()} />
+          </div>
           <label className="block sm:col-span-2">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">כתובת תמונה (URL)</span>
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">
+              כתובת תמונה חיצונית (URL) — אופציונלי, בשימוש כשאין תמונות שהועלו
+            </span>
             <input className="field" dir="ltr" value={form.image_url} maxLength={500} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
           </label>
+
           <label className="block sm:col-span-2">
             <span className="mb-1 block text-xs font-bold text-muted-foreground">תיאור</span>
             <textarea

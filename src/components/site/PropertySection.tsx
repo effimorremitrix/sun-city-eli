@@ -14,15 +14,20 @@ import {
   MapPin,
   Sparkles,
   BellPlus,
+  Images,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { neighborhoods, priceRanges, waProps, openWa, business } from "@/lib/site-data";
 import {
   formatListingPrice,
-  listingImage,
+  listingImages,
+
   matchesFilters,
   type Listing,
   type ListingFilters,
 } from "@/lib/listings";
+
 import { aiSearchListings } from "@/lib/ai-search.functions";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
 import { Reveal } from "./Reveal";
@@ -235,7 +240,8 @@ export function PropertySection({ listings, updatedAt }: Props) {
 }
 
 function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () => void }) {
-  const img = listingImage(p);
+  const gallery = listingImages(p);
+  const img = gallery[0] ?? null;
 
   return (
     <article className="soft-card flex h-full flex-col overflow-hidden">
@@ -259,7 +265,14 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
             {p.tag}
           </span>
         )}
+        {gallery.length > 1 && (
+          <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-primary/85 px-2.5 py-1 text-xs font-bold text-primary-foreground">
+            <Images className="size-3.5" aria-hidden="true" />
+            {gallery.length} תמונות
+          </span>
+        )}
       </div>
+
       <div className="flex flex-1 flex-col p-4">
         <p className="font-display text-xl font-extrabold text-primary">{formatListingPrice(p.price)}</p>
         <h3 className="mt-1 text-base">{p.title}</h3>
@@ -323,7 +336,9 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
 function PropertyModal({ property: p, onClose }: { property: Listing; onClose: () => void }) {
   const [form, setForm] = useState({ name: "", phone: "" });
   const [err, setErr] = useState<string | null>(null);
-  const img = listingImage(p);
+  const gallery = listingImages(p);
+  const [index, setIndex] = useState(0);
+
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -356,16 +371,61 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
         </div>
 
         <div className="p-4">
-          {img && (
-            <img
-              src={img}
-              alt={`${p.title} ב${p.neighborhood ?? "נתניה"}`}
-              width={1200}
-              height={800}
-              loading="lazy"
-              className="aspect-[3/2] w-full rounded-xl object-cover"
-            />
+          {gallery.length > 0 && (
+            <div>
+              <div className="relative">
+                <img
+                  src={gallery[index]!}
+                  alt={`${p.title} ב${p.neighborhood ?? "נתניה"} — תמונה ${index + 1} מתוך ${gallery.length}`}
+                  width={1200}
+                  height={800}
+                  loading="lazy"
+                  className="aspect-[3/2] w-full rounded-xl object-cover"
+                />
+                {gallery.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setIndex((i) => (i + 1) % gallery.length)}
+                      aria-label="התמונה הבאה"
+                      className="absolute top-1/2 left-2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 text-primary shadow"
+                    >
+                      <ChevronLeft className="size-5" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIndex((i) => (i - 1 + gallery.length) % gallery.length)}
+                      aria-label="התמונה הקודמת"
+                      className="absolute top-1/2 right-2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 text-primary shadow"
+                    >
+                      <ChevronRight className="size-5" aria-hidden="true" />
+                    </button>
+                    <span className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-primary/85 px-2.5 py-1 text-xs font-bold text-primary-foreground">
+                      {index + 1} / {gallery.length}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {gallery.length > 1 && (
+                <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                  {gallery.map((src, i) => (
+                    <button
+                      key={src}
+                      type="button"
+                      onClick={() => setIndex(i)}
+                      aria-label={`הצגת תמונה ${i + 1}`}
+                      aria-current={i === index}
+                      className={`shrink-0 overflow-hidden rounded-lg border-2 ${i === index ? "border-sun" : "border-transparent"}`}
+                    >
+                      <img src={src} alt="" className="h-16 w-24 object-cover" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
+
 
           <p className="mt-4 font-display text-2xl font-extrabold text-primary">
             {formatListingPrice(p.price)}
