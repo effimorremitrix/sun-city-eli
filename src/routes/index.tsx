@@ -13,8 +13,10 @@ import { MobileBar } from "@/components/site/MobileBar";
 import { FloatingWhatsApp } from "@/components/site/FloatingWhatsApp";
 import { AccessibilityWidget } from "@/components/site/AccessibilityWidget";
 import { SITE_CONFIG, properties } from "@/lib/site-data";
-import { SiteLiveProvider } from "@/lib/site-live";
+import { SiteLiveProvider, type LiveSite } from "@/lib/site-live";
 import { getPublicSite } from "@/lib/site.functions";
+import { listPublicListings } from "@/lib/listings.functions";
+import type { Listing } from "@/lib/listings";
 
 
 const title = 'תיווך נתניה | סאן סיטי נדל"ן — דירות למכירה בנתניה';
@@ -66,7 +68,10 @@ export const Route = createFileRoute("/")({
     ],
     scripts: [{ type: "application/ld+json", children: JSON.stringify(schema) }],
   }),
-  loader: () => getPublicSite(),
+  loader: async () => {
+    const [live, listings] = await Promise.all([getPublicSite(), listPublicListings()]);
+    return { live, listings };
+  },
   component: Index,
   errorComponent: () => (
     <main className="mx-auto max-w-lg px-4 py-16 text-center">
@@ -82,7 +87,11 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const live = Route.useLoaderData();
+  const { live, listings } = Route.useLoaderData() as { live: LiveSite; listings: Listing[] };
+  const listingsUpdatedAt = listings.reduce<string | null>(
+    (max, l) => (!max || l.updated_at > max ? l.updated_at : max),
+    null,
+  );
 
   return (
     <SiteLiveProvider value={live}>
@@ -91,7 +100,7 @@ function Index() {
         <main>
           <Hero />
           <Team />
-          <PropertySection />
+          <PropertySection listings={listings} updatedAt={listingsUpdatedAt} />
           <ItemsSection />
           <SellerSection />
           <BuyerSection />
