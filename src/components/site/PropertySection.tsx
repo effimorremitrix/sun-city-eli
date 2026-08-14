@@ -240,7 +240,8 @@ export function PropertySection({ listings, updatedAt }: Props) {
 }
 
 function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () => void }) {
-  const img = listingImage(p);
+  const gallery = listingImages(p);
+  const img = gallery[0] ?? null;
 
   return (
     <article className="soft-card flex h-full flex-col overflow-hidden">
@@ -264,7 +265,14 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
             {p.tag}
           </span>
         )}
+        {gallery.length > 1 && (
+          <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-primary/85 px-2.5 py-1 text-xs font-bold text-primary-foreground">
+            <Images className="size-3.5" aria-hidden="true" />
+            {gallery.length} תמונות
+          </span>
+        )}
       </div>
+
       <div className="flex flex-1 flex-col p-4">
         <p className="font-display text-xl font-extrabold text-primary">{formatListingPrice(p.price)}</p>
         <h3 className="mt-1 text-base">{p.title}</h3>
