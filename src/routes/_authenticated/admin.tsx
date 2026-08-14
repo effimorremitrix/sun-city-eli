@@ -170,11 +170,12 @@ function AdminPage() {
           is_published: form.is_published,
           sort_order: Number(form.sort_order) || 0,
         },
-      })) as { matched: number; emailsSent: number; emailsPending: number };
-      setForm(emptyForm);
+      })) as { id: string; matched: number; emailsSent: number; emailsPending: number };
+      setForm((f) => ({ ...f, id: res.id }));
       setMsg(
-        `הנכס נשמר. נשלחו התראות ל-${res.matched} פרופילי חיפוש (מיילים שנשלחו: ${res.emailsSent}, ממתינים: ${res.emailsPending}).`,
+        `הנכס נשמר. אפשר להעלות עכשיו תמונות לנכס. נשלחו התראות ל-${res.matched} פרופילי חיפוש (מיילים שנשלחו: ${res.emailsSent}, ממתינים: ${res.emailsPending}).`,
       );
+
     }, "הנכס נשמר");
 
   if (site.isLoading) {
