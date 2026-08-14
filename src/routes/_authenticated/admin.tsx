@@ -382,8 +382,11 @@ function AdminPage() {
           )}
         </div>
       </section>
+      )}
 
+      {tab === "listings" && (
       <section className="soft-card mt-6 p-5">
+
         <h2 className="text-lg font-extrabold text-primary">הנכסים במסד הנתונים</h2>
         {listings.isLoading && <p className="mt-2 text-sm text-muted-foreground">טוען נכסים…</p>}
         <ul className="mt-3 grid gap-3">
