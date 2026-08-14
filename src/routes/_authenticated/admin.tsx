@@ -215,6 +215,9 @@ function AdminPage() {
           <Link to="/" className="underline">
             לאתר
           </Link>
+          <Link to="/account" className="underline">
+            הגדרות חשבון
+          </Link>
           <button
             type="button"
             onClick={async () => {
