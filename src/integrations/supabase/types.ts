@@ -14,6 +14,135 @@ export type Database = {
   }
   public: {
     Tables: {
+      listing_notifications: {
+        Row: {
+          created_at: string
+          email_sent_at: string | null
+          id: string
+          listing_id: string
+          read_at: string | null
+          reason: string | null
+          search_profile_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_sent_at?: string | null
+          id?: string
+          listing_id: string
+          read_at?: string | null
+          reason?: string | null
+          search_profile_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_sent_at?: string | null
+          id?: string
+          listing_id?: string
+          read_at?: string | null
+          reason?: string | null
+          search_profile_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_notifications_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_notifications_search_profile_id_fkey"
+            columns: ["search_profile_id"]
+            isOneToOne: false
+            referencedRelation: "search_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listings: {
+        Row: {
+          address: string | null
+          city: string
+          created_at: string
+          deal_type: string
+          description: string | null
+          floor: string | null
+          has_balcony: boolean
+          has_elevator: boolean
+          has_mamad: boolean
+          has_parking: boolean
+          id: string
+          image_key: string | null
+          image_url: string | null
+          is_published: boolean
+          neighborhood: string | null
+          price: number | null
+          published_at: string
+          rooms: number | null
+          size_sqm: number | null
+          sort_order: number
+          tag: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string
+          created_at?: string
+          deal_type?: string
+          description?: string | null
+          floor?: string | null
+          has_balcony?: boolean
+          has_elevator?: boolean
+          has_mamad?: boolean
+          has_parking?: boolean
+          id?: string
+          image_key?: string | null
+          image_url?: string | null
+          is_published?: boolean
+          neighborhood?: string | null
+          price?: number | null
+          published_at?: string
+          rooms?: number | null
+          size_sqm?: number | null
+          sort_order?: number
+          tag?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string
+          created_at?: string
+          deal_type?: string
+          description?: string | null
+          floor?: string | null
+          has_balcony?: boolean
+          has_elevator?: boolean
+          has_mamad?: boolean
+          has_parking?: boolean
+          id?: string
+          image_key?: string | null
+          image_url?: string | null
+          is_published?: boolean
+          neighborhood?: string | null
+          price?: number | null
+          published_at?: string
+          rooms?: number | null
+          size_sqm?: number | null
+          sort_order?: number
+          tag?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -29,6 +158,72 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+        }
+        Relationships: []
+      }
+      search_profiles: {
+        Row: {
+          city: string
+          created_at: string
+          deal_type: string
+          id: string
+          is_active: boolean
+          label: string
+          max_price: number | null
+          min_price: number | null
+          min_rooms: number | null
+          min_size: number | null
+          needs_balcony: boolean
+          needs_elevator: boolean
+          needs_mamad: boolean
+          needs_parking: boolean
+          neighborhoods: string[]
+          notes: string | null
+          notify_email: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          city?: string
+          created_at?: string
+          deal_type?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          max_price?: number | null
+          min_price?: number | null
+          min_rooms?: number | null
+          min_size?: number | null
+          needs_balcony?: boolean
+          needs_elevator?: boolean
+          needs_mamad?: boolean
+          needs_parking?: boolean
+          neighborhoods?: string[]
+          notes?: string | null
+          notify_email?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          deal_type?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          max_price?: number | null
+          min_price?: number | null
+          min_rooms?: number | null
+          min_size?: number | null
+          needs_balcony?: boolean
+          needs_elevator?: boolean
+          needs_mamad?: boolean
+          needs_parking?: boolean
+          neighborhoods?: string[]
+          notes?: string | null
+          notify_email?: boolean
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -65,50 +260,6 @@ export type Database = {
             foreignKeyName: "site_content_site_id_fkey"
             columns: ["site_id"]
             isOneToOne: true
-            referencedRelation: "sites"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      site_edit_links: {
-        Row: {
-          created_at: string
-          id: string
-          label: string | null
-          last_used_at: string | null
-          revoked_at: string | null
-          role: string
-          site_id: string
-          token_hash: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          label?: string | null
-          last_used_at?: string | null
-          revoked_at?: string | null
-          role?: string
-          site_id: string
-          token_hash: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          label?: string | null
-          last_used_at?: string | null
-          revoked_at?: string | null
-          role?: string
-          site_id?: string
-          token_hash?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "site_edit_links_site_id_fkey"
-            columns: ["site_id"]
-            isOneToOne: false
             referencedRelation: "sites"
             referencedColumns: ["id"]
           },
@@ -227,6 +378,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      match_listing_to_profiles: {
+        Args: { p_listing_id: string }
+        Returns: number
       }
       owns_site: { Args: { _site_id: string }; Returns: boolean }
     }

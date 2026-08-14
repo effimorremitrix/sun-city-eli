@@ -1,22 +1,16 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  getMyWorkspace,
-  saveMyContent,
-  saveMyItem,
-  deleteMyItem,
-  claimDeveloperRole,
-  createClientSite,
-  listAllSites,
-} from "@/lib/site.functions";
-import { DEFAULT_BUSINESS, DEFAULT_TEXTS, type LiveBusiness, type LiveTexts } from "@/lib/site-live";
-import { EditLinksPanel } from "@/components/admin/EditLinksPanel";
+import { getAdminSite, saveSiteContent, claimAdminRole } from "@/lib/site.functions";
+import { adminListListings, adminSaveListing, adminDeleteListing } from "@/lib/listings.functions";
+import { formatListingPrice, type Listing } from "@/lib/listings";
+import { neighborhoods } from "@/lib/site-data";
+import type { LiveBusiness, LiveTexts } from "@/lib/site-live";
 
-const title = 'ניהול תוכן האתר | סאן סיטי נדל"ן';
-const description = 'אזור הניהול הפרטי של סאן סיטי נדל"ן — עריכת פרטי העסק, טקסטים ופריטים לאתר.';
+const title = 'אזור ניהול | סאן סיטי נדל"ן';
+const description = 'אזור הניהול של אתר סאן סיטי נדל"ן — ניהול נכסים, תוכן ופרטי העסק.';
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -31,498 +25,430 @@ export const Route = createFileRoute("/_authenticated/admin")({
     ],
   }),
   component: AdminPage,
-  errorComponent: ({ error }) => (
-    <main className="mx-auto max-w-lg px-4 py-16 text-center">
-      <h1 className="text-xl font-bold text-primary">האזור לא נטען</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
-    </main>
-  ),
 });
 
-type ItemForm = {
+type ListingForm = {
   id?: string;
-  kind: string;
   title: string;
+  deal_type: string;
   description: string;
+  city: string;
+  neighborhood: string;
+  address: string;
   price: string;
-  price_note: string;
+  rooms: string;
+  size_sqm: string;
+  floor: string;
+  has_mamad: boolean;
+  has_elevator: boolean;
+  has_parking: boolean;
+  has_balcony: boolean;
+  tag: string;
   image_url: string;
+  is_published: boolean;
   sort_order: string;
-  is_active: boolean;
 };
 
-const emptyItem: ItemForm = {
-  kind: "property",
+const emptyForm: ListingForm = {
   title: "",
+  deal_type: "מכירה",
   description: "",
+  city: "נתניה",
+  neighborhood: "",
+  address: "",
   price: "",
-  price_note: "",
+  rooms: "",
+  size_sqm: "",
+  floor: "",
+  has_mamad: false,
+  has_elevator: false,
+  has_parking: false,
+  has_balcony: false,
+  tag: "",
   image_url: "",
+  is_published: true,
   sort_order: "0",
-  is_active: true,
 };
+
+const toForm = (l: Listing): ListingForm => ({
+  id: l.id,
+  title: l.title,
+  deal_type: l.deal_type,
+  description: l.description ?? "",
+  city: l.city,
+  neighborhood: l.neighborhood ?? "",
+  address: l.address ?? "",
+  price: l.price == null ? "" : String(l.price),
+  rooms: l.rooms == null ? "" : String(l.rooms),
+  size_sqm: l.size_sqm == null ? "" : String(l.size_sqm),
+  floor: l.floor ?? "",
+  has_mamad: l.has_mamad,
+  has_elevator: l.has_elevator,
+  has_parking: l.has_parking,
+  has_balcony: l.has_balcony,
+  tag: l.tag ?? "",
+  image_url: l.image_url ?? "",
+  is_published: l.is_published,
+  sort_order: String(l.sort_order),
+});
+
+const num = (v: string) => (v.trim() === "" ? null : Number(v));
+const str = (v: string) => (v.trim() === "" ? null : v.trim());
 
 function AdminPage() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const fetchWorkspace = useServerFn(getMyWorkspace);
-  const saveContent = useServerFn(saveMyContent);
-  const saveItem = useServerFn(saveMyItem);
-  const removeItem = useServerFn(deleteMyItem);
-  const claimDev = useServerFn(claimDeveloperRole);
+  const fetchSite = useServerFn(getAdminSite);
+  const fetchListings = useServerFn(adminListListings);
+  const saveContent = useServerFn(saveSiteContent);
+  const saveListing = useServerFn(adminSaveListing);
+  const removeListing = useServerFn(adminDeleteListing);
+  const claim = useServerFn(claimAdminRole);
 
-  const workspace = useQuery({ queryKey: ["workspace"], queryFn: () => fetchWorkspace() });
+  const site = useQuery({ queryKey: ["admin-site"], queryFn: () => fetchSite() });
+  const listings = useQuery({
+    queryKey: ["admin-listings"],
+    queryFn: () => fetchListings(),
+    enabled: site.data?.isAdmin === true,
+  });
 
-  const [business, setBusiness] = useState<LiveBusiness>(DEFAULT_BUSINESS);
-  const [texts, setTexts] = useState<LiveTexts>(DEFAULT_TEXTS);
-  const [item, setItem] = useState<ItemForm>(emptyItem);
-  const [note, setNote] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [form, setForm] = useState<ListingForm>(emptyForm);
 
+  const [business, setBusiness] = useState<LiveBusiness | null>(null);
+  const [texts, setTexts] = useState<LiveTexts | null>(null);
   useEffect(() => {
-    if (workspace.data) {
-      setBusiness(workspace.data.live.business);
-      setTexts(workspace.data.live.texts);
+    if (site.data?.live) {
+      setBusiness(site.data.live.business);
+      setTexts(site.data.live.texts);
     }
-  }, [workspace.data]);
-
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["workspace"] });
+  }, [site.data]);
 
   const run = async (fn: () => Promise<unknown>, okMsg: string) => {
     setBusy(true);
     setErr(null);
-    setNote(null);
+    setMsg(null);
     try {
       await fn();
-      setNote(okMsg);
-      await refresh();
+      setMsg(okMsg);
+      await Promise.all([site.refetch(), listings.refetch()]);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "שגיאה בשמירה");
+      setErr(e instanceof Error ? e.message : "הפעולה נכשלה");
     } finally {
       setBusy(false);
     }
   };
 
-  const signOut = async () => {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
-  };
+  const submitListing = () =>
+    run(async () => {
+      const res = (await saveListing({
+        data: {
+          ...(form.id ? { id: form.id } : {}),
+          title: form.title,
+          deal_type: form.deal_type,
+          description: str(form.description),
+          city: form.city || "נתניה",
+          neighborhood: str(form.neighborhood),
+          address: str(form.address),
+          price: num(form.price),
+          rooms: num(form.rooms),
+          size_sqm: num(form.size_sqm),
+          floor: str(form.floor),
+          has_mamad: form.has_mamad,
+          has_elevator: form.has_elevator,
+          has_parking: form.has_parking,
+          has_balcony: form.has_balcony,
+          tag: str(form.tag),
+          image_url: str(form.image_url),
+          image_key: null,
+          is_published: form.is_published,
+          sort_order: Number(form.sort_order) || 0,
+        },
+      })) as { matched: number; emailsSent: number; emailsPending: number };
+      setForm(emptyForm);
+      setMsg(
+        `הנכס נשמר. נשלחו התראות ל-${res.matched} פרופילי חיפוש (מיילים שנשלחו: ${res.emailsSent}, ממתינים: ${res.emailsPending}).`,
+      );
+    }, "הנכס נשמר");
 
-  const site = workspace.data?.site ?? null;
-  const items = workspace.data?.items ?? [];
+  if (site.isLoading) {
+    return <main className="p-8 text-center text-muted-foreground">טוען…</main>;
+  }
+
+  if (!site.data?.isAdmin) {
+    return (
+      <main className="mx-auto max-w-md px-4 py-16">
+        <div className="soft-card p-6 text-center">
+          <h1 className="text-xl font-extrabold text-primary">אין לך הרשאת ניהול</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            האזור הזה מיועד למנהל האתר בלבד. אם אתם מחפשים דירה — האזור האישי שלכם כאן.
+          </p>
+          <Link
+            to="/account"
+            className="mt-4 inline-block rounded-xl bg-sun px-5 py-3 text-sm font-bold text-sun-foreground"
+          >
+            לאזור האישי
+          </Link>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => run(() => claim(), "קיבלת הרשאת ניהול")}
+            className="mt-4 block w-full text-xs text-muted-foreground underline"
+          >
+            הגדרת החשבון הזה כמנהל הראשון של המערכת
+          </button>
+          {err && (
+            <p role="alert" className="mt-2 text-sm font-semibold text-destructive">
+              {err}
+            </p>
+          )}
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8 pb-24">
+    <main className="mx-auto max-w-4xl px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-extrabold text-primary">אזור ניהול</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {site ? `אתר: ${site.name} (${site.slug})` : "לא שויך אתר לחשבון זה"}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link to="/" className="rounded-lg border border-border px-3 py-2 text-sm font-bold text-primary">
+        <h1 className="text-2xl font-extrabold text-primary">אזור ניהול</h1>
+        <div className="flex gap-3 text-sm">
+          <Link to="/" className="underline">
             לאתר
           </Link>
           <button
             type="button"
-            onClick={signOut}
-            className="rounded-lg border border-border px-3 py-2 text-sm font-bold text-primary"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              window.location.href = "/";
+            }}
+            className="underline"
           >
             יציאה
           </button>
         </div>
       </div>
 
-      {note && <p className="mt-4 rounded-lg bg-sun/15 p-3 text-sm font-bold text-primary">{note}</p>}
+      {msg && <p className="mt-4 rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">{msg}</p>}
       {err && (
-        <p role="alert" className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm font-bold text-destructive">
+        <p role="alert" className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive">
           {err}
         </p>
       )}
 
-      {workspace.isLoading && <p className="mt-6 text-sm text-muted-foreground">טוען…</p>}
+      {/* ניהול נכסים */}
+      <section className="soft-card mt-6 p-5">
+        <h2 className="text-lg font-extrabold text-primary">{form.id ? "עריכת נכס" : "הוספת נכס"}</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          כל נכס שמפורסם מייצר התראה אוטומטית לכל לקוח שהפרופיל שלו תואם. אין להזין נכס שאינו אמיתי.
+        </p>
 
-      {workspace.data && !workspace.data.isAdmin && !site && (
-        <div className="soft-card mt-6 p-5">
-          <p className="text-sm text-muted-foreground">
-            החשבון שלך עדיין לא משויך לאתר. יש לפנות למנהל המערכת.
-          </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">כותרת הנכס</span>
+            <input className="field" value={form.title} maxLength={200} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">סוג עסקה</span>
+            <select className="field" value={form.deal_type} onChange={(e) => setForm({ ...form, deal_type: e.target.value })}>
+              <option value="מכירה">מכירה</option>
+              <option value="השכרה">השכרה</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">שכונה</span>
+            <select className="field" value={form.neighborhood} onChange={(e) => setForm({ ...form, neighborhood: e.target.value })}>
+              <option value="">אין מידע</option>
+              {neighborhoods.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">כתובת</span>
+            <input className="field" value={form.address} maxLength={200} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">מחיר (₪)</span>
+            <input className="field" type="number" dir="ltr" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">חדרים</span>
+            <input className="field" type="number" step="0.5" dir="ltr" value={form.rooms} onChange={(e) => setForm({ ...form, rooms: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">שטח (מ״ר)</span>
+            <input className="field" type="number" dir="ltr" value={form.size_sqm} onChange={(e) => setForm({ ...form, size_sqm: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">קומה</span>
+            <input className="field" value={form.floor} maxLength={20} onChange={(e) => setForm({ ...form, floor: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">תג (למשל: חדש)</span>
+            <input className="field" value={form.tag} maxLength={20} onChange={(e) => setForm({ ...form, tag: e.target.value })} />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">כתובת תמונה (URL)</span>
+            <input className="field" dir="ltr" value={form.image_url} maxLength={500} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">תיאור</span>
+            <textarea
+              className="field min-h-24"
+              value={form.description}
+              maxLength={2000}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">סדר הצגה</span>
+            <input className="field" type="number" dir="ltr" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} />
+          </label>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-4 text-sm">
+          {(
+            [
+              ["has_mamad", "ממ״ד"],
+              ["has_elevator", "מעלית"],
+              ["has_parking", "חניה"],
+              ["has_balcony", "מרפסת"],
+              ["is_published", "מפורסם באתר"],
+            ] as Array<[keyof ListingForm, string]>
+          ).map(([key, label]) => (
+            <label className="flex items-center gap-2 font-semibold" key={String(key)}>
+              <input
+                type="checkbox"
+                checked={Boolean(form[key])}
+                onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+
+        <div className="mt-5 flex gap-3">
           <button
             type="button"
             disabled={busy}
-            onClick={() => run(() => claimDev(), "קיבלת סמכויות מפתח")}
-            className="mt-3 rounded-lg border border-border px-3 py-2 text-sm font-bold text-primary"
+            onClick={submitListing}
+            className="flex-1 rounded-xl bg-sun py-3 text-base font-bold text-sun-foreground disabled:opacity-60"
           >
-            הפוך אותי למפתח (אפשרי רק אם אין מפתח במערכת)
+            {form.id ? "עדכון הנכס" : "הוספת הנכס"}
           </button>
-        </div>
-      )}
-
-      {site && (
-        <>
-          {/* פרטי העסק */}
-          <section className="soft-card mt-6 p-5">
-            <h2 className="text-lg font-extrabold text-primary">פרטי העסק</h2>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {(
-                [
-                  ["name", "שם העסק"],
-                  ["tagline", "סלוגן"],
-                  ["subtitle", "תת־כותרת"],
-                  ["address", "כתובת"],
-                  ["phone", "טלפון להצגה"],
-                  ["phoneTel", "טלפון לחיוג (ספרות)"],
-                  ["email", "אימייל"],
-                  ["license", "מספר רישיון"],
-                ] as Array<[keyof LiveBusiness, string]>
-              ).map(([key, label]) => (
-                <label className="block" key={key}>
-                  <span className="mb-1 block text-xs font-bold text-muted-foreground">{label}</span>
-                  <input
-                    className="field"
-                    value={String(business[key] ?? "")}
-                    onChange={(e) => setBusiness({ ...business, [key]: e.target.value })}
-                  />
-                </label>
-              ))}
-            </div>
-
-            <h3 className="mt-5 text-sm font-extrabold text-primary">שעות פעילות</h3>
-            <div className="mt-2 grid gap-2">
-              {business.hours.map((h, idx) => (
-                <div className="grid grid-cols-2 gap-2" key={idx}>
-                  <input
-                    className="field"
-                    value={h.day}
-                    onChange={(e) => {
-                      const hours = [...business.hours];
-                      hours[idx] = { ...h, day: e.target.value };
-                      setBusiness({ ...business, hours });
-                    }}
-                  />
-                  <input
-                    className="field"
-                    value={h.value}
-                    onChange={(e) => {
-                      const hours = [...business.hours];
-                      hours[idx] = { ...h, value: e.target.value };
-                      setBusiness({ ...business, hours });
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <h3 className="mt-5 text-sm font-extrabold text-primary">טקסטים בראש האתר</h3>
-            <div className="mt-2 grid gap-3">
-              <label className="block">
-                <span className="mb-1 block text-xs font-bold text-muted-foreground">כותרת ראשית</span>
-                <input
-                  className="field"
-                  value={texts.heroTitle}
-                  onChange={(e) => setTexts({ ...texts, heroTitle: e.target.value })}
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-bold text-muted-foreground">כותרת משנה</span>
-                <textarea
-                  className="field min-h-20"
-                  value={texts.heroSubtitle}
-                  onChange={(e) => setTexts({ ...texts, heroSubtitle: e.target.value })}
-                />
-              </label>
-            </div>
-
+          {form.id && (
             <button
               type="button"
-              disabled={busy}
-              onClick={() =>
-                run(
-                  () =>
-                    saveContent({
-                      data: {
-                        business: business as unknown as Record<string, unknown>,
-                        texts: texts as unknown as Record<string, unknown>,
-                      },
-                    }),
-                  "התוכן נשמר ומופיע באתר",
-                )
-              }
-              className="mt-5 w-full rounded-xl bg-sun py-3 text-base font-bold text-sun-foreground disabled:opacity-60"
+              onClick={() => setForm(emptyForm)}
+              className="rounded-xl border border-primary/30 px-5 py-3 text-sm font-bold text-primary"
             >
-              שמירת פרטי העסק
+              ביטול
             </button>
-          </section>
+          )}
+        </div>
+      </section>
 
-          {/* פריטים */}
-          <section className="soft-card mt-6 p-5">
-            <h2 className="text-lg font-extrabold text-primary">פריטים באתר</h2>
-            <p className="mt-1 text-xs text-muted-foreground">נכסים, שירותים או מוצרים שמוצגים בעמוד הבית.</p>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="block">
-                <span className="mb-1 block text-xs font-bold text-muted-foreground">כותרת</span>
-                <input className="field" value={item.title} onChange={(e) => setItem({ ...item, title: e.target.value })} />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-bold text-muted-foreground">סוג</span>
-                <select className="field" value={item.kind} onChange={(e) => setItem({ ...item, kind: e.target.value })}>
-                  <option value="property">נכס</option>
-                  <option value="service">שירות</option>
-                  <option value="product">מוצר</option>
-                </select>
-              </label>
-              <label className="block sm:col-span-2">
-                <span className="mb-1 block text-xs font-bold text-muted-foreground">תיאור</span>
-                <textarea
-                  className="field min-h-20"
-                  value={item.description}
-                  onChange={(e) => setItem({ ...item, description: e.target.value })}
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-bold text-muted-foreground">מחיר (מספר)</span>
-                <input
-                  className="field"
-                  inputMode="numeric"
-                  value={item.price}
-                  onChange={(e) => setItem({ ...item, price: e.target.value })}
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-bold text-muted-foreground">הערת מחיר</span>
-                <input
-                  className="field"
-                  value={item.price_note}
-                  onChange={(e) => setItem({ ...item, price_note: e.target.value })}
-                />
-              </label>
-              <label className="block sm:col-span-2">
-                <span className="mb-1 block text-xs font-bold text-muted-foreground">כתובת תמונה (URL)</span>
-                <input
-                  className="field"
-                  dir="ltr"
-                  value={item.image_url}
-                  onChange={(e) => setItem({ ...item, image_url: e.target.value })}
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-bold text-muted-foreground">סדר הצגה</span>
-                <input
-                  className="field"
-                  inputMode="numeric"
-                  value={item.sort_order}
-                  onChange={(e) => setItem({ ...item, sort_order: e.target.value })}
-                />
-              </label>
-              <label className="flex items-center gap-2 pt-6">
-                <input
-                  type="checkbox"
-                  checked={item.is_active}
-                  onChange={(e) => setItem({ ...item, is_active: e.target.checked })}
-                />
-                <span className="text-sm font-bold text-primary">מוצג באתר</span>
-              </label>
-            </div>
-
-            <div className="mt-4 flex gap-2">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() =>
-                  run(async () => {
-                    await saveItem({
-                      data: {
-                        ...(item.id ? { id: item.id } : {}),
-                        kind: item.kind,
-                        title: item.title,
-                        description: item.description || null,
-                        price: item.price ? Number(item.price) : null,
-                        price_note: item.price_note || null,
-                        image_url: item.image_url || null,
-                        sort_order: Number(item.sort_order) || 0,
-                        is_active: item.is_active,
-                      },
-                    });
-                    setItem(emptyItem);
-                  }, "הפריט נשמר")
-                }
-                className="flex-1 rounded-xl bg-sun py-3 text-base font-bold text-sun-foreground disabled:opacity-60"
-              >
-                {item.id ? "עדכון פריט" : "הוספת פריט"}
-              </button>
-              {item.id && (
-                <button
-                  type="button"
-                  onClick={() => setItem(emptyItem)}
-                  className="rounded-xl border border-border px-4 text-sm font-bold text-primary"
-                >
-                  ביטול
-                </button>
-              )}
-            </div>
-
-            <ul className="mt-5 divide-y divide-border">
-              {items.map((it) => (
-                <li key={it.id} className="flex items-center justify-between gap-3 py-3">
-                  <div>
-                    <p className="text-sm font-bold text-primary">{it.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {it.kind} · {it.price ? it.price.toLocaleString("he-IL") + " ₪" : "ללא מחיר"} ·{" "}
-                      {it.is_active ? "מוצג" : "מוסתר"}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setItem({
-                          id: it.id,
-                          kind: it.kind,
-                          title: it.title,
-                          description: it.description ?? "",
-                          price: it.price != null ? String(it.price) : "",
-                          price_note: it.price_note ?? "",
-                          image_url: it.image_url ?? "",
-                          sort_order: String(it.sort_order),
-                          is_active: it.is_active,
-                        })
-                      }
-                      className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-primary"
-                    >
-                      עריכה
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => run(() => removeItem({ data: { id: it.id } }), "הפריט נמחק")}
-                      className="rounded-lg border border-destructive/40 px-3 py-1.5 text-xs font-bold text-destructive"
-                    >
-                      מחיקה
-                    </button>
-                  </div>
-                </li>
-              ))}
-              {items.length === 0 && <li className="py-3 text-sm text-muted-foreground">אין פריטים עדיין.</li>}
-            </ul>
-          </section>
-
-          <EditLinksPanel siteId={site.id} siteName={site.name} />
-        </>
-      )}
-
-      {workspace.data?.isAdmin && <DeveloperPanel onDone={refresh} />}
-    </main>
-  );
-}
-
-function DeveloperPanel({ onDone }: { onDone: () => void }) {
-  const createSite = useServerFn(createClientSite);
-  const fetchSites = useServerFn(listAllSites);
-  const sites = useQuery({ queryKey: ["all-sites"], queryFn: () => fetchSites() });
-  const [form, setForm] = useState({ email: "", password: "", siteName: "", slug: "" });
-  const [err, setErr] = useState<string | null>(null);
-  const [note, setNote] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setErr(null);
-    setNote(null);
-    try {
-      await createSite({ data: form });
-      setNote("נוצר לקוח חדש עם אתר משויך");
-      setForm({ email: "", password: "", siteName: "", slug: "" });
-      await sites.refetch();
-      onDone();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "היצירה נכשלה");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <section className="soft-card mt-6 p-5">
-      <h2 className="text-lg font-extrabold text-primary">סמכויות מפתח</h2>
-      <p className="mt-1 text-xs text-muted-foreground">יצירת לקוח חדש ואתר שמשויך אליו בלבד.</p>
-
-      <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-2" noValidate>
-        <label className="block">
-          <span className="mb-1 block text-xs font-bold text-muted-foreground">אימייל הלקוח</span>
-          <input
-            className="field"
-            type="email"
-            dir="ltr"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            required
-          />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-bold text-muted-foreground">סיסמה ראשונית</span>
-          <input
-            className="field"
-            type="text"
-            dir="ltr"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            required
-          />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-bold text-muted-foreground">שם האתר</span>
-          <input
-            className="field"
-            value={form.siteName}
-            onChange={(e) => setForm({ ...form, siteName: e.target.value })}
-            required
-          />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-bold text-muted-foreground">מזהה אתר (slug)</span>
-          <input
-            className="field"
-            dir="ltr"
-            placeholder="sun-city"
-            value={form.slug}
-            onChange={(e) => setForm({ ...form, slug: e.target.value })}
-            required
-          />
-        </label>
-
-        {err && (
-          <p role="alert" className="sm:col-span-2 text-sm font-bold text-destructive">
-            {err}
-          </p>
+      <section className="soft-card mt-6 p-5">
+        <h2 className="text-lg font-extrabold text-primary">הנכסים במסד הנתונים</h2>
+        {listings.isLoading && <p className="mt-2 text-sm text-muted-foreground">טוען נכסים…</p>}
+        <ul className="mt-3 grid gap-3">
+          {(listings.data ?? []).map((l) => (
+            <li key={l.id} className="rounded-xl border border-border p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="font-bold text-primary">
+                    {l.title} {!l.is_published && <span className="text-xs text-muted-foreground">(מוסתר)</span>}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {l.deal_type} · {l.neighborhood ?? "אין מידע"} · {formatListingPrice(l.price)}
+                  </p>
+                </div>
+                <div className="flex gap-2 text-sm">
+                  <button type="button" className="underline" onClick={() => setForm(toForm(l))}>
+                    עריכה
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="text-destructive underline"
+                    onClick={() => run(() => removeListing({ data: { id: l.id } }), "הנכס נמחק")}
+                  >
+                    מחיקה
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+        {!listings.isLoading && (listings.data ?? []).length === 0 && (
+          <p className="mt-2 text-sm text-muted-foreground">אין נכסים במסד הנתונים.</p>
         )}
-        {note && <p className="sm:col-span-2 text-sm font-bold text-primary">{note}</p>}
+      </section>
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="sm:col-span-2 rounded-xl bg-navy py-3 text-base font-bold text-navy-foreground disabled:opacity-60"
-        >
-          יצירת לקוח ואתר
-        </button>
-      </form>
+      {/* תוכן ופרטי העסק */}
+      {business && texts && (
+        <section className="soft-card mt-6 p-5">
+          <h2 className="text-lg font-extrabold text-primary">פרטי העסק וטקסטים</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {(
+              [
+                ["name", "שם העסק"],
+                ["tagline", "סלוגן"],
+                ["subtitle", "תת־כותרת"],
+                ["address", "כתובת"],
+                ["phone", "טלפון להצגה"],
+                ["phoneTel", "טלפון לחיוג (ספרות)"],
+                ["email", "אימייל"],
+                ["license", "מספר רישיון"],
+              ] as Array<[keyof LiveBusiness, string]>
+            ).map(([key, label]) => (
+              <label className="block" key={String(key)}>
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">{label}</span>
+                <input
+                  className="field"
+                  value={String(business[key] ?? "")}
+                  onChange={(e) => setBusiness({ ...business, [key]: e.target.value })}
+                />
+              </label>
+            ))}
+          </div>
 
-      <ul className="mt-5 divide-y divide-border">
-        {(sites.data ?? []).map((s) => (
-          <li key={s.id} className="py-2 text-sm">
-            <span className="font-bold text-primary">{s.name}</span>{" "}
-            <span className="text-muted-foreground" dir="ltr">
-              /{s.slug} · {s.profiles?.email ?? s.owner_id}
-            </span>
-            <EditLinksPanel siteId={s.id} siteName={s.name} />
-          </li>
-        ))}
-      </ul>
-    </section>
+          <div className="mt-4 grid gap-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">כותרת ראשית</span>
+              <input
+                className="field"
+                value={texts.heroTitle}
+                onChange={(e) => setTexts({ ...texts, heroTitle: e.target.value })}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">כותרת משנה</span>
+              <textarea
+                className="field min-h-20"
+                value={texts.heroSubtitle}
+                onChange={(e) => setTexts({ ...texts, heroSubtitle: e.target.value })}
+              />
+            </label>
+          </div>
+
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              run(
+                () => saveContent({ data: { business: business as never, texts: texts as never } }),
+                "התוכן נשמר",
+              )
+            }
+            className="mt-5 w-full rounded-xl bg-sun py-3 text-base font-bold text-sun-foreground disabled:opacity-60"
+          >
+            שמירת התוכן
+          </button>
+        </section>
+      )}
+    </main>
   );
 }

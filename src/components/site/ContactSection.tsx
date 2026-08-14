@@ -241,9 +241,9 @@ export function Footer() {
               <Link to="/privacy" className="underline">מדיניות פרטיות</Link>
             </li>
             <li className="mt-3 border-t border-navy-foreground/15 pt-3 text-xs text-navy-foreground/55">
-              <Link to="/admin" className="underline">ניהול האתר</Link>
+              <Link to="/account" className="underline">האזור האישי שלי</Link>
               <span aria-hidden="true" className="px-1.5">·</span>
-              <Link to="/edit" className="underline">עריכת תוכן</Link>
+              <Link to="/admin" className="underline">ניהול האתר</Link>
             </li>
           </ul>
 

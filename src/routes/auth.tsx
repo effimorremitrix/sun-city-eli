@@ -2,8 +2,8 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-const title = 'כניסה לאזור הניהול | סאן סיטי נדל"ן';
-const description = 'כניסה מאובטחת לאזור הניהול של אתר סאן סיטי נדל"ן בנתניה — עריכת תוכן, פרטי קשר ופריטים.';
+const title = 'כניסה לאזור האישי | סאן סיטי נדל"ן';
+const description = 'הרשמה וכניסה לאזור האישי באתר סאן סיטי נדל"ן — הגדרת סוכן אישי והתראות על דירות חדשות בנתניה.';
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -38,15 +38,15 @@ function AuthPage() {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: "/admin", replace: true });
+        navigate({ to: "/account", replace: true });
       } else {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/admin` },
+          options: { emailRedirectTo: `${window.location.origin}/account` },
         });
         if (error) throw error;
-        setMsg("נשלח אימות למייל. לאחר האישור אפשר להתחבר.");
+        setMsg("נשלח אימות למייל. לאחר האישור אפשר להתחבר ולהגדיר את הסוכן האישי.");
       }
     } catch (e) {
       setErr(e instanceof Error ? e.message : "שגיאה בהתחברות");
@@ -58,9 +58,9 @@ function AuthPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <div className="soft-card w-full max-w-sm p-6">
-        <h1 className="text-2xl font-extrabold text-primary">אזור ניהול</h1>
+        <h1 className="text-2xl font-extrabold text-primary">האזור האישי</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {mode === "signin" ? "התחברות עם המייל והסיסמה שקיבלת" : "פתיחת חשבון חדש"}
+          {mode === "signin" ? "התחברות עם המייל והסיסמה שלכם" : "הרשמה חינם: סוכן אישי שישלח לכם התראה על כל דירה חדשה שתואמת לדרישות שלכם"}
         </p>
 
         <form onSubmit={submit} className="mt-5 grid gap-3" noValidate>
@@ -114,7 +114,7 @@ function AuthPage() {
           }}
           className="mt-4 w-full text-sm font-semibold text-primary underline"
         >
-          {mode === "signin" ? "אין לי חשבון עדיין" : "יש לי חשבון, להתחברות"}
+          {mode === "signin" ? "אין לי חשבון — הרשמה חינם" : "יש לי חשבון, להתחברות"}
         </button>
 
         <Link to="/" className="mt-4 block text-center text-xs text-muted-foreground underline">

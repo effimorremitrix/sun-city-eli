@@ -1,0 +1,111 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { searchProfileSchema } from "@/lib/listing-schema";
+import { LISTING_COLUMNS, type Listing } from "@/lib/listings";
+
+export type SearchProfileRow = {
+  id: string;
+  label: string;
+  deal_type: string;
+  city: string;
+  neighborhoods: string[];
+  min_price: number | null;
+  max_price: number | null;
+  min_rooms: number | null;
+  min_size: number | null;
+  needs_mamad: boolean;
+  needs_elevator: boolean;
+  needs_parking: boolean;
+  needs_balcony: boolean;
+  notes: string | null;
+  notify_email: boolean;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type NotificationRow = {
+  id: string;
+  reason: string | null;
+  read_at: string | null;
+  email_sent_at: string | null;
+  created_at: string;
+  listing: Listing | null;
+};
+
+export const getMyAccount = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+
+    const [{ data: isAdmin }, { data: profiles }, { data: notifications }] = await Promise.all([
+      supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+      supabase
+        .from("search_profiles")
+        .select(
+          "id, label, deal_type, city, neighborhoods, min_price, max_price, min_rooms, min_size, needs_mamad, needs_elevator, needs_parking, needs_balcony, notes, notify_email, is_active, created_at",
+        )
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("listing_notifications")
+        .select(`id, reason, read_at, email_sent_at, created_at, listing:listing_id(${LISTING_COLUMNS})`)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]);
+
+    return {
+      isAdmin: Boolean(isAdmin),
+      profiles: (profiles ?? []) as unknown as SearchProfileRow[],
+      notifications: (notifications ?? []) as unknown as NotificationRow[],
+    };
+  });
+
+export const saveMySearchProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => searchProfileSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { id, ...fields } = data;
+    if (id) {
+      const { error } = await context.supabase
+        .from("search_profiles")
+        .update(fields)
+        .eq("id", id)
+        .eq("user_id", context.userId);
+      if (error) throw new Error(error.message);
+      return { ok: true, id };
+    }
+    const { data: row, error } = await context.supabase
+      .from("search_profiles")
+      .insert({ ...fields, user_id: context.userId })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return { ok: true, id: row.id as string };
+  });
+
+export const deleteMySearchProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("search_profiles")
+      .delete()
+      .eq("id", data.id)
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const markNotificationRead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("listing_notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
