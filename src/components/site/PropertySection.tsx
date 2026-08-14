@@ -14,15 +14,20 @@ import {
   MapPin,
   Sparkles,
   BellPlus,
+  Images,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { neighborhoods, priceRanges, waProps, openWa, business } from "@/lib/site-data";
 import {
   formatListingPrice,
   listingImage,
+  listingImages,
   matchesFilters,
   type Listing,
   type ListingFilters,
 } from "@/lib/listings";
+
 import { aiSearchListings } from "@/lib/ai-search.functions";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
 import { Reveal } from "./Reveal";
