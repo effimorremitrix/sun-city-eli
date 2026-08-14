@@ -260,8 +260,30 @@ function AccountPage() {
         )}
       </section>
 
+      {account.data?.isAdmin && (
+        <section className="soft-card mt-6 p-5">
+          <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
+            <Sparkles className="size-5 text-sun" aria-hidden="true" />
+            הסוכן שלך נמצא באזור הניהול
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            הסוכן האישי וההתראות באזור זה נבנו עבור לקוחות המשרד. הסוכן שלך סורק את האינטרנט ומציע נכסים
+            להעלאה לאתר — הוא נמצא בטאב "סוכן סריקה" באזור הניהול.
+          </p>
+          <Link
+            to="/admin"
+            className="mt-4 inline-flex rounded-xl bg-sun px-5 py-3 text-sm font-bold text-sun-foreground"
+          >
+            מעבר לסוכן הסריקה
+          </Link>
+        </section>
+      )}
+
+      {!account.data?.isAdmin && (
+        <>
       {/* התראות */}
       <section className="soft-card mt-6 p-5">
+
         <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
           <BellRing className="size-5 text-sun" aria-hidden="true" />
           התראות על נכסים חדשים {unread > 0 && <span className="text-sm text-sun">({unread} חדשות)</span>}
@@ -455,6 +477,9 @@ function AccountPage() {
           )}
         </div>
       </section>
+        </>
+      )}
+
 
       <AccountSettings />
     </main>
