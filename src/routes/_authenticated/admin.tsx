@@ -8,6 +8,10 @@ import { adminListListings, adminSaveListing, adminDeleteListing } from "@/lib/l
 import { formatListingPrice, type Listing } from "@/lib/listings";
 import { neighborhoods } from "@/lib/site-data";
 import type { LiveBusiness, LiveTexts } from "@/lib/site-live";
+import { AdminUsers } from "@/components/site/AdminUsers";
+
+type TabKey = "listings" | "content" | "users";
+
 
 const title = 'אזור ניהול | סאן סיטי נדל"ן';
 const description = 'אזור הניהול של אתר סאן סיטי נדל"ן — ניהול נכסים, תוכן ופרטי העסק.';
@@ -111,6 +115,8 @@ function AdminPage() {
   });
 
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<TabKey>("listings");
+
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [form, setForm] = useState<ListingForm>(emptyForm);
@@ -238,8 +244,38 @@ function AdminPage() {
         </p>
       )}
 
+      {/* טאבים */}
+      <div className="mt-6 flex flex-wrap gap-2" role="tablist">
+        {(
+          [
+            ["listings", "נכסים"],
+            ["content", "תוכן העסק"],
+            ["users", "משתמשים רשומים"],
+          ] as Array<[TabKey, string]>
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => setTab(key)}
+            className={
+              tab === key
+                ? "rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground"
+                : "rounded-xl border border-primary/30 px-4 py-2 text-sm font-bold text-primary"
+            }
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "users" && <AdminUsers />}
+
       {/* ניהול נכסים */}
+      {tab === "listings" && (
       <section className="soft-card mt-6 p-5">
+
         <h2 className="text-lg font-extrabold text-primary">{form.id ? "עריכת נכס" : "הוספת נכס"}</h2>
         <p className="mt-1 text-xs text-muted-foreground">
           כל נכס שמפורסם מייצר התראה אוטומטית לכל לקוח שהפרופיל שלו תואם. אין להזין נכס שאינו אמיתי.
@@ -352,8 +388,11 @@ function AdminPage() {
           )}
         </div>
       </section>
+      )}
 
+      {tab === "listings" && (
       <section className="soft-card mt-6 p-5">
+
         <h2 className="text-lg font-extrabold text-primary">הנכסים במסד הנתונים</h2>
         {listings.isLoading && <p className="mt-2 text-sm text-muted-foreground">טוען נכסים…</p>}
         <ul className="mt-3 grid gap-3">
@@ -389,9 +428,11 @@ function AdminPage() {
           <p className="mt-2 text-sm text-muted-foreground">אין נכסים במסד הנתונים.</p>
         )}
       </section>
+      )}
 
       {/* תוכן ופרטי העסק */}
-      {business && texts && (
+      {tab === "content" && business && texts && (
+
         <section className="soft-card mt-6 p-5">
           <h2 className="text-lg font-extrabold text-primary">פרטי העסק וטקסטים</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
