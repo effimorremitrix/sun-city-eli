@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { BellRing, Sparkles, LogOut, User } from "lucide-react";
+import AdminGuide from "@/components/site/AdminGuide";
 import {
   getMyAccount,
   saveMySearchProfile,
@@ -93,6 +94,8 @@ const toForm = (p: SearchProfileRow): ProfileForm => ({
 
 const num = (v: string) => (v.trim() === "" ? null : Number(v));
 
+type AccountTabKey = "overview" | "guide";
+
 function AccountPage() {
   const { user, logout, refresh } = useAuth();
   const fetchAccount = useServerFn(getMyAccount);
@@ -108,6 +111,7 @@ function AccountPage() {
   const [err, setErr] = useState<string | null>(null);
   const [nameInput, setNameInput] = useState("");
   const [editingName, setEditingName] = useState(false);
+  const [tab, setTab] = useState<AccountTabKey>("overview");
 
   const run = async (fn: () => Promise<unknown>, okMsg: string) => {
     setBusy(true);
@@ -196,6 +200,37 @@ function AccountPage() {
         </p>
       )}
 
+      {/* טאבים — מוצגים למנהלים בלבד */}
+      {account.data?.isAdmin && (
+        <div className="mt-6 flex flex-wrap gap-2" role="tablist">
+          {(
+            [
+              ["overview", "החשבון שלי"],
+              ["guide", "מדריך למנהל"],
+            ] as Array<[AccountTabKey, string]>
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={tab === key}
+              onClick={() => setTab(key)}
+              className={
+                tab === key
+                  ? "rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground"
+                  : "rounded-xl border border-primary/30 px-4 py-2 text-sm font-bold text-primary"
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {account.data?.isAdmin && tab === "guide" && <AdminGuide />}
+
+      {(!account.data?.isAdmin || tab === "overview") && (
+        <>
       {/* פרטי פרופיל */}
       <section className="soft-card mt-6 p-5">
         <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
@@ -480,8 +515,9 @@ function AccountPage() {
         </>
       )}
 
-
       <AccountSettings />
+        </>
+      )}
     </main>
   );
 }
