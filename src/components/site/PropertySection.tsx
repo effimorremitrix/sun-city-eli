@@ -21,7 +21,7 @@ import {
 import { neighborhoods, priceRanges, waProps, openWa, business } from "@/lib/site-data";
 import {
   formatListingPrice,
-  listingImage,
+  listingImages,
   listingImages,
   matchesFilters,
   type Listing,
