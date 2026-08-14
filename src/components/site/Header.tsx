@@ -22,6 +22,7 @@ const scrollTo = (id: string) => {
 
 export function Header() {
   const { business } = useLive();
+  const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
 
   const go = (id: string) => (e: React.MouseEvent) => {
@@ -29,6 +30,8 @@ export function Header() {
     setOpen(false);
     scrollTo(id);
   };
+
+  const displayName = user?.fullName?.trim() || user?.email || "משתמש";
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
@@ -68,13 +71,46 @@ export function Header() {
             <Phone className="size-4 text-sun" aria-hidden="true" />
             {business.phone}
           </a>
-          <a
-            href="#sellers"
-            onClick={go("sellers")}
-            className="rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground shadow-soft transition-transform hover:-translate-y-0.5"
-          >
-            הערכת שווי חינם
-          </a>
+
+          {user ? (
+            <div className="flex items-center gap-3 border-r border-border pr-3">
+              <span className="flex items-center gap-1.5 text-sm font-bold text-primary" title={user.email}>
+                <User className="size-4 text-sun" aria-hidden="true" />
+                שלום, {displayName}
+              </span>
+              <Link
+                to="/account"
+                className="text-sm font-semibold text-foreground transition-colors hover:text-sun"
+              >
+                האזור האישי
+              </Link>
+              {user.isAdmin && (
+                <Link
+                  to="/admin"
+                  className="text-sm font-semibold text-foreground transition-colors hover:text-sun"
+                >
+                  ניהול האתר
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={logout}
+                className="flex items-center gap-1 text-sm font-bold text-destructive transition-colors hover:text-destructive/80"
+                aria-label="התנתקות"
+              >
+                <LogOut className="size-4" aria-hidden="true" />
+                יציאה
+              </button>
+            </div>
+          ) : (
+            <a
+              href="#sellers"
+              onClick={go("sellers")}
+              className="rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground shadow-soft transition-transform hover:-translate-y-0.5"
+            >
+              הערכת שווי חינם
+            </a>
+          )}
         </nav>
 
         <button
@@ -111,15 +147,60 @@ export function Header() {
                 {business.phone}
               </a>
             </li>
-            <li className="py-3">
-              <a
-                href="#sellers"
-                onClick={go("sellers")}
-                className="block rounded-xl bg-sun py-3 text-center text-base font-bold text-sun-foreground"
-              >
-                הערכת שווי חינם
-              </a>
-            </li>
+
+            {user ? (
+              <>
+                <li className="border-b border-border/70 py-3">
+                  <span className="flex items-center gap-2 text-base font-bold text-primary">
+                    <User className="size-4 text-sun" aria-hidden="true" />
+                    שלום, {displayName}
+                  </span>
+                </li>
+                <li>
+                  <Link
+                    to="/account"
+                    onClick={() => setOpen(false)}
+                    className="block border-b border-border/70 py-3 text-base font-semibold text-foreground"
+                  >
+                    האזור האישי
+                  </Link>
+                </li>
+                {user.isAdmin && (
+                  <li>
+                    <Link
+                      to="/admin"
+                      onClick={() => setOpen(false)}
+                      className="block border-b border-border/70 py-3 text-base font-semibold text-foreground"
+                    >
+                      ניהול האתר
+                    </Link>
+                  </li>
+                )}
+                <li className="py-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      logout();
+                    }}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive py-3 text-base font-bold text-destructive"
+                  >
+                    <LogOut className="size-4" aria-hidden="true" />
+                    התנתקות
+                  </button>
+                </li>
+              </>
+            ) : (
+              <li className="py-3">
+                <a
+                  href="#sellers"
+                  onClick={go("sellers")}
+                  className="block rounded-xl bg-sun py-3 text-center text-base font-bold text-sun-foreground"
+                >
+                  הערכת שווי חינם
+                </a>
+              </li>
+            )}
           </ul>
         </nav>
       )}
