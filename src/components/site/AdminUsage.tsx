@@ -90,8 +90,8 @@ export function AdminUsage() {
                   labelFormatter={(l) => `תאריך ${l}`}
                 />
                 <Legend />
-                <Bar dataKey="input_tokens" name="טוקנים נכנסים" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="output_tokens" name="טוקנים יוצאים" fill="hsl(var(--sun))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="input_tokens" name="טוקנים נכנסים" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="output_tokens" name="טוקנים יוצאים" fill="var(--color-sun)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
