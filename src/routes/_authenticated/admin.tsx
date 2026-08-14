@@ -115,6 +115,8 @@ function AdminPage() {
   });
 
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<TabKey>("listings");
+
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [form, setForm] = useState<ListingForm>(emptyForm);
