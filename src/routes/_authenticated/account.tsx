@@ -14,6 +14,7 @@ import {
 import { formatListingPrice } from "@/lib/listings";
 import { neighborhoods } from "@/lib/site-data";
 import { formatUpdated } from "@/lib/site-live";
+import AccountSettings from "@/components/site/AccountSettings";
 
 const title = 'האזור האישי | סאן סיטי נדל"ן';
 const description = 'האזור האישי שלכם: הגדרת סוכן אישי, פרופיל חיפוש דירה בנתניה והתראות על נכסים חדשים.';
