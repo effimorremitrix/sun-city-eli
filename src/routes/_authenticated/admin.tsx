@@ -422,9 +422,11 @@ function AdminPage() {
           <p className="mt-2 text-sm text-muted-foreground">אין נכסים במסד הנתונים.</p>
         )}
       </section>
+      )}
 
       {/* תוכן ופרטי העסק */}
-      {business && texts && (
+      {tab === "content" && business && texts && (
+
         <section className="soft-card mt-6 p-5">
           <h2 className="text-lg font-extrabold text-primary">פרטי העסק וטקסטים</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
