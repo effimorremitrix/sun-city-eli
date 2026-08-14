@@ -10,10 +10,12 @@ import { neighborhoods } from "@/lib/site-data";
 import type { LiveBusiness, LiveTexts } from "@/lib/site-live";
 import { AdminUsers } from "@/components/site/AdminUsers";
 import AdminUsage from "@/components/site/AdminUsage";
+import AdminScout from "@/components/site/AdminScout";
 import AdminListingImages from "@/components/site/AdminListingImages";
+import { adminScoutNewCount } from "@/lib/scout.functions";
 
 
-type TabKey = "listings" | "content" | "users" | "usage";
+type TabKey = "listings" | "scout" | "content" | "users" | "usage";
 
 
 const title = 'אזור ניהול | סאן סיטי נדל"ן';
@@ -116,6 +118,15 @@ function AdminPage() {
     queryFn: () => fetchListings(),
     enabled: site.data?.isAdmin === true,
   });
+  const fetchScoutCount = useServerFn(adminScoutNewCount);
+  const scoutCount = useQuery({
+    queryKey: ["scout-new-count"],
+    queryFn: () => fetchScoutCount(),
+    enabled: site.data?.isAdmin === true,
+  });
+  const newCount = scoutCount.data?.count ?? 0;
+
+
 
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<TabKey>("listings");
@@ -253,6 +264,7 @@ function AdminPage() {
         {(
           [
             ["listings", "נכסים"],
+            ["scout", newCount > 0 ? `סוכן סריקה (${newCount})` : "סוכן סריקה"],
             ["content", "תוכן העסק"],
             ["users", "משתמשים רשומים"],
             ["usage", "שימוש (Usage)"],
@@ -277,6 +289,9 @@ function AdminPage() {
 
       {tab === "users" && <AdminUsers />}
       {tab === "usage" && <AdminUsage />}
+      {tab === "scout" && <AdminScout />}
+
+
 
       {/* ניהול נכסים */}
       {tab === "listings" && (
