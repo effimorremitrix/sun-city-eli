@@ -76,5 +76,5 @@ export function useAuth() {
     navigate({ to: "/auth", replace: true });
   }, [queryClient, navigate]);
 
-  return { user, loading, logout };
+  return { user, loading, logout, refresh };
 }
