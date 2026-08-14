@@ -94,16 +94,20 @@ const toForm = (p: SearchProfileRow): ProfileForm => ({
 const num = (v: string) => (v.trim() === "" ? null : Number(v));
 
 function AccountPage() {
+  const { user, logout } = useAuth();
   const fetchAccount = useServerFn(getMyAccount);
   const saveProfile = useServerFn(saveMySearchProfile);
   const removeProfile = useServerFn(deleteMySearchProfile);
   const markRead = useServerFn(markNotificationRead);
+  const updateProfile = useServerFn(updateMyProfile);
 
   const account = useQuery({ queryKey: ["my-account"], queryFn: () => fetchAccount() });
   const [form, setForm] = useState<ProfileForm>(emptyProfile);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [nameInput, setNameInput] = useState("");
+  const [editingName, setEditingName] = useState(false);
 
   const run = async (fn: () => Promise<unknown>, okMsg: string) => {
     setBusy(true);
