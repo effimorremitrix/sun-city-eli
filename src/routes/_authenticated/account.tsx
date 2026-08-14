@@ -2,18 +2,19 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { BellRing, Sparkles } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { BellRing, Sparkles, LogOut, User } from "lucide-react";
 import {
   getMyAccount,
   saveMySearchProfile,
   deleteMySearchProfile,
   markNotificationRead,
+  updateMyProfile,
   type SearchProfileRow,
 } from "@/lib/account.functions";
 import { formatListingPrice } from "@/lib/listings";
 import { neighborhoods } from "@/lib/site-data";
 import { formatUpdated } from "@/lib/site-live";
+import { useAuth } from "@/hooks/useAuth";
 import AccountSettings from "@/components/site/AccountSettings";
 
 const title = 'האזור האישי | סאן סיטי נדל"ן';
