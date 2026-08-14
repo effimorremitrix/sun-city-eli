@@ -8,6 +8,10 @@ import { adminListListings, adminSaveListing, adminDeleteListing } from "@/lib/l
 import { formatListingPrice, type Listing } from "@/lib/listings";
 import { neighborhoods } from "@/lib/site-data";
 import type { LiveBusiness, LiveTexts } from "@/lib/site-live";
+import { AdminUsers } from "@/components/site/AdminUsers";
+
+type TabKey = "listings" | "content" | "users";
+
 
 const title = 'אזור ניהול | סאן סיטי נדל"ן';
 const description = 'אזור הניהול של אתר סאן סיטי נדל"ן — ניהול נכסים, תוכן ופרטי העסק.';
