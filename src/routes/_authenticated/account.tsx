@@ -477,6 +477,9 @@ function AccountPage() {
           )}
         </div>
       </section>
+        </>
+      )}
+
 
       <AccountSettings />
     </main>
