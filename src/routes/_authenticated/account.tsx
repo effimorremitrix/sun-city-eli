@@ -94,7 +94,7 @@ const toForm = (p: SearchProfileRow): ProfileForm => ({
 const num = (v: string) => (v.trim() === "" ? null : Number(v));
 
 function AccountPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, refresh } = useAuth();
   const fetchAccount = useServerFn(getMyAccount);
   const saveProfile = useServerFn(saveMySearchProfile);
   const removeProfile = useServerFn(deleteMySearchProfile);
