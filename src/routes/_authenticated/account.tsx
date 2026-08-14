@@ -196,6 +196,69 @@ function AccountPage() {
         </p>
       )}
 
+      {/* פרטי פרופיל */}
+      <section className="soft-card mt-6 p-5">
+        <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
+          <User className="size-5 text-sun" aria-hidden="true" />
+          פרטי פרופיל
+        </h2>
+        {editingName ? (
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <label className="block flex-1 min-w-[12rem]">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">שם מלא</span>
+              <input
+                className="field"
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                autoFocus
+              />
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  run(async () => {
+                    await updateProfile({ data: { full_name: nameInput.trim() } });
+                    setEditingName(false);
+                  }, "השם עודכן")
+                }
+                className="rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground disabled:opacity-60"
+              >
+                שמירה
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setNameInput(user?.fullName ?? "");
+                  setEditingName(false);
+                }}
+                className="rounded-xl border border-primary/30 px-4 py-2 text-sm font-bold text-primary"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-foreground">
+              <span className="font-bold">שם:</span> {user?.fullName?.trim() || "לא הוגדר"}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setNameInput(user?.fullName ?? "");
+                setEditingName(true);
+              }}
+              className="text-sm font-semibold text-primary underline"
+            >
+              עריכת שם
+            </button>
+          </div>
+        )}
+      </section>
+
       {/* התראות */}
       <section className="soft-card mt-6 p-5">
         <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
