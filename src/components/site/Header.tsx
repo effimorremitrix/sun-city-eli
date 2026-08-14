@@ -204,15 +204,26 @@ export function Header() {
                 </li>
               </>
             ) : (
-              <li className="py-3">
-                <a
-                  href="#sellers"
-                  onClick={go("sellers")}
-                  className="block rounded-xl bg-sun py-3 text-center text-base font-bold text-sun-foreground"
-                >
-                  הערכת שווי חינם
-                </a>
-              </li>
+              <>
+                <li>
+                  <Link
+                    to="/auth"
+                    onClick={() => setOpen(false)}
+                    className="block border-b border-border/70 py-3 text-base font-semibold text-foreground"
+                  >
+                    אזור אישי
+                  </Link>
+                </li>
+                <li className="py-3">
+                  <a
+                    href="#sellers"
+                    onClick={go("sellers")}
+                    className="block rounded-xl bg-sun py-3 text-center text-base font-bold text-sun-foreground"
+                  >
+                    הערכת שווי חינם
+                  </a>
+                </li>
+              </>
             )}
           </ul>
         </nav>
