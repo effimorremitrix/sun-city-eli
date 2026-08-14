@@ -10,10 +10,12 @@ import { neighborhoods } from "@/lib/site-data";
 import type { LiveBusiness, LiveTexts } from "@/lib/site-live";
 import { AdminUsers } from "@/components/site/AdminUsers";
 import AdminUsage from "@/components/site/AdminUsage";
+import AdminScout from "@/components/site/AdminScout";
 import AdminListingImages from "@/components/site/AdminListingImages";
+import { adminScoutNewCount } from "@/lib/scout.functions";
 
 
-type TabKey = "listings" | "content" | "users" | "usage";
+type TabKey = "listings" | "scout" | "content" | "users" | "usage";
 
 
 const title = 'אזור ניהול | סאן סיטי נדל"ן';
