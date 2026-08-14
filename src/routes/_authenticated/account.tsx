@@ -221,6 +221,7 @@ function AccountPage() {
                 onClick={() =>
                   run(async () => {
                     await updateProfile({ data: { full_name: nameInput.trim() } });
+                    refresh();
                     setEditingName(false);
                   }, "השם עודכן")
                 }
