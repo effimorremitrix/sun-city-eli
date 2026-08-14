@@ -22,7 +22,7 @@ import { neighborhoods, priceRanges, waProps, openWa, business } from "@/lib/sit
 import {
   formatListingPrice,
   listingImages,
-  listingImages,
+
   matchesFilters,
   type Listing,
   type ListingFilters,
