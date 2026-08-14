@@ -118,6 +118,15 @@ function AdminPage() {
     queryFn: () => fetchListings(),
     enabled: site.data?.isAdmin === true,
   });
+  const fetchScoutCount = useServerFn(adminScoutNewCount);
+  const scoutCount = useQuery({
+    queryKey: ["scout-new-count"],
+    queryFn: () => fetchScoutCount(),
+    enabled: site.data?.isAdmin === true,
+  });
+  const newCount = scoutCount.data?.count ?? 0;
+
+
 
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<TabKey>("listings");
