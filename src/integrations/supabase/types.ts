@@ -241,6 +241,153 @@ export type Database = {
         }
         Relationships: []
       }
+      scout_candidates: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_listing_id: string | null
+          deal_type: string | null
+          id: string
+          match_reason: string | null
+          match_score: number
+          neighborhood: string | null
+          price: number | null
+          raw_summary: string | null
+          rooms: number | null
+          scout_profile_id: string | null
+          seen_at: string | null
+          size_sqm: number | null
+          source_site: string
+          source_url: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_listing_id?: string | null
+          deal_type?: string | null
+          id?: string
+          match_reason?: string | null
+          match_score?: number
+          neighborhood?: string | null
+          price?: number | null
+          raw_summary?: string | null
+          rooms?: number | null
+          scout_profile_id?: string | null
+          seen_at?: string | null
+          size_sqm?: number | null
+          source_site: string
+          source_url: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_listing_id?: string | null
+          deal_type?: string | null
+          id?: string
+          match_reason?: string | null
+          match_score?: number
+          neighborhood?: string | null
+          price?: number | null
+          raw_summary?: string | null
+          rooms?: number | null
+          scout_profile_id?: string | null
+          seen_at?: string | null
+          size_sqm?: number | null
+          source_site?: string
+          source_url?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_candidates_created_listing_id_fkey"
+            columns: ["created_listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scout_candidates_scout_profile_id_fkey"
+            columns: ["scout_profile_id"]
+            isOneToOne: false
+            referencedRelation: "scout_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scout_profiles: {
+        Row: {
+          city: string
+          created_at: string
+          deal_type: string
+          id: string
+          is_active: boolean
+          label: string
+          last_run_at: string | null
+          max_price: number | null
+          min_price: number | null
+          min_rooms: number | null
+          min_size: number | null
+          needs_balcony: boolean
+          needs_elevator: boolean
+          needs_mamad: boolean
+          needs_parking: boolean
+          neighborhoods: string[]
+          notes: string | null
+          sources: string[]
+          updated_at: string
+        }
+        Insert: {
+          city?: string
+          created_at?: string
+          deal_type?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          last_run_at?: string | null
+          max_price?: number | null
+          min_price?: number | null
+          min_rooms?: number | null
+          min_size?: number | null
+          needs_balcony?: boolean
+          needs_elevator?: boolean
+          needs_mamad?: boolean
+          needs_parking?: boolean
+          neighborhoods?: string[]
+          notes?: string | null
+          sources?: string[]
+          updated_at?: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          deal_type?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          last_run_at?: string | null
+          max_price?: number | null
+          min_price?: number | null
+          min_rooms?: number | null
+          min_size?: number | null
+          needs_balcony?: boolean
+          needs_elevator?: boolean
+          needs_mamad?: boolean
+          needs_parking?: boolean
+          neighborhoods?: string[]
+          notes?: string | null
+          sources?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       search_profiles: {
         Row: {
           city: string
