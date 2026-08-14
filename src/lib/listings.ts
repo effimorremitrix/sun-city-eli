@@ -7,6 +7,15 @@ import prop6 from "@/assets/prop-6.jpg";
 import prop7 from "@/assets/prop-7.jpg";
 import prop8 from "@/assets/prop-8.jpg";
 
+/** תמונה בגלריית הנכס */
+export type ListingImage = {
+  id: string;
+  url: string;
+  storage_path: string | null;
+  external_url: string | null;
+  sort_order: number;
+};
+
 /** נכס כפי שהוא נשמר במסד הנתונים ומוצג באתר */
 export type Listing = {
   id: string;
@@ -30,7 +39,9 @@ export type Listing = {
   is_published: boolean;
   sort_order: number;
   updated_at: string;
+  images?: ListingImage[];
 };
+
 
 /** פילטרים מובנים — משמשים גם את החיפוש הידני וגם את חיפוש ה‑AI */
 export type ListingFilters = {
