@@ -292,6 +292,9 @@ export function AdminSold({ siteId }: { siteId: string }) {
               <p className="truncate text-xs text-muted-foreground">
                 {[s.neighborhood, s.note].filter(Boolean).join(" · ") || "—"}
               </p>
+              {!s.url && (
+                <p className="text-xs font-bold text-sun">חסרה תמונה — לחצו עריכה להעלאה</p>
+              )}
             </div>
             <div className="flex shrink-0 gap-2 text-sm">
               <button type="button" className="underline" onClick={() => edit(s)}>

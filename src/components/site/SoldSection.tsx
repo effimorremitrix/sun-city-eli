@@ -1,3 +1,4 @@
+import { Home } from "lucide-react";
 import { DataSource } from "@/components/site/DataSource";
 import { useT } from "@/lib/i18n";
 import type { SoldProperty } from "@/lib/sold.functions";
@@ -49,7 +50,9 @@ export function SoldSection({ items }: Props) {
                       className="size-full rounded-full border-[6px] border-sun object-cover shadow-lift"
                     />
                   ) : (
-                    <div className="flex size-full items-center justify-center rounded-full border-[6px] border-sun bg-secondary shadow-lift" />
+                    <div className="flex size-full items-center justify-center rounded-full border-[6px] border-sun bg-sun/15 shadow-lift">
+                      <Home className="size-20 text-sun" aria-hidden="true" />
+                    </div>
                   )}
                   <div className="absolute inset-x-0 bottom-4 flex flex-col items-center">
                     <span className="rounded-full bg-navy/80 px-3 py-0.5 text-xs font-bold text-navy-foreground backdrop-blur-sm">

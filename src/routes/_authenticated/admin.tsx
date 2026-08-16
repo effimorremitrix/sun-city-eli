@@ -335,7 +335,14 @@ function AdminPage() {
         ))}
       </div>
 
-      {tab === "sold" && selectedSiteId && <AdminSold siteId={selectedSiteId} />}
+      {tab === "sold" &&
+        (selectedSiteId ? (
+          <AdminSold siteId={selectedSiteId} />
+        ) : (
+          <p className="mt-6 rounded-xl bg-secondary p-4 text-sm text-muted-foreground">
+            לא נמצאה רשומת אתר במסד הנתונים — לא ניתן לנהל את מדור הנמכרים.
+          </p>
+        ))}
       {tab === "publish" && selectedSiteId && (
         <AdminPublish siteId={selectedSiteId} listings={listings.data ?? []} />
       )}
