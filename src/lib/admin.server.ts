@@ -101,5 +101,11 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
     emailsPending = result.pending;
   }
 
+  // תרגום AI ל-en/fr/ru — רץ ברקע, מדלג אם המקור לא השתנה (source_hash)
+  if (listingId) {
+    const { translateListing } = await import("@/lib/translate.server");
+    void translateListing(listingId);
+  }
+
   return { ok: true, id: listingId, matched, emailsSent, emailsPending };
 }

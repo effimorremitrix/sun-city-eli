@@ -4,7 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { getAdminSite, saveSiteContent, claimAdminRole } from "@/lib/site.functions";
-import { adminListListings, adminSaveListing, adminDeleteListing } from "@/lib/listings.functions";
+import {
+  adminListListings,
+  adminSaveListing,
+  adminDeleteListing,
+  adminRetranslateListing,
+} from "@/lib/listings.functions";
 import { formatListingPrice, type Listing } from "@/lib/listings";
 import { neighborhoods } from "@/lib/site-data";
 import type { LiveBusiness, LiveTexts } from "@/lib/site-live";
@@ -110,6 +115,7 @@ function AdminPage() {
   const saveContent = useServerFn(saveSiteContent);
   const saveListing = useServerFn(adminSaveListing);
   const removeListing = useServerFn(adminDeleteListing);
+  const retranslate = useServerFn(adminRetranslateListing);
   const claim = useServerFn(claimAdminRole);
 
   // ה-site הנבחר: אדמין יכול לעבור בין הסוכנים; סוכן רואה רק את שלו
@@ -475,6 +481,15 @@ function AdminPage() {
                 <div className="flex gap-2 text-sm">
                   <button type="button" className="underline" onClick={() => setForm(toForm(l))}>
                     עריכה
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="underline"
+                    title="תרגום הכותרת והתיאור מחדש לאנגלית, צרפתית ורוסית"
+                    onClick={() => run(() => retranslate({ data: { id: l.id } }), "הנכס תורגם מחדש")}
+                  >
+                    תרגם מחדש
                   </button>
                   <button
                     type="button"

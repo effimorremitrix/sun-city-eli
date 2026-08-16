@@ -18,6 +18,12 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as EnIndexRouteImport } from './routes/en/index'
+import { Route as EnAgentSlugRouteImport } from './routes/en/$agentSlug'
+import { Route as FrIndexRouteImport } from './routes/fr/index'
+import { Route as FrAgentSlugRouteImport } from './routes/fr/$agentSlug'
+import { Route as RuIndexRouteImport } from './routes/ru/index'
+import { Route as RuAgentSlugRouteImport } from './routes/ru/$agentSlug'
 import { Route as ApiPublicScoutCronRouteImport } from './routes/api/public/scout-cron'
 
 const IndexRoute = IndexRouteImport.update({
@@ -64,6 +70,36 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const EnIndexRoute = EnIndexRouteImport.update({
+  id: '/en/',
+  path: '/en/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnAgentSlugRoute = EnAgentSlugRouteImport.update({
+  id: '/en/$agentSlug',
+  path: '/en/$agentSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FrIndexRoute = FrIndexRouteImport.update({
+  id: '/fr/',
+  path: '/fr/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FrAgentSlugRoute = FrAgentSlugRouteImport.update({
+  id: '/fr/$agentSlug',
+  path: '/fr/$agentSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RuIndexRoute = RuIndexRouteImport.update({
+  id: '/ru/',
+  path: '/ru/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RuAgentSlugRoute = RuAgentSlugRouteImport.update({
+  id: '/ru/$agentSlug',
+  path: '/ru/$agentSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicScoutCronRoute = ApiPublicScoutCronRouteImport.update({
   id: '/api/public/scout-cron',
   path: '/api/public/scout-cron',
@@ -79,6 +115,12 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/en/$agentSlug': typeof EnAgentSlugRoute
+  '/fr/$agentSlug': typeof FrAgentSlugRoute
+  '/ru/$agentSlug': typeof RuAgentSlugRoute
+  '/en/': typeof EnIndexRoute
+  '/fr/': typeof FrIndexRoute
+  '/ru/': typeof RuIndexRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
 }
 export interface FileRoutesByTo {
@@ -90,6 +132,12 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/en/$agentSlug': typeof EnAgentSlugRoute
+  '/fr/$agentSlug': typeof FrAgentSlugRoute
+  '/ru/$agentSlug': typeof RuAgentSlugRoute
+  '/en': typeof EnIndexRoute
+  '/fr': typeof FrIndexRoute
+  '/ru': typeof RuIndexRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
 }
 export interface FileRoutesById {
@@ -103,6 +151,12 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/en/$agentSlug': typeof EnAgentSlugRoute
+  '/fr/$agentSlug': typeof FrAgentSlugRoute
+  '/ru/$agentSlug': typeof RuAgentSlugRoute
+  '/en/': typeof EnIndexRoute
+  '/fr/': typeof FrIndexRoute
+  '/ru/': typeof RuIndexRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
 }
 export interface FileRouteTypes {
@@ -116,6 +170,12 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/account'
     | '/admin'
+    | '/en/$agentSlug'
+    | '/fr/$agentSlug'
+    | '/ru/$agentSlug'
+    | '/en/'
+    | '/fr/'
+    | '/ru/'
     | '/api/public/scout-cron'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -127,6 +187,12 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/account'
     | '/admin'
+    | '/en/$agentSlug'
+    | '/fr/$agentSlug'
+    | '/ru/$agentSlug'
+    | '/en'
+    | '/fr'
+    | '/ru'
     | '/api/public/scout-cron'
   id:
     | '__root__'
@@ -139,6 +205,12 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/account'
     | '/_authenticated/admin'
+    | '/en/$agentSlug'
+    | '/fr/$agentSlug'
+    | '/ru/$agentSlug'
+    | '/en/'
+    | '/fr/'
+    | '/ru/'
     | '/api/public/scout-cron'
   fileRoutesById: FileRoutesById
 }
@@ -150,6 +222,12 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  EnAgentSlugRoute: typeof EnAgentSlugRoute
+  FrAgentSlugRoute: typeof FrAgentSlugRoute
+  RuAgentSlugRoute: typeof RuAgentSlugRoute
+  EnIndexRoute: typeof EnIndexRoute
+  FrIndexRoute: typeof FrIndexRoute
+  RuIndexRoute: typeof RuIndexRoute
   ApiPublicScoutCronRoute: typeof ApiPublicScoutCronRoute
 }
 
@@ -218,6 +296,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/en/': {
+      id: '/en/'
+      path: '/en'
+      fullPath: '/en/'
+      preLoaderRoute: typeof EnIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/en/$agentSlug': {
+      id: '/en/$agentSlug'
+      path: '/en/$agentSlug'
+      fullPath: '/en/$agentSlug'
+      preLoaderRoute: typeof EnAgentSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fr/': {
+      id: '/fr/'
+      path: '/fr'
+      fullPath: '/fr/'
+      preLoaderRoute: typeof FrIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fr/$agentSlug': {
+      id: '/fr/$agentSlug'
+      path: '/fr/$agentSlug'
+      fullPath: '/fr/$agentSlug'
+      preLoaderRoute: typeof FrAgentSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ru/': {
+      id: '/ru/'
+      path: '/ru'
+      fullPath: '/ru/'
+      preLoaderRoute: typeof RuIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ru/$agentSlug': {
+      id: '/ru/$agentSlug'
+      path: '/ru/$agentSlug'
+      fullPath: '/ru/$agentSlug'
+      preLoaderRoute: typeof RuAgentSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/scout-cron': {
       id: '/api/public/scout-cron'
       path: '/api/public/scout-cron'
@@ -249,6 +369,12 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  EnAgentSlugRoute: EnAgentSlugRoute,
+  FrAgentSlugRoute: FrAgentSlugRoute,
+  RuAgentSlugRoute: RuAgentSlugRoute,
+  EnIndexRoute: EnIndexRoute,
+  FrIndexRoute: FrIndexRoute,
+  RuIndexRoute: RuIndexRoute,
   ApiPublicScoutCronRoute: ApiPublicScoutCronRoute,
 }
 export const routeTree = rootRouteImport

@@ -138,19 +138,9 @@ export const adminSetUserRole = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+import { RESERVED_AGENT_SLUGS } from "@/lib/reserved-slugs";
+
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?$/;
-const RESERVED_SLUGS = new Set([
-  "auth",
-  "admin",
-  "account",
-  "privacy",
-  "accessibility",
-  "reset-password",
-  "api",
-  "en",
-  "fr",
-  "ru",
-]);
 
 /**
  * הפיכת משתמש לסוכן: תפקיד agent + אתר אישי (sites) + תוכן ראשוני.
@@ -175,7 +165,7 @@ export const adminCreateAgentSite = createServerFn({ method: "POST" })
     if (!SLUG_RE.test(data.slug)) {
       throw new Error("כתובת הדף (slug) חייבת להיות באותיות לטיניות קטנות, ספרות ומקפים");
     }
-    if (RESERVED_SLUGS.has(data.slug)) throw new Error("הכתובת הזו שמורה למערכת");
+    if (RESERVED_AGENT_SLUGS.has(data.slug)) throw new Error("הכתובת הזו שמורה למערכת");
     if (data.agentName.length < 2) throw new Error("נדרש שם סוכן");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

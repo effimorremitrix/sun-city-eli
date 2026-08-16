@@ -4,6 +4,7 @@ import logoAsset from "@/assets/sun-city-logo-real.png.asset.json";
 const logo = logoAsset.url;
 import { SITE_CONFIG } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
+import { useT } from "@/lib/i18n";
 
 const scrollTo = (id: string) => (e: React.MouseEvent) => {
   e.preventDefault();
@@ -12,6 +13,7 @@ const scrollTo = (id: string) => (e: React.MouseEvent) => {
 
 export function Hero() {
   const { business, texts } = useLive();
+  const t = useT();
 
   return (
     <section id="top">
@@ -69,14 +71,14 @@ export function Hero() {
               onClick={scrollTo("sellers")}
               className="rounded-xl bg-sun px-6 py-3 text-center text-base font-bold text-sun-foreground shadow-lift"
             >
-              קבלו הערכת שווי חינם
+              {t.hero.ctaValuation}
             </a>
             <a
               href="#properties"
               onClick={scrollTo("properties")}
               className="rounded-xl border border-primary-foreground/50 px-6 py-3 text-center text-base font-bold text-primary-foreground"
             >
-              לצפייה בנכסים
+              {t.hero.ctaProperties}
             </a>
           </div>
 
@@ -88,7 +90,7 @@ export function Hero() {
                 rel="noopener noreferrer"
                 className="inline-block rounded-full bg-[oklch(1_0_0/0.12)] px-4 py-2 text-sm font-semibold text-primary-foreground backdrop-blur"
               >
-                בין 10 המובילים בנתניה
+                {t.hero.badgeTop10}
               </a>
             </li>
             <li>
@@ -98,7 +100,7 @@ export function Hero() {
                 rel="noopener noreferrer"
                 className="inline-block rounded-full bg-[oklch(1_0_0/0.12)] px-4 py-2 text-sm font-semibold text-primary-foreground backdrop-blur"
               >
-                לקבוצת הנכסים בוואטסאפ
+                {t.hero.badgeWhatsapp}
               </a>
             </li>
           </ul>

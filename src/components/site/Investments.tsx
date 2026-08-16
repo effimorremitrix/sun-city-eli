@@ -1,6 +1,7 @@
 import { BadgeCheck, Calculator, Handshake, Scale, ShieldCheck, Eye, Award } from "lucide-react";
-import { services, values, business, about, story, waProps } from "@/lib/site-data";
+import { business, waProps } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
+import { useT } from "@/lib/i18n";
 import { Reveal } from "./Reveal";
 
 const svcIcons = [BadgeCheck, Calculator, Handshake, Scale];
@@ -8,10 +9,12 @@ const valIcons = [Award, Eye, ShieldCheck];
 
 export function Services() {
   const { business: live } = useLive();
+  const t = useT();
+  const services = t.content.services;
   return (
     <section id="services" className="mx-auto max-w-6xl px-4 py-14 md:py-20">
-      <p className="text-sm font-bold text-sun">מה אנחנו עושים</p>
-      <h2 className="mt-2 text-3xl md:text-4xl">השירותים שלנו</h2>
+      <p className="text-sm font-bold text-sun">{t.sections.servicesLabel}</p>
+      <h2 className="mt-2 text-3xl md:text-4xl">{t.sections.servicesTitle}</h2>
       <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {services.map((s, i) => {
           const Icon = svcIcons[i] ?? BadgeCheck;
@@ -26,7 +29,7 @@ export function Services() {
                     {...waProps(`שלום ${live.agentName}, אשמח לפרטים בנושא: ${s.title}. שם: `, live.phoneTel)}
                     className="mt-4 rounded-xl bg-primary py-2.5 text-center text-sm font-bold text-primary-foreground"
                   >
-                    לפרטים בוואטסאפ
+                    {t.sections.waDetails}
                   </a>
                 </article>
               </Reveal>
@@ -40,16 +43,18 @@ export function Services() {
 
 export function WhyUs() {
   const { business: live } = useLive();
+  const t = useT();
+  const values = t.content.values;
   return (
     <section id="why" className="bg-secondary py-14 md:py-20">
       <div className="mx-auto max-w-6xl px-4">
-        <p className="text-sm font-bold text-sun">למה אנחנו</p>
-        <h2 className="mt-2 text-3xl md:text-4xl">למה סאן סיטי</h2>
+        <p className="text-sm font-bold text-sun">{t.sections.whyLabel}</p>
+        <h2 className="mt-2 text-3xl md:text-4xl">{t.sections.whyTitle}</h2>
         {live.bio && (
           <p className="mt-4 max-w-3xl leading-relaxed text-foreground">{live.bio}</p>
         )}
-        <p className="mt-4 max-w-3xl leading-relaxed text-foreground">{about}</p>
-        <p className="mt-3 max-w-3xl leading-relaxed text-muted-foreground">{story}</p>
+        <p className="mt-4 max-w-3xl leading-relaxed text-foreground">{t.content.about}</p>
+        <p className="mt-3 max-w-3xl leading-relaxed text-muted-foreground">{t.content.story}</p>
 
         <ul className="mt-8 grid gap-4 md:grid-cols-3">
           {values.map((v, i) => {

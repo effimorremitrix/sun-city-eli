@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AgentLandingPage } from "@/components/site/AgentLandingPage";
 import { SITE_CONFIG, properties } from "@/lib/site-data";
 import type { LiveSite } from "@/lib/site-live";
-import { getPublicSite } from "@/lib/site.functions";
-import { listPublicListings, listPublicAgents } from "@/lib/listings.functions";
+import { loadLanding } from "@/lib/landing-loader";
+import { hreflangLinks } from "@/lib/i18n";
 import type { Listing } from "@/lib/listings";
 import type { PublicAgentRow } from "@/lib/agents.server";
 
@@ -61,16 +61,10 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
     scripts: [{ type: "application/ld+json", children: JSON.stringify(schema) }],
+    links: hreflangLinks("/"),
   }),
-  loader: async () => {
-    // הדף הראשי מציג את כלל הנכסים של כל הסוכנים; כל פנייה על נכס מנותבת לסוכן שלו
-    const [live, listings, agents] = await Promise.all([
-      getPublicSite(),
-      listPublicListings(),
-      listPublicAgents(),
-    ]);
-    return { live, listings, agents };
-  },
+  // הדף הראשי מציג את כלל הנכסים של כל הסוכנים; כל פנייה על נכס מנותבת לסוכן שלו
+  loader: () => loadLanding(null, "he"),
   component: Index,
   errorComponent: () => (
     <main className="mx-auto max-w-lg px-4 py-16 text-center">

@@ -1,9 +1,11 @@
 import { MessageCircle, Phone, Building2 } from "lucide-react";
 import { waProps } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
+import { useT } from "@/lib/i18n";
 
 export function MobileBar() {
   const { business } = useLive();
+  const t = useT();
 
   const go = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -18,14 +20,14 @@ export function MobileBar() {
           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-whatsapp py-3 text-sm font-bold text-whatsapp-foreground"
         >
           <MessageCircle className="size-5" aria-hidden="true" />
-          וואטסאפ
+          {t.mobileBar.whatsapp}
         </a>
         <a
           href={`tel:${business.phoneTel}`}
           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground"
         >
           <Phone className="size-5" aria-hidden="true" />
-          התקשרו
+          {t.mobileBar.call}
         </a>
         <a
           href="#properties"
@@ -33,7 +35,7 @@ export function MobileBar() {
           className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary/40 py-3 text-sm font-bold text-primary"
         >
           <Building2 className="size-5" aria-hidden="true" />
-          נכסים
+          {t.mobileBar.properties}
         </a>
       </div>
     </div>

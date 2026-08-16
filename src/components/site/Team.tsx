@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Phone, MessageCircle, ArrowLeft } from "lucide-react";
 import { team, business, waProps } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
+import { useT } from "@/lib/i18n";
 import type { PublicAgentRow } from "@/lib/agents.server";
 import { Reveal } from "./Reveal";
 
@@ -22,6 +23,7 @@ type Props = {
 
 export function Team({ agents = [], variant = "primary" }: Props) {
   const { slug: currentSlug } = useLive();
+  const t = useT();
   // בדף אישי מציגים את שאר הסוכנים; בדף הראשי — את כולם
   const dbAgents =
     variant === "secondary" ? agents.filter((a) => a.slug !== currentSlug) : agents;
@@ -33,14 +35,12 @@ export function Team({ agents = [], variant = "primary" }: Props) {
   return (
     <section id="team" className="bg-secondary py-14 md:py-20">
       <div className="mx-auto max-w-6xl px-4">
-        <p className="text-sm font-bold text-sun">אנשים, לא חברה</p>
+        <p className="text-sm font-bold text-sun">{t.team.label}</p>
         <h2 className="mt-2 text-3xl md:text-4xl">
-          {variant === "secondary" ? "עוד סוכנים בסאן סיטי" : "הצוות שלנו"}
+          {variant === "secondary" ? t.team.titleOthers : t.team.title}
         </h2>
         <DataSource source={useDb ? "db" : "office"} updatedAt={null} className="mt-2" />
-        <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">
-          בוחרים סוכן, לא חברה. דברו ישירות עם מי שיטפל בכם — לכל סוכן דף אישי משלו.
-        </p>
+        <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">{t.team.subtitle}</p>
 
         {useDb ? (
           <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -82,7 +82,7 @@ export function Team({ agents = [], variant = "primary" }: Props) {
                           aria-label={`שליחת וואטסאפ ל${name}`}
                         >
                           <MessageCircle className="size-4" aria-hidden="true" />
-                          וואטסאפ
+                          {t.team.whatsapp}
                         </a>
                         {a.phone_tel && (
                           <a
@@ -91,7 +91,7 @@ export function Team({ agents = [], variant = "primary" }: Props) {
                             aria-label={`התקשרות ל${name}`}
                           >
                             <Phone className="size-4" aria-hidden="true" />
-                            התקשרו
+                            {t.team.call}
                           </a>
                         )}
                       </div>
@@ -102,7 +102,7 @@ export function Team({ agents = [], variant = "primary" }: Props) {
                           params={{ agentSlug: a.slug }}
                           className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-primary underline"
                         >
-                          לדף האישי של {name}
+                          {t.team.toPersonalPage(name)}
                           <ArrowLeft className="size-4" aria-hidden="true" />
                         </Link>
                       )}
@@ -148,7 +148,7 @@ export function Team({ agents = [], variant = "primary" }: Props) {
                           aria-label={`שליחת וואטסאפ ל${m.name}`}
                         >
                           <MessageCircle className="size-4" aria-hidden="true" />
-                          וואטסאפ
+                          {t.team.whatsapp}
                         </a>
                         <a
                           href={`tel:${business.phoneTel}`}
@@ -156,7 +156,7 @@ export function Team({ agents = [], variant = "primary" }: Props) {
                           aria-label={`התקשרות ל${m.name}`}
                         >
                           <Phone className="size-4" aria-hidden="true" />
-                          התקשרו
+                          {t.team.call}
                         </a>
                       </div>
                     ) : (
@@ -168,7 +168,7 @@ export function Team({ agents = [], variant = "primary" }: Props) {
                         aria-label={`לפנייה למשרד בנוגע ל${m.name}`}
                       >
                         <MessageCircle className="size-4" aria-hidden="true" />
-                        לפנייה למשרד
+                        {t.team.toOffice}
                       </a>
                     )}
                   </article>

@@ -2,16 +2,18 @@ import { useState } from "react";
 import { Users } from "lucide-react";
 import { business, neighborhoods, openWa } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
+import { useT } from "@/lib/i18n";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
 
 export function BuyerSection() {
   const { business: live } = useLive();
+  const t = useT();
   const [form, setForm] = useState({ name: "", phone: "", budget: "", rooms: "", area: "" });
   const [err, setErr] = useState<string | null>(null);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) return setErr("נא להזין שם");
+    if (!form.name.trim()) return setErr(t.seller.errName);
     if (!isValidIsraeliPhone(form.phone)) return setErr(phoneError);
     setErr(null);
     const msg = `שלום ${live.agentName},\nאני מחפש נכס לפי דרישה.\nשם: ${form.name}\nטלפון: ${form.phone}\nתקציב: ${form.budget || "לא צוין"}\nחדרים: ${form.rooms || "לא צוין"}\nאזור מועדף: ${form.area || "לא צוין"}`;
@@ -20,11 +22,10 @@ export function BuyerSection() {
 
   return (
     <section id="buyers" className="mx-auto max-w-6xl px-4 py-14 md:py-20">
-      <p className="text-sm font-bold text-sun">קונים דירה?</p>
-      <h2 className="mt-2 text-3xl md:text-4xl">נכסים שמגיעים אליכם לפני שהם מגיעים ליד2</h2>
+      <p className="text-sm font-bold text-sun">{t.buyer.label}</p>
+      <h2 className="mt-2 text-3xl md:text-4xl">{t.buyer.title}</h2>
       <p className="mt-3 max-w-xl leading-relaxed text-foreground">
-        חברי קבוצת "{business.whatsappGroup.name}" מקבלים את הנכסים החדשים שלנו ראשונים.
-        ההצטרפות חינם.
+        {t.buyer.subtitle(business.whatsappGroup.name)}
       </p>
 
       <a
@@ -34,17 +35,17 @@ export function BuyerSection() {
         className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-whatsapp px-6 py-4 text-lg font-bold text-whatsapp-foreground shadow-lift sm:w-auto"
       >
         <Users className="size-6" aria-hidden="true" />
-        להצטרפות לקבוצת הנכסים
+        {t.buyer.joinGroup}
       </a>
       <p className="mt-2 text-xs text-muted-foreground">
-        הקבוצה מלאה?{" "}
+        {t.buyer.groupFull}{" "}
         <a
           href={business.whatsappGroup.url2}
           target="_blank"
           rel="noopener noreferrer"
           className="font-bold text-primary underline"
         >
-          הצטרפו לקבוצה השנייה
+          {t.buyer.joinSecond}
         </a>
       </p>
 
@@ -52,19 +53,17 @@ export function BuyerSection() {
         onSubmit={submit}
         noValidate
         className="soft-card mt-8 p-5"
-        aria-label="טופס נכס לפי דרישה"
+        aria-label={t.buyer.formLabel}
       >
-        <h3 className="text-xl">נכס לפי דרישה</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          ספרו לנו מה אתם מחפשים ונעדכן אתכם ברגע שנכס מתאים מגיע.
-        </p>
+        <h3 className="text-xl">{t.buyer.formTitle}</h3>
+        <p className="mt-1 text-sm text-muted-foreground">{t.buyer.formSubtitle}</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">שם מלא</span>
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.contact.fullName}</span>
             <input className="field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">טלפון</span>
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.contact.phoneField}</span>
             <input
               className="field"
               type="tel"
@@ -76,27 +75,27 @@ export function BuyerSection() {
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">תקציב</span>
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.buyer.budget}</span>
             <select className="field" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })}>
-              <option value="">בחירה</option>
+              <option value="">{t.seller.choose}</option>
               <option>עד 1,500,000 ₪</option>
               <option>1,500,000 – 2,000,000 ₪</option>
               <option>2,000,000 ₪ ומעלה</option>
             </select>
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">חדרים</span>
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.buyer.rooms}</span>
             <select className="field" value={form.rooms} onChange={(e) => setForm({ ...form, rooms: e.target.value })}>
-              <option value="">בחירה</option>
+              <option value="">{t.seller.choose}</option>
               {["2", "3", "3.5", "4", "5 ומעלה"].map((r) => (
                 <option key={r}>{r}</option>
               ))}
             </select>
           </label>
           <label className="block sm:col-span-2">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">אזור מועדף</span>
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.buyer.area}</span>
             <select className="field" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })}>
-              <option value="">בחירה</option>
+              <option value="">{t.seller.choose}</option>
               {neighborhoods.map((n) => (
                 <option key={n}>{n}</option>
               ))}
@@ -109,7 +108,7 @@ export function BuyerSection() {
           </p>
         )}
         <button type="submit" className="mt-4 w-full rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground">
-          שליחת הפרטים
+          {t.buyer.submit}
         </button>
       </form>
     </section>

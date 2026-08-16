@@ -142,6 +142,33 @@ export type Database = {
           },
         ]
       }
+      listing_translations: {
+        Row: {
+          description: string | null
+          lang: string
+          listing_id: string
+          source_hash: string
+          title: string
+          translated_at: string
+        }
+        Insert: {
+          description?: string | null
+          lang: string
+          listing_id: string
+          source_hash: string
+          title: string
+          translated_at?: string
+        }
+        Update: {
+          description?: string | null
+          lang?: string
+          listing_id?: string
+          source_hash?: string
+          title?: string
+          translated_at?: string
+        }
+        Relationships: []
+      }
       listings: {
         Row: {
           address: string | null

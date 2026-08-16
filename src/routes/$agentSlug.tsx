@@ -1,8 +1,9 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { AgentLandingPage } from "@/components/site/AgentLandingPage";
+import { loadLanding } from "@/lib/landing-loader";
+import { hreflangLinks } from "@/lib/i18n";
+import { RESERVED_AGENT_SLUGS } from "@/lib/reserved-slugs";
 import type { LiveSite } from "@/lib/site-live";
-import { getPublicSite } from "@/lib/site.functions";
-import { listPublicListings, listPublicAgents } from "@/lib/listings.functions";
 import type { Listing } from "@/lib/listings";
 import type { PublicAgentRow } from "@/lib/agents.server";
 
@@ -11,33 +12,16 @@ import type { PublicAgentRow } from "@/lib/agents.server";
  * והנכסים של הסוכן. ראוטים סטטיים (auth, admin וכו') קודמים לראוט הדינמי,
  * והרשימה כאן היא הגנה נוספת.
  */
-const RESERVED = new Set([
-  "auth",
-  "admin",
-  "account",
-  "privacy",
-  "accessibility",
-  "reset-password",
-  "api",
-  "en",
-  "fr",
-  "ru",
-]);
 
 export const Route = createFileRoute("/$agentSlug")({
   loader: async ({ params }) => {
     const slug = params.agentSlug.toLowerCase();
-    if (RESERVED.has(slug)) throw notFound();
-
-    const [live, listings, agents] = await Promise.all([
-      getPublicSite({ data: { slug } }),
-      listPublicListings({ data: { slug } }),
-      listPublicAgents(),
-    ]);
-    if (!live.found) throw notFound();
-    return { live, listings, agents };
+    if (RESERVED_AGENT_SLUGS.has(slug)) throw notFound();
+    const data = await loadLanding(slug, "he");
+    if (!data.live.found) throw notFound();
+    return data;
   },
-  head: ({ loaderData }) => {
+  head: ({ loaderData, params }) => {
     const name = loaderData?.live.business.agentName || loaderData?.live.business.name || "";
     const title = `${name} | סאן סיטי נדל"ן — תיווך בנתניה`;
     const description = `הדף האישי של ${name} מסאן סיטי נדל"ן: נכסים למכירה ולהשכרה בנתניה, ליווי אישי והערכת שווי חינם.`;
@@ -50,6 +34,7 @@ export const Route = createFileRoute("/$agentSlug")({
         { property: "og:type", content: "profile" },
         { name: "twitter:card", content: "summary" },
       ],
+      links: hreflangLinks(`/${params.agentSlug}`),
     };
   },
   component: AgentPage,
