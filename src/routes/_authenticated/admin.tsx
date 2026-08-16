@@ -18,9 +18,10 @@ import AdminUsage from "@/components/site/AdminUsage";
 import AdminScout from "@/components/site/AdminScout";
 import AdminListingImages from "@/components/site/AdminListingImages";
 import { AdminPublish } from "@/components/site/AdminPublish";
+import { AdminSold } from "@/components/site/AdminSold";
 import { adminScoutNewCount } from "@/lib/scout.functions";
 
-type TabKey = "listings" | "scout" | "content" | "publish" | "users" | "usage";
+type TabKey = "listings" | "sold" | "scout" | "content" | "publish" | "users" | "usage";
 
 const title = 'אזור ניהול | סאן סיטי נדל"ן';
 const description = 'אזור הניהול של אתר סאן סיטי נדל"ן — ניהול נכסים, תוכן ופרטי העסק.';
@@ -301,6 +302,7 @@ function AdminPage() {
         {(
           [
             ["listings", "נכסים"],
+            ["sold", "נמכרו"],
             ...(site.data?.isAdmin
               ? ([["scout", newCount > 0 ? `סוכן סריקה (${newCount})` : "סוכן סריקה"]] as Array<
                   [TabKey, string]
@@ -333,6 +335,7 @@ function AdminPage() {
         ))}
       </div>
 
+      {tab === "sold" && selectedSiteId && <AdminSold siteId={selectedSiteId} />}
       {tab === "publish" && selectedSiteId && (
         <AdminPublish siteId={selectedSiteId} listings={listings.data ?? []} />
       )}

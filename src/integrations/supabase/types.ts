@@ -695,6 +695,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      sold_properties: {
+        Row: {
+          address: string;
+          created_at: string;
+          id: string;
+          image_url: string | null;
+          is_published: boolean;
+          neighborhood: string | null;
+          note: string | null;
+          site_id: string;
+          sold_at: string | null;
+          sort_order: number;
+          storage_path: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          address: string;
+          created_at?: string;
+          id?: string;
+          image_url?: string | null;
+          is_published?: boolean;
+          neighborhood?: string | null;
+          note?: string | null;
+          site_id: string;
+          sold_at?: string | null;
+          sort_order?: number;
+          storage_path?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          address?: string;
+          created_at?: string;
+          id?: string;
+          image_url?: string | null;
+          is_published?: boolean;
+          neighborhood?: string | null;
+          note?: string | null;
+          site_id?: string;
+          sold_at?: string | null;
+          sort_order?: number;
+          storage_path?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       user_roles: {
         Row: {
           created_at: string;

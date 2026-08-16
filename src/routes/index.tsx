@@ -6,6 +6,7 @@ import { loadLanding } from "@/lib/landing-loader";
 import { hreflangLinks } from "@/lib/i18n";
 import type { Listing } from "@/lib/listings";
 import type { PublicAgentRow } from "@/lib/agents.server";
+import type { SoldProperty } from "@/lib/sold.functions";
 
 const title = 'תיווך נתניה | סאן סיטי נדל"ן — דירות למכירה בנתניה';
 const description =
@@ -79,10 +80,13 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { live, listings, agents } = Route.useLoaderData() as {
+  const { live, listings, agents, sold } = Route.useLoaderData() as {
     live: LiveSite;
     listings: Listing[];
     agents: PublicAgentRow[];
+    sold: SoldProperty[];
   };
-  return <AgentLandingPage live={live} listings={listings} agents={agents} isMainSite />;
+  return (
+    <AgentLandingPage live={live} listings={listings} agents={agents} sold={sold} isMainSite />
+  );
 }

@@ -6,6 +6,7 @@ import { RESERVED_AGENT_SLUGS } from "@/lib/reserved-slugs";
 import type { LiveSite } from "@/lib/site-live";
 import type { Listing } from "@/lib/listings";
 import type { PublicAgentRow } from "@/lib/agents.server";
+import type { SoldProperty } from "@/lib/sold.functions";
 
 export const Route = createFileRoute("/ru/$agentSlug")({
   loader: async ({ params }) => {
@@ -31,10 +32,19 @@ export const Route = createFileRoute("/ru/$agentSlug")({
 });
 
 function Page() {
-  const { live, listings, agents } = Route.useLoaderData() as {
+  const { live, listings, agents, sold } = Route.useLoaderData() as {
     live: LiveSite;
     listings: Listing[];
     agents: PublicAgentRow[];
+    sold: SoldProperty[];
   };
-  return <AgentLandingPage live={live} listings={listings} agents={agents} isMainSite={false} />;
+  return (
+    <AgentLandingPage
+      live={live}
+      listings={listings}
+      agents={agents}
+      sold={sold}
+      isMainSite={false}
+    />
+  );
 }

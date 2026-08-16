@@ -304,5 +304,17 @@ export const fr: Dict = {
     ],
   },
 
+  sold: {
+    label: "Des preuves, pas des promesses",
+    title: "Vendus par nous",
+    subtitle: (n: number) =>
+      n >= 3
+        ? `${n} appartements réels que nous avons déjà vendus — comme nous vendrons le vôtre.`
+        : "Des appartements réels que nous avons déjà vendus — comme nous vendrons le vôtre.",
+    stamp: "VENDU",
+    stampPrefix: "Ce bien aussi a été",
+    soldOn: (d: string) => `Vendu en ${d}`,
+  },
+
   langSwitcher: "Langue",
 };

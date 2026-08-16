@@ -6,6 +6,7 @@ import { RESERVED_AGENT_SLUGS } from "@/lib/reserved-slugs";
 import type { LiveSite } from "@/lib/site-live";
 import type { Listing } from "@/lib/listings";
 import type { PublicAgentRow } from "@/lib/agents.server";
+import type { SoldProperty } from "@/lib/sold.functions";
 
 /**
  * דף אישי של סוכן בכתובת /<slug> — אותו עיצוב של הדף הראשי, עם הפרטים
@@ -52,10 +53,19 @@ export const Route = createFileRoute("/$agentSlug")({
 });
 
 function AgentPage() {
-  const { live, listings, agents } = Route.useLoaderData() as {
+  const { live, listings, agents, sold } = Route.useLoaderData() as {
     live: LiveSite;
     listings: Listing[];
     agents: PublicAgentRow[];
+    sold: SoldProperty[];
   };
-  return <AgentLandingPage live={live} listings={listings} agents={agents} isMainSite={false} />;
+  return (
+    <AgentLandingPage
+      live={live}
+      listings={listings}
+      agents={agents}
+      sold={sold}
+      isMainSite={false}
+    />
+  );
 }

@@ -11,14 +11,18 @@ import { ItemsSection } from "@/components/site/ItemsSection";
 import { MobileBar } from "@/components/site/MobileBar";
 import { FloatingWhatsApp } from "@/components/site/FloatingWhatsApp";
 import { AccessibilityWidget } from "@/components/site/AccessibilityWidget";
+import { SoldSection } from "@/components/site/SoldSection";
 import { SiteLiveProvider, type LiveSite } from "@/lib/site-live";
 import type { Listing } from "@/lib/listings";
 import type { PublicAgentRow } from "@/lib/agents.server";
+import type { SoldProperty } from "@/lib/sold.functions";
 
 type Props = {
   live: LiveSite;
   listings: Listing[];
   agents: PublicAgentRow[];
+  /** דירות שנמכרו — מדור ההוכחה החברתית */
+  sold?: SoldProperty[];
   /** true בדף הראשי (של אלי), false בדף אישי של סוכן */
   isMainSite: boolean;
 };
@@ -27,7 +31,7 @@ type Props = {
  * גוף דף הנחיתה המשותף: הדף הראשי (/) והדפים האישיים של הסוכנים (/<slug>)
  * מרנדרים את אותו עמוד בדיוק, עם התוכן והפרטים של הסוכן של הדף.
  */
-export function AgentLandingPage({ live, listings, agents, isMainSite }: Props) {
+export function AgentLandingPage({ live, listings, agents, sold = [], isMainSite }: Props) {
   const listingsUpdatedAt = listings.reduce<string | null>(
     (max, l) => (!max || l.updated_at > max ? l.updated_at : max),
     null,
@@ -43,6 +47,7 @@ export function AgentLandingPage({ live, listings, agents, isMainSite }: Props) 
           <PropertySection listings={listings} updatedAt={listingsUpdatedAt} />
           <ItemsSection />
           <SellerSection />
+          <SoldSection items={sold} />
           <BuyerSection />
           <Services />
           <WhyUs />
