@@ -6,8 +6,9 @@ import type { LiveSite } from "@/lib/site-live";
 import type { Listing } from "@/lib/listings";
 import type { PublicAgentRow } from "@/lib/agents.server";
 
-const title = 'Недвижимость в Нетании | Sun City — квартиры на продажу и аренду';
-const description = 'Агентство Sun City, Нетания: квартиры на продажу и аренду, бесплатная оценка для продавцов, группа объектов для покупателей и личное сопровождение до сделки.';
+const title = "Недвижимость в Нетании | Sun City — квартиры на продажу и аренду";
+const description =
+  "Агентство Sun City, Нетания: квартиры на продажу и аренду, бесплатная оценка для продавцов, группа объектов для покупателей и личное сопровождение до сделки.";
 
 export const Route = createFileRoute("/ru/")({
   head: () => ({

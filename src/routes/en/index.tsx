@@ -6,8 +6,9 @@ import type { LiveSite } from "@/lib/site-live";
 import type { Listing } from "@/lib/listings";
 import type { PublicAgentRow } from "@/lib/agents.server";
 
-const title = 'Real Estate in Netanya | Sun City — Apartments for Sale & Rent';
-const description = "Sun City Real Estate, Netanya: apartments for sale and rent, free valuation for sellers, a buyers' property group and personal guidance to closing.";
+const title = "Real Estate in Netanya | Sun City — Apartments for Sale & Rent";
+const description =
+  "Sun City Real Estate, Netanya: apartments for sale and rent, free valuation for sellers, a buyers' property group and personal guidance to closing.";
 
 export const Route = createFileRoute("/en/")({
   head: () => ({

@@ -6,8 +6,9 @@ import type { LiveSite } from "@/lib/site-live";
 import type { Listing } from "@/lib/listings";
 import type { PublicAgentRow } from "@/lib/agents.server";
 
-const title = 'Immobilier à Netanya | Sun City — Appartements à vendre et à louer';
-const description = "Sun City Immobilier, Netanya : appartements à vendre et à louer, estimation gratuite pour les vendeurs, groupe de biens pour les acheteurs et accompagnement personnel jusqu'à la signature.";
+const title = "Immobilier à Netanya | Sun City — Appartements à vendre et à louer";
+const description =
+  "Sun City Immobilier, Netanya : appartements à vendre et à louer, estimation gratuite pour les vendeurs, groupe de biens pour les acheteurs et accompagnement personnel jusqu'à la signature.";
 
 export const Route = createFileRoute("/fr/")({
   head: () => ({

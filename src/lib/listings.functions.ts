@@ -95,7 +95,6 @@ export const adminListListings = createServerFn({ method: "GET" })
     return attachListingAgents(await attachListingImages((rows ?? []) as unknown as Listing[]));
   });
 
-
 export const adminSaveListing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => listingInputSchema.parse(input))

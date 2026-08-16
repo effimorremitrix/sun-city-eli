@@ -7,7 +7,6 @@ import { hreflangLinks } from "@/lib/i18n";
 import type { Listing } from "@/lib/listings";
 import type { PublicAgentRow } from "@/lib/agents.server";
 
-
 const title = 'תיווך נתניה | סאן סיטי נדל"ן — דירות למכירה בנתניה';
 const description =
   'סאן סיטי נדל"ן, תיווך בנתניה: דירות למכירה בנתניה ולהשכרה, הערכת שווי חינם למוכרים, קבוצת נכסים לקונים וליווי אישי עד סגירת העסקה.';

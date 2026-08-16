@@ -17,7 +17,9 @@ export function Testimonials() {
 
       <div className="soft-card mt-6 p-6">
         <Quote className="size-7 text-sun" aria-hidden="true" />
-        <blockquote className="mt-3 text-lg leading-relaxed text-foreground">"{t.quote}"</blockquote>
+        <blockquote className="mt-3 text-lg leading-relaxed text-foreground">
+          "{t.quote}"
+        </blockquote>
         <p className="mt-4 font-bold text-primary">
           {t.name} <span className="font-normal text-muted-foreground">· {t.type}</span>
         </p>

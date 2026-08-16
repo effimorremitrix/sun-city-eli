@@ -130,7 +130,10 @@ export function Header() {
           </div>
         </nav>
 
-        <nav aria-label={t.langSwitcher} className="hidden items-center gap-1 text-xs font-bold lg:flex">
+        <nav
+          aria-label={t.langSwitcher}
+          className="hidden items-center gap-1 text-xs font-bold lg:flex"
+        >
           <Globe className="size-3.5 text-sun" aria-hidden="true" />
           {LANGS.map((l) => (
             <a
@@ -155,7 +158,11 @@ export function Header() {
           onClick={() => setOpen((v) => !v)}
           className="inline-flex size-10 items-center justify-center rounded-lg border border-border text-primary lg:hidden"
         >
-          {open ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
+          {open ? (
+            <X className="size-5" aria-hidden="true" />
+          ) : (
+            <Menu className="size-5" aria-hidden="true" />
+          )}
         </button>
       </div>
 

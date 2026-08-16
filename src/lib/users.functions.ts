@@ -42,8 +42,17 @@ export const adminListUsers = createServerFn({ method: "GET" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const [{ data: profiles, error }, { data: roles }, { data: sp }, { data: notes }, { data: sites }] = await Promise.all([
-      supabaseAdmin.from("profiles").select("id, email, full_name, created_at").order("created_at", { ascending: false }),
+    const [
+      { data: profiles, error },
+      { data: roles },
+      { data: sp },
+      { data: notes },
+      { data: sites },
+    ] = await Promise.all([
+      supabaseAdmin
+        .from("profiles")
+        .select("id, email, full_name, created_at")
+        .order("created_at", { ascending: false }),
       supabaseAdmin.from("user_roles").select("user_id, role"),
       supabaseAdmin.from("search_profiles").select("user_id"),
       supabaseAdmin.from("listing_notifications").select("user_id"),
@@ -149,9 +158,18 @@ const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?$/;
 export const adminCreateAgentSite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (input: { userId: string; slug: string; agentName: string; roleTitle?: string; phone?: string; email?: string }) => ({
+    (input: {
+      userId: string;
+      slug: string;
+      agentName: string;
+      roleTitle?: string;
+      phone?: string;
+      email?: string;
+    }) => ({
       userId: String(input.userId),
-      slug: String(input.slug ?? "").trim().toLowerCase(),
+      slug: String(input.slug ?? "")
+        .trim()
+        .toLowerCase(),
       agentName: String(input.agentName ?? "").trim(),
       roleTitle: String(input.roleTitle ?? "").trim(),
       phone: String(input.phone ?? "").trim(),
@@ -218,7 +236,9 @@ export const adminDeleteUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { userId: string; confirmEmail: string }) => ({
     userId: String(input.userId),
-    confirmEmail: String(input.confirmEmail ?? "").trim().toLowerCase(),
+    confirmEmail: String(input.confirmEmail ?? "")
+      .trim()
+      .toLowerCase(),
   }))
   .handler(async ({ data, context }) => {
     const { assertAdmin } = await import("@/lib/admin.server");

@@ -26,7 +26,9 @@ export function ItemsSection() {
             <div className="p-5">
               <h3 className="text-lg font-extrabold text-primary">{item.title}</h3>
               {item.description && (
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{item.description}</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  {item.description}
+                </p>
               )}
               {(item.price != null || item.price_note) && (
                 <p className="mt-3 text-base font-bold text-sun">
@@ -35,7 +37,10 @@ export function ItemsSection() {
                 </p>
               )}
               <a
-                {...waProps(`שלום ${business.agentName}, אשמח לפרטים על: ${item.title}`, business.phoneTel)}
+                {...waProps(
+                  `שלום ${business.agentName}, אשמח לפרטים על: ${item.title}`,
+                  business.phoneTel,
+                )}
                 className="mt-4 block rounded-xl bg-whatsapp py-2.5 text-center text-sm font-bold text-whatsapp-foreground"
               >
                 לפרטים בוואטסאפ

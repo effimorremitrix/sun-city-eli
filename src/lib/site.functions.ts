@@ -86,8 +86,7 @@ export const saveSiteContent = createServerFn({ method: "POST" })
       await assertSiteAccess(context, siteId);
     } else {
       const access = await assertManager(context);
-      const site =
-        access.sites.filter((s) => s.slug === PUBLIC_SLUG)[0] ?? access.sites[0] ?? null;
+      const site = access.sites.filter((s) => s.slug === PUBLIC_SLUG)[0] ?? access.sites[0] ?? null;
       if (!site) throw new Error("לא נמצאה רשומת אתר במסד הנתונים");
       siteId = site.id;
     }

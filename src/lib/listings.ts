@@ -53,7 +53,6 @@ export type Listing = {
   agent?: ListingAgent | null;
 };
 
-
 /** פילטרים מובנים — משמשים גם את החיפוש הידני וגם את חיפוש ה‑AI */
 export type ListingFilters = {
   deal_type?: string | null;
@@ -89,10 +88,11 @@ export function listingImages(l: Pick<Listing, "image_url" | "image_key" | "imag
 }
 
 /** תמונת הנכס הראשית */
-export function listingImage(l: Pick<Listing, "image_url" | "image_key" | "images">): string | null {
+export function listingImage(
+  l: Pick<Listing, "image_url" | "image_key" | "images">,
+): string | null {
   return listingImages(l)[0] ?? null;
 }
-
 
 export const LISTING_FEATURES = [
   { key: "has_mamad", need: "needs_mamad", label: "ממ״ד" },
@@ -104,7 +104,8 @@ export const LISTING_FEATURES = [
 /** סינון בצד הלקוח — אותם כללים בדיוק כמו בהתאמת ההתראות */
 export function matchesFilters(l: Listing, f: ListingFilters): boolean {
   if (f.deal_type && l.deal_type !== f.deal_type) return false;
-  if (f.neighborhoods?.length && !(l.neighborhood && f.neighborhoods.includes(l.neighborhood))) return false;
+  if (f.neighborhoods?.length && !(l.neighborhood && f.neighborhoods.includes(l.neighborhood)))
+    return false;
   if (f.min_price != null && l.price != null && l.price < f.min_price) return false;
   if (f.max_price != null && l.price != null && l.price > f.max_price) return false;
   if (f.min_rooms != null && l.rooms != null && l.rooms < f.min_rooms) return false;

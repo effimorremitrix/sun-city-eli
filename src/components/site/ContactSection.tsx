@@ -60,7 +60,11 @@ export function ContactSection() {
               <Phone className="mt-0.5 size-5 shrink-0 text-sun" aria-hidden="true" />
               <div>
                 <p className="font-bold text-primary">{t.contact.phone}</p>
-                <a href={`tel:${business.phoneTel}`} className="text-sm text-muted-foreground underline" dir="ltr">
+                <a
+                  href={`tel:${business.phoneTel}`}
+                  className="text-sm text-muted-foreground underline"
+                  dir="ltr"
+                >
                   {business.phone}
                 </a>
               </div>
@@ -70,7 +74,10 @@ export function ContactSection() {
               <Mail className="mt-0.5 size-5 shrink-0 text-sun" aria-hidden="true" />
               <div>
                 <p className="font-bold text-primary">{t.contact.email}</p>
-                <a href={`mailto:${business.email}`} className="text-sm text-muted-foreground underline">
+                <a
+                  href={`mailto:${business.email}`}
+                  className="text-sm text-muted-foreground underline"
+                >
                   {business.email}
                 </a>
               </div>
@@ -108,14 +115,28 @@ export function ContactSection() {
           </div>
         </div>
 
-        <form onSubmit={submit} noValidate className="soft-card h-fit p-5" aria-label={t.contact.formLabel}>
+        <form
+          onSubmit={submit}
+          noValidate
+          className="soft-card h-fit p-5"
+          aria-label={t.contact.formLabel}
+        >
           <div className="grid gap-3">
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.contact.fullName}</span>
-              <input className="field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.contact.fullName}
+              </span>
+              <input
+                className="field"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                required
+              />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.contact.phoneField}</span>
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.contact.phoneField}
+              </span>
               <input
                 className="field"
                 type="tel"
@@ -127,8 +148,14 @@ export function ContactSection() {
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.contact.topic}</span>
-              <select className="field" value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })}>
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.contact.topic}
+              </span>
+              <select
+                className="field"
+                value={form.topic}
+                onChange={(e) => setForm({ ...form, topic: e.target.value })}
+              >
                 <option value="">{t.contact.topicChoose}</option>
                 <option>{t.contact.topicSeller}</option>
                 <option>{t.contact.topicBuyer}</option>
@@ -137,7 +164,9 @@ export function ContactSection() {
               </select>
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.contact.message}</span>
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.contact.message}
+              </span>
               <textarea
                 className="field min-h-28"
                 value={form.message}
@@ -150,7 +179,10 @@ export function ContactSection() {
               {err}
             </p>
           )}
-          <button type="submit" className="mt-4 w-full rounded-xl bg-sun py-3.5 text-base font-bold text-sun-foreground">
+          <button
+            type="submit"
+            className="mt-4 w-full rounded-xl bg-sun py-3.5 text-base font-bold text-sun-foreground"
+          >
             {t.contact.send}
           </button>
         </form>
@@ -228,10 +260,14 @@ export function Footer() {
           <p className="font-bold text-navy-foreground">{t.footer.links}</p>
           <ul className="mt-2 space-y-1.5">
             <li>
-              <a href="#properties" className="underline">{t.footer.properties}</a>
+              <a href="#properties" className="underline">
+                {t.footer.properties}
+              </a>
             </li>
             <li>
-              <a href="#sellers" className="underline">{t.footer.valuation}</a>
+              <a href="#sellers" className="underline">
+                {t.footer.valuation}
+              </a>
             </li>
             <li>
               <a
@@ -244,22 +280,33 @@ export function Footer() {
               </a>
             </li>
             <li>
-              <a href="#team" className="underline">{t.footer.team}</a>
+              <a href="#team" className="underline">
+                {t.footer.team}
+              </a>
             </li>
 
             <li>
-              <Link to="/accessibility" className="underline">{t.footer.accessibility}</Link>
+              <Link to="/accessibility" className="underline">
+                {t.footer.accessibility}
+              </Link>
             </li>
             <li>
-              <Link to="/privacy" className="underline">{t.footer.privacy}</Link>
+              <Link to="/privacy" className="underline">
+                {t.footer.privacy}
+              </Link>
             </li>
             <li className="mt-3 border-t border-navy-foreground/15 pt-3 text-xs text-navy-foreground/55">
-              <Link to="/account" className="underline">{t.footer.myArea}</Link>
-              <span aria-hidden="true" className="px-1.5">·</span>
-              <Link to="/admin" className="underline">{t.footer.admin}</Link>
+              <Link to="/account" className="underline">
+                {t.footer.myArea}
+              </Link>
+              <span aria-hidden="true" className="px-1.5">
+                ·
+              </span>
+              <Link to="/admin" className="underline">
+                {t.footer.admin}
+              </Link>
             </li>
           </ul>
-
         </nav>
       </div>
 

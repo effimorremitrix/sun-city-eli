@@ -25,8 +25,7 @@ export function Team({ agents = [], variant = "primary" }: Props) {
   const { slug: currentSlug } = useLive();
   const t = useT();
   // בדף אישי מציגים את שאר הסוכנים; בדף הראשי — את כולם
-  const dbAgents =
-    variant === "secondary" ? agents.filter((a) => a.slug !== currentSlug) : agents;
+  const dbAgents = variant === "secondary" ? agents.filter((a) => a.slug !== currentSlug) : agents;
   // כל עוד רק האתר הראשי קיים במסד, הדף הראשי ממשיך להציג את הצוות הסטטי המלא
   const useDb = variant === "secondary" ? dbAgents.length > 0 : dbAgents.length > 1;
 
@@ -161,9 +160,7 @@ export function Team({ agents = [], variant = "primary" }: Props) {
                       </div>
                     ) : (
                       <a
-                        {...waProps(
-                          `שלום ${business.name}, אשמח לפנייה למשרד בנוגע ל${m.name}.`,
-                        )}
+                        {...waProps(`שלום ${business.name}, אשמח לפנייה למשרד בנוגע ל${m.name}.`)}
                         className="mt-4 flex items-center justify-center gap-1.5 rounded-xl bg-whatsapp py-2.5 text-sm font-bold text-whatsapp-foreground"
                         aria-label={`לפנייה למשרד בנוגע ל${m.name}`}
                       >

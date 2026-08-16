@@ -95,7 +95,8 @@ export const en: Dict = {
       loginCta: "Sign in for free",
       quota:
         "You've used today's web scan quota. The office's properties keep updating here, and you can scan again tomorrow.",
-      unavailable: "The web scan didn't succeed this time. The office's properties are shown above — try again in a moment.",
+      unavailable:
+        "The web scan didn't succeed this time. The office's properties are shown above — try again in a moment.",
       empty:
         "We scanned the web and found no additional matching listings right now. Try rephrasing, or leave your details and we'll find it for you.",
     },

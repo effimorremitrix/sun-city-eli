@@ -18,7 +18,9 @@ export async function generatePostCopy(listingId: string, force = false): Promis
 
   const { data: listing, error } = await supabaseAdmin
     .from("listings")
-    .select("id, title, description, deal_type, neighborhood, address, price, rooms, size_sqm, floor, has_mamad, has_elevator, has_parking, has_balcony, post_copy")
+    .select(
+      "id, title, description, deal_type, neighborhood, address, price, rooms, size_sqm, floor, has_mamad, has_elevator, has_parking, has_balcony, post_copy",
+    )
     .eq("id", listingId)
     .maybeSingle();
   if (error || !listing) throw new Error("הנכס לא נמצא");
@@ -66,7 +68,12 @@ export async function generatePostCopy(listingId: string, force = false): Promis
     }),
   });
   if (!res.ok) {
-    await logAiUsage({ feature: "post_copy", model: AI_MODEL, status: "error", errorMessage: `HTTP ${res.status}` });
+    await logAiUsage({
+      feature: "post_copy",
+      model: AI_MODEL,
+      status: "error",
+      errorMessage: `HTTP ${res.status}`,
+    });
     throw new Error("יצירת הנוסחים נכשלה. נסו שוב בעוד רגע");
   }
 
@@ -82,7 +89,10 @@ export async function generatePostCopy(listingId: string, force = false): Promis
     status: "success",
   });
 
-  const text = (json.content ?? []).map((c) => c?.text ?? "").join("\n").trim();
+  const text = (json.content ?? [])
+    .map((c) => c?.text ?? "")
+    .join("\n")
+    .trim();
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   let parsed: { variants?: unknown[]; hashtags?: unknown[] } = {};
@@ -103,6 +113,9 @@ export async function generatePostCopy(listingId: string, force = false): Promis
   if (!variants.length) throw new Error("יצירת הנוסחים נכשלה. נסו שוב");
 
   const copy: PostCopy = { variants, hashtags, generated_at: new Date().toISOString() };
-  await supabaseAdmin.from("listings").update({ post_copy: copy as never }).eq("id", listingId);
+  await supabaseAdmin
+    .from("listings")
+    .update({ post_copy: copy as never })
+    .eq("id", listingId);
   return copy;
 }

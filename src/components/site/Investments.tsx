@@ -24,9 +24,14 @@ export function Services() {
                 <article className="soft-card flex h-full flex-col p-5 transition-transform hover:-translate-y-1">
                   <Icon className="size-7 text-sun" aria-hidden="true" />
                   <h3 className="mt-3 text-lg">{s.title}</h3>
-                  <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{s.text}</p>
+                  <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
+                    {s.text}
+                  </p>
                   <a
-                    {...waProps(`שלום ${live.agentName}, אשמח לפרטים בנושא: ${s.title}. שם: `, live.phoneTel)}
+                    {...waProps(
+                      `שלום ${live.agentName}, אשמח לפרטים בנושא: ${s.title}. שם: `,
+                      live.phoneTel,
+                    )}
                     className="mt-4 rounded-xl bg-primary py-2.5 text-center text-sm font-bold text-primary-foreground"
                   >
                     {t.sections.waDetails}
@@ -50,9 +55,7 @@ export function WhyUs() {
       <div className="mx-auto max-w-6xl px-4">
         <p className="text-sm font-bold text-sun">{t.sections.whyLabel}</p>
         <h2 className="mt-2 text-3xl md:text-4xl">{t.sections.whyTitle}</h2>
-        {live.bio && (
-          <p className="mt-4 max-w-3xl leading-relaxed text-foreground">{live.bio}</p>
-        )}
+        {live.bio && <p className="mt-4 max-w-3xl leading-relaxed text-foreground">{live.bio}</p>}
         <p className="mt-4 max-w-3xl leading-relaxed text-foreground">{t.content.about}</p>
         <p className="mt-3 max-w-3xl leading-relaxed text-muted-foreground">{t.content.story}</p>
 

@@ -5,7 +5,11 @@ import type { PostCopy } from "@/lib/post-copy.server";
 import type { CampaignParams, FacebookStatus } from "@/lib/facebook.server";
 
 /** בדיקת הרשאה לנכס — הסוכן של ה-site או האדמין */
-async function assertListingAccess(context: { supabase: any; userId: string }, listingId: string) {
+async function assertListingAccess(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- אותו טיפוס Ctx כמו ב-admin.server
+  context: { supabase: any; userId: string },
+  listingId: string,
+) {
   const { assertManager } = await import("@/lib/admin.server");
   await assertManager(context);
   const { data: canManage } = await context.supabase.rpc("owns_listing", {
@@ -21,9 +25,8 @@ export const getFacebookStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<FacebookStatus & { authUrl: string | null }> => {
     const { assertSiteAccess } = await import("@/lib/admin.server");
     await assertSiteAccess(context, data.siteId);
-    const { getConnectionStatus, facebookConfigured, facebookAuthUrl } = await import(
-      "@/lib/facebook.server"
-    );
+    const { getConnectionStatus, facebookConfigured, facebookAuthUrl } =
+      await import("@/lib/facebook.server");
     const status = await getConnectionStatus(data.siteId);
     return {
       ...status,
@@ -61,39 +64,46 @@ export const publishListingToFacebookPage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { listingId: string; message: string }) => ({
     listingId: String(input.listingId),
-    message: String(input.message ?? "").trim().slice(0, 4000),
+    message: String(input.message ?? "")
+      .trim()
+      .slice(0, 4000),
   }))
   .handler(async ({ data, context }) => {
     if (!data.message) throw new Error("נדרש נוסח לפוסט");
     await assertListingAccess(context, data.listingId);
     const { publishListingToPage } = await import("@/lib/facebook.server");
     const origin = new URL(getRequest().url).origin;
-    return publishListingToPage(data.listingId, data.message, context.userId, `${origin}/#properties`);
+    return publishListingToPage(
+      data.listingId,
+      data.message,
+      context.userId,
+      `${origin}/#properties`,
+    );
   });
 
 /** קמפיין ממומן — נוצר תמיד במצב PAUSED, ההפעלה ידנית ב-Ads Manager */
 export const createFacebookCampaign = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (input: { listingId: string; message: string; params: CampaignParams }) => {
-      const p = input.params ?? ({} as CampaignParams);
-      const clamp = (v: unknown, min: number, max: number, dflt: number) => {
-        const n = Number(v);
-        return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : dflt;
-      };
-      return {
-        listingId: String(input.listingId),
-        message: String(input.message ?? "").trim().slice(0, 4000),
-        params: {
-          dailyBudgetIls: clamp(p.dailyBudgetIls, 10, 1000, 50),
-          durationDays: clamp(p.durationDays, 1, 60, 7),
-          radiusKm: clamp(p.radiusKm, 1, 80, 15),
-          ageMin: clamp(p.ageMin, 18, 65, 25),
-          ageMax: clamp(p.ageMax, 18, 65, 65),
-        },
-      };
-    },
-  )
+  .inputValidator((input: { listingId: string; message: string; params: CampaignParams }) => {
+    const p = input.params ?? ({} as CampaignParams);
+    const clamp = (v: unknown, min: number, max: number, dflt: number) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : dflt;
+    };
+    return {
+      listingId: String(input.listingId),
+      message: String(input.message ?? "")
+        .trim()
+        .slice(0, 4000),
+      params: {
+        dailyBudgetIls: clamp(p.dailyBudgetIls, 10, 1000, 50),
+        durationDays: clamp(p.durationDays, 1, 60, 7),
+        radiusKm: clamp(p.radiusKm, 1, 80, 15),
+        ageMin: clamp(p.ageMin, 18, 65, 25),
+        ageMax: clamp(p.ageMax, 18, 65, 65),
+      },
+    };
+  })
   .handler(async ({ data, context }) => {
     if (!data.message) throw new Error("נדרש נוסח למודעה");
     await assertListingAccess(context, data.listingId);
@@ -134,7 +144,9 @@ export const addFacebookGroup = createServerFn({ method: "POST" })
     }
     return {
       siteId: String(input.siteId),
-      name: String(input.name ?? "").trim().slice(0, 120),
+      name: String(input.name ?? "")
+        .trim()
+        .slice(0, 120),
       url: url.slice(0, 500),
     };
   })

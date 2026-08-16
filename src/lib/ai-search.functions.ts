@@ -45,7 +45,9 @@ async function usedWebSearchesToday(userId: string): Promise<number> {
  */
 export const aiSearchListings = createServerFn({ method: "POST" })
   .inputValidator((input: { query: string; includeWeb?: boolean }) => {
-    const query = String(input?.query ?? "").trim().slice(0, 300);
+    const query = String(input?.query ?? "")
+      .trim()
+      .slice(0, 300);
     if (query.length < 3) throw new Error("נא לתאר מה אתם מחפשים (לפחות 3 תווים)");
     return { query, includeWeb: input?.includeWeb !== false };
   })

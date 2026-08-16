@@ -28,9 +28,7 @@ export function SellerSection() {
       <div className="mx-auto max-w-6xl px-4">
         <p className="text-sm font-bold text-sun">{t.seller.label}</p>
         <h2 className="mt-2 text-3xl text-navy-foreground md:text-4xl">{t.seller.title}</h2>
-        <p className="mt-3 max-w-xl leading-relaxed text-navy-foreground/85">
-          {t.seller.subtitle}
-        </p>
+        <p className="mt-3 max-w-xl leading-relaxed text-navy-foreground/85">{t.seller.subtitle}</p>
 
         <p className="mt-4 inline-flex rounded-xl bg-[oklch(1_0_0/0.1)] px-4 py-2 text-sm font-bold text-sun">
           {business.successFeeNote}
@@ -44,7 +42,9 @@ export function SellerSection() {
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.seller.fullName}</span>
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.seller.fullName}
+              </span>
               <input
                 className="field"
                 value={form.name}
@@ -53,7 +53,9 @@ export function SellerSection() {
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.seller.phone}</span>
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.seller.phone}
+              </span>
               <input
                 className="field"
                 type="tel"
@@ -65,7 +67,9 @@ export function SellerSection() {
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.seller.address}</span>
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.seller.address}
+              </span>
               <input
                 className="field"
                 value={form.address}
@@ -74,7 +78,9 @@ export function SellerSection() {
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.seller.rooms}</span>
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.seller.rooms}
+              </span>
               <select
                 className="field"
                 value={form.rooms}

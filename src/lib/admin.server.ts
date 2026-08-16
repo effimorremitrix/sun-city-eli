@@ -1,6 +1,7 @@
 import type { ListingInput } from "@/lib/listing-schema";
 import { sendPendingListingEmails } from "@/lib/notify.server";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- קליינט Supabase של המשתמש מה-middleware
 type Ctx = { supabase: any; userId: string };
 
 export type ManagedSite = { id: string; slug: string; name: string; is_active: boolean };
@@ -79,9 +80,12 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
   let emailsPending = 0;
 
   if (fields.is_published && listingId) {
-    const { data: count, error: matchError } = await context.supabase.rpc("match_listing_to_profiles", {
-      p_listing_id: listingId,
-    });
+    const { data: count, error: matchError } = await context.supabase.rpc(
+      "match_listing_to_profiles",
+      {
+        p_listing_id: listingId,
+      },
+    );
     if (matchError) throw new Error(matchError.message);
     matched = Number(count ?? 0);
 

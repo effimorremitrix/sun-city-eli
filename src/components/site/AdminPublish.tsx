@@ -117,8 +117,8 @@ export function AdminPublish({ siteId, listings }: Props) {
         {st && !st.configured && (
           <p className="mt-2 text-sm text-muted-foreground">
             חיבור פייסבוק עדיין לא הוגדר במערכת (נדרשים META_APP_ID, META_APP_SECRET,
-            META_REDIRECT_URI ואישור App Review של Meta). עד אז אפשר להשתמש במסך
-            &quot;פוסט מוכן&quot; ולהעתיק ידנית.
+            META_REDIRECT_URI ואישור App Review של Meta). עד אז אפשר להשתמש במסך &quot;פוסט
+            מוכן&quot; ולהעתיק ידנית.
           </p>
         )}
         {st?.configured && !st.connected && st.authUrl && (
@@ -161,9 +161,14 @@ export function AdminPublish({ siteId, listings }: Props) {
         )}
       </div>
 
-      {msg && <p className="rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">{msg}</p>}
+      {msg && (
+        <p className="rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">{msg}</p>
+      )}
       {err && (
-        <p role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive">
+        <p
+          role="alert"
+          className="rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive"
+        >
           {err}
         </p>
       )}
@@ -278,10 +283,9 @@ export function AdminPublish({ siteId, listings }: Props) {
                 קבוצות נדל&quot;ן ומרקטפלייס — פוסט מוכן בלחיצה
               </h3>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                שלב זה ידני במכוון: Meta סגרה את ה-API לפרסום בקבוצות (אפריל 2024)
-                ולמרקטפלייס אין API ציבורי — אף כלי אינו יכול לפרסם לשם אוטומטית.
-                לכן מכינים לכם הכול להעתקה: מעתיקים את הנוסח, פותחים את הקבוצה או את
-                המרקטפלייס, מדביקים ומצרפים את התמונות.
+                שלב זה ידני במכוון: Meta סגרה את ה-API לפרסום בקבוצות (אפריל 2024) ולמרקטפלייס אין
+                API ציבורי — אף כלי אינו יכול לפרסם לשם אוטומטית. לכן מכינים לכם הכול להעתקה:
+                מעתיקים את הנוסח, פותחים את הקבוצה או את המרקטפלייס, מדביקים ומצרפים את התמונות.
               </p>
 
               <div className="mt-3 flex flex-wrap gap-2">
@@ -321,7 +325,10 @@ export function AdminPublish({ siteId, listings }: Props) {
                 <p className="text-xs font-bold text-muted-foreground">הקבוצות שלי</p>
                 <ul className="mt-2 flex flex-wrap gap-2">
                   {(groups.data ?? []).map((g) => (
-                    <li key={g.id} className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-1.5 text-sm">
+                    <li
+                      key={g.id}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-1.5 text-sm"
+                    >
                       <a
                         href={g.url}
                         target="_blank"
@@ -390,21 +397,23 @@ export function AdminPublish({ siteId, listings }: Props) {
                 קמפיין ממומן — נוצר במצב מושהה (Paused)
               </h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                הקמפיין נבנה ב-Ads Manager אך לעולם לא מופעל מכאן — ההפעלה (וההוצאה
-                הכספית) נעשית ידנית בחשבון המודעות שלכם.
+                הקמפיין נבנה ב-Ads Manager אך לעולם לא מופעל מכאן — ההפעלה (וההוצאה הכספית) נעשית
+                ידנית בחשבון המודעות שלכם.
               </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
                 {(
                   [
                     ["dailyBudgetIls", "תקציב יומי (₪)"],
                     ["durationDays", "משך (ימים)"],
-                    ["radiusKm", "רדיוס מנתניה (ק\"מ)"],
+                    ["radiusKm", 'רדיוס מנתניה (ק"מ)'],
                     ["ageMin", "גיל מינימום"],
                     ["ageMax", "גיל מקסימום"],
                   ] as Array<[keyof typeof campaign, string]>
                 ).map(([key, label]) => (
                   <label key={key} className="block">
-                    <span className="mb-1 block text-xs font-bold text-muted-foreground">{label}</span>
+                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                      {label}
+                    </span>
                     <input
                       className="field"
                       type="number"

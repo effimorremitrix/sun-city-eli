@@ -94,7 +94,10 @@ async function graph<T>(path: string, params: Record<string, string>, method = "
 }
 
 /** החלפת code בטוקן עמוד ארוך-טווח ושמירת החיבור */
-export async function handleFacebookCallback(code: string, state: string): Promise<{ siteId: string; pageName: string }> {
+export async function handleFacebookCallback(
+  code: string,
+  state: string,
+): Promise<{ siteId: string; pageName: string }> {
   const parsed = parseOAuthState(state);
   if (!parsed) throw new Error("state לא תקין");
   const appId = env("META_APP_ID")!;
@@ -162,7 +165,13 @@ export type FacebookStatus = {
 
 export async function getConnectionStatus(siteId: string): Promise<FacebookStatus> {
   if (!facebookConfigured()) {
-    return { configured: false, connected: false, pageName: null, hasAdAccount: false, connectedAt: null };
+    return {
+      configured: false,
+      connected: false,
+      pageName: null,
+      hasAdAccount: false,
+      connectedAt: null,
+    };
   }
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data } = await supabaseAdmin
@@ -188,7 +197,12 @@ async function getConnection(siteId: string) {
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("האתר אינו מחובר לעמוד פייסבוק. חברו אותו קודם בטאב הפרסום");
-  return data as { page_id: string; page_name: string; page_access_token: string; ad_account_id: string | null };
+  return data as {
+    page_id: string;
+    page_name: string;
+    page_access_token: string;
+    ad_account_id: string | null;
+  };
 }
 
 /* ---------------------- פרסום לעמוד ---------------------- */
@@ -233,11 +247,15 @@ export async function publishListingToPage(
     // העלאת התמונות כלא-מפורסמות ואז פוסט אחד שמאגד אותן
     const mediaIds: string[] = [];
     for (const url of imageUrls) {
-      const photo = await graph<{ id: string }>(`/${conn.page_id}/photos`, {
-        url,
-        published: "false",
-        access_token: conn.page_access_token,
-      }, "POST");
+      const photo = await graph<{ id: string }>(
+        `/${conn.page_id}/photos`,
+        {
+          url,
+          published: "false",
+          access_token: conn.page_access_token,
+        },
+        "POST",
+      );
       mediaIds.push(photo.id);
     }
 
@@ -291,8 +309,11 @@ export async function createPausedCampaign(
   if (!listing.site_id) throw new Error("הנכס אינו משויך לאתר סוכן");
 
   const conn = await getConnection(listing.site_id as string);
-  if (!conn.ad_account_id) throw new Error("לא חובר חשבון מודעות (Ad Account) — נדרש לקמפיין ממומן");
-  const act = conn.ad_account_id.startsWith("act_") ? conn.ad_account_id : `act_${conn.ad_account_id}`;
+  if (!conn.ad_account_id)
+    throw new Error("לא חובר חשבון מודעות (Ad Account) — נדרש לקמפיין ממומן");
+  const act = conn.ad_account_id.startsWith("act_")
+    ? conn.ad_account_id
+    : `act_${conn.ad_account_id}`;
   const token = conn.page_access_token;
 
   const record = async (status: "success" | "error", campaignId?: string, errMsg?: string) => {
@@ -308,54 +329,75 @@ export async function createPausedCampaign(
 
   try {
     // כל האובייקטים נוצרים במצב PAUSED — ההפעלה (וההוצאה הכספית) ידנית בלבד
-    const campaign = await graph<{ id: string }>(`/${act}/campaigns`, {
-      name: `נכס: ${listing.title}`.slice(0, 100),
-      objective: "OUTCOME_TRAFFIC",
-      status: "PAUSED",
-      special_ad_categories: JSON.stringify(["HOUSING"]),
-      access_token: token,
-    }, "POST");
+    const campaign = await graph<{ id: string }>(
+      `/${act}/campaigns`,
+      {
+        name: `נכס: ${listing.title}`.slice(0, 100),
+        objective: "OUTCOME_TRAFFIC",
+        status: "PAUSED",
+        special_ad_categories: JSON.stringify(["HOUSING"]),
+        access_token: token,
+      },
+      "POST",
+    );
 
     const start = new Date();
     const end = new Date(start.getTime() + params.durationDays * 24 * 60 * 60 * 1000);
-    const adset = await graph<{ id: string }>(`/${act}/adsets`, {
-      name: `קהל: ${listing.title}`.slice(0, 100),
-      campaign_id: campaign.id,
-      daily_budget: String(Math.round(params.dailyBudgetIls * 100)),
-      billing_event: "IMPRESSIONS",
-      optimization_goal: "LINK_CLICKS",
-      bid_strategy: "LOWEST_COST_WITHOUT_CAP",
-      start_time: start.toISOString(),
-      end_time: end.toISOString(),
-      status: "PAUSED",
-      targeting: JSON.stringify({
-        geo_locations: {
-          custom_locations: [
-            { latitude: 32.3303316, longitude: 34.8567176, radius: params.radiusKm, distance_unit: "kilometer" },
-          ],
-        },
-        age_min: params.ageMin,
-        age_max: params.ageMax,
-      }),
-      access_token: token,
-    }, "POST");
+    const adset = await graph<{ id: string }>(
+      `/${act}/adsets`,
+      {
+        name: `קהל: ${listing.title}`.slice(0, 100),
+        campaign_id: campaign.id,
+        daily_budget: String(Math.round(params.dailyBudgetIls * 100)),
+        billing_event: "IMPRESSIONS",
+        optimization_goal: "LINK_CLICKS",
+        bid_strategy: "LOWEST_COST_WITHOUT_CAP",
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
+        status: "PAUSED",
+        targeting: JSON.stringify({
+          geo_locations: {
+            custom_locations: [
+              {
+                latitude: 32.3303316,
+                longitude: 34.8567176,
+                radius: params.radiusKm,
+                distance_unit: "kilometer",
+              },
+            ],
+          },
+          age_min: params.ageMin,
+          age_max: params.ageMax,
+        }),
+        access_token: token,
+      },
+      "POST",
+    );
 
-    const creative = await graph<{ id: string }>(`/${act}/adcreatives`, {
-      name: `קריאייטיב: ${listing.title}`.slice(0, 100),
-      object_story_spec: JSON.stringify({
-        page_id: conn.page_id,
-        link_data: { message, link: siteUrl },
-      }),
-      access_token: token,
-    }, "POST");
+    const creative = await graph<{ id: string }>(
+      `/${act}/adcreatives`,
+      {
+        name: `קריאייטיב: ${listing.title}`.slice(0, 100),
+        object_story_spec: JSON.stringify({
+          page_id: conn.page_id,
+          link_data: { message, link: siteUrl },
+        }),
+        access_token: token,
+      },
+      "POST",
+    );
 
-    await graph<{ id: string }>(`/${act}/ads`, {
-      name: `מודעה: ${listing.title}`.slice(0, 100),
-      adset_id: adset.id,
-      creative: JSON.stringify({ creative_id: creative.id }),
-      status: "PAUSED",
-      access_token: token,
-    }, "POST");
+    await graph<{ id: string }>(
+      `/${act}/ads`,
+      {
+        name: `מודעה: ${listing.title}`.slice(0, 100),
+        adset_id: adset.id,
+        creative: JSON.stringify({ creative_id: creative.id }),
+        status: "PAUSED",
+        access_token: token,
+      },
+      "POST",
+    );
 
     await record("success", campaign.id);
     return {

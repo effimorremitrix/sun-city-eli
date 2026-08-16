@@ -48,8 +48,7 @@ export const SITE_CONFIG = {
   yad2Url: "https://www.yad2.co.il/realestate/agency/7607728/forsale",
   social: {
     facebook: "https://www.facebook.com/share/199jyqdNZY/",
-    instagram:
-      "https://www.instagram.com/kalif.eli_sun_city?igsh=MXZ1NmIyYjhoYWljcw==",
+    instagram: "https://www.instagram.com/kalif.eli_sun_city?igsh=MXZ1NmIyYjhoYWljcw==",
     tiktok: "https://www.tiktok.com/@elikalif.suncity?_r=1&_t=ZS-98vPBhf7ZcG2",
   },
   badges: [
@@ -85,7 +84,6 @@ export const buildWa = (msg: string, phone: string = WA_PHONE) =>
 export const openWa = (msg: string, phone?: string) =>
   window.open(buildWa(msg, phone), "_blank", "noopener,noreferrer");
 
-
 /** props לקישור/כפתור וואטסאפ – מבטיח שהפתיחה תמיד עוברת דרך openWa */
 export const waProps = (msg: string, phone?: string) => ({
   href: buildWa(msg, phone),
@@ -100,7 +98,6 @@ export const waProps = (msg: string, phone?: string) => ({
 /** שמות תאימות – מפנים לאותה פונקציה יחידה */
 export const whatsappLink = (text: string, phone?: string) => buildWa(text, phone);
 export const agentWhatsappLink = (phone: string, text: string) => buildWa(text, phone);
-
 
 /* ---------------------------- טקסטים ---------------------------- */
 
@@ -227,8 +224,7 @@ export const properties: Property[] = [
     floor: "8",
     tag: "בלעדי",
     features: { mamad: true, elevator: true, parking: true, balcony: true },
-    description:
-      'דירת 5 חדרים מרווחת בשכונת אגמים, 166 מ"ר בקומה 8. נכס בבלעדיות המשרד.',
+    description: 'דירת 5 חדרים מרווחת בשכונת אגמים, 166 מ"ר בקומה 8. נכס בבלעדיות המשרד.',
     images: [prop1],
   },
   {
@@ -243,8 +239,7 @@ export const properties: Property[] = [
     floor: "קרקע",
     tag: "בלעדי",
     features: { mamad: true, elevator: false, parking: true, balcony: true },
-    description:
-      'בית דו משפחתי ברמת אפרים, 4 חדרים, 370 מ"ר בקומת קרקע. נכס בבלעדיות המשרד.',
+    description: 'בית דו משפחתי ברמת אפרים, 4 חדרים, 370 מ"ר בקומת קרקע. נכס בבלעדיות המשרד.',
     images: [prop2],
   },
   {
@@ -259,8 +254,7 @@ export const properties: Property[] = [
     floor: "8",
     tag: "בלעדי",
     features: { mamad: true, elevator: true, parking: true, balcony: true },
-    description:
-      'דירת 4 חדרים בקריית השרון, 112 מ"ר בקומה 8, עם חניה וממ"ד. נכס בבלעדיות המשרד.',
+    description: 'דירת 4 חדרים בקריית השרון, 112 מ"ר בקומה 8, עם חניה וממ"ד. נכס בבלעדיות המשרד.',
     images: [prop3],
   },
   {
@@ -275,8 +269,7 @@ export const properties: Property[] = [
     floor: "3",
     tag: "בלעדי",
     features: { mamad: false, elevator: true, parking: false, balcony: true },
-    description:
-      'דירת 4 חדרים בצפון מערב מרכז העיר, 92 מ"ר בקומה 3. נכס בבלעדיות המשרד.',
+    description: 'דירת 4 חדרים בצפון מערב מרכז העיר, 92 מ"ר בקומה 3. נכס בבלעדיות המשרד.',
     images: [prop4],
   },
   {
@@ -291,8 +284,7 @@ export const properties: Property[] = [
     floor: "3",
     tag: "בלעדי",
     features: { mamad: false, elevator: true, parking: false, balcony: true },
-    description:
-      'דירת 4 חדרים בצפון מערב מרכז העיר, 90 מ"ר בקומה 3. נכס בבלעדיות המשרד.',
+    description: 'דירת 4 חדרים בצפון מערב מרכז העיר, 90 מ"ר בקומה 3. נכס בבלעדיות המשרד.',
     images: [prop5],
   },
   {
@@ -306,8 +298,7 @@ export const properties: Property[] = [
     size: 95,
     floor: "8",
     features: { mamad: false, elevator: true, parking: true, balcony: true },
-    description:
-      'דירת 4 חדרים, 95 מ"ר בקומה 8, עם חניה ובמרחק קצר מהים.',
+    description: 'דירת 4 חדרים, 95 מ"ר בקומה 8, עם חניה ובמרחק קצר מהים.',
     images: [prop6],
   },
   {
@@ -389,8 +380,7 @@ export const testimonials = [
     type: "מכירת דירה",
   },
   {
-    quote:
-      'ליווי וניהול מו"מ מושלמים לכל אורכו. מקצועיות, שיקול דעת ושירותיות בהכי הכי שאפשר.',
+    quote: 'ליווי וניהול מו"מ מושלמים לכל אורכו. מקצועיות, שיקול דעת ושירותיות בהכי הכי שאפשר.',
     name: "שראל ד.",
     type: "קניית דירה להשקעה",
   },

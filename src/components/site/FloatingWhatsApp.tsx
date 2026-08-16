@@ -7,10 +7,7 @@ export function FloatingWhatsApp() {
 
   return (
     <a
-      {...waProps(
-        `שלום ${business.agentName}, הגעתי מהאתר ואשמח לקבל פרטים 🙂`,
-        business.phoneTel,
-      )}
+      {...waProps(`שלום ${business.agentName}, הגעתי מהאתר ואשמח לקבל פרטים 🙂`, business.phoneTel)}
       aria-label={`שליחת הודעת וואטסאפ ל${business.agentName}`}
       className="fixed bottom-24 left-4 z-40 inline-flex size-14 items-center justify-center rounded-full bg-whatsapp text-whatsapp-foreground shadow-lift transition-transform hover:-translate-y-0.5 lg:bottom-6"
     >

@@ -24,7 +24,6 @@ import { neighborhoods, priceRanges, waProps, openWa, business } from "@/lib/sit
 import {
   formatListingPrice,
   listingImages,
-
   matchesFilters,
   type Listing,
   type ListingFilters,
@@ -145,7 +144,10 @@ export function PropertySection({ listings, updatedAt }: Props) {
           </p>
         )}
         {ai && (
-          <p className="mt-3 rounded-xl bg-secondary p-3 text-sm text-secondary-foreground" aria-live="polite">
+          <p
+            className="mt-3 rounded-xl bg-secondary p-3 text-sm text-secondary-foreground"
+            aria-live="polite"
+          >
             {ai.explanation || t.properties.aiDefaultExplanation}
           </p>
         )}
@@ -155,16 +157,30 @@ export function PropertySection({ listings, updatedAt }: Props) {
       {/* סינון ידני */}
       <div className="soft-card mt-4 grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
         <label className="block">
-          <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.properties.filterDeal}</span>
-          <select className="field" value={deal} onChange={(e) => setDeal(e.target.value)} aria-label={t.properties.filterDeal}>
+          <span className="mb-1 block text-xs font-bold text-muted-foreground">
+            {t.properties.filterDeal}
+          </span>
+          <select
+            className="field"
+            value={deal}
+            onChange={(e) => setDeal(e.target.value)}
+            aria-label={t.properties.filterDeal}
+          >
             <option value="all">{t.properties.all}</option>
             <option value="מכירה">{t.properties.dealSale}</option>
             <option value="השכרה">{t.properties.dealRent}</option>
           </select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.properties.filterRooms}</span>
-          <select className="field" value={rooms} onChange={(e) => setRooms(e.target.value)} aria-label={t.properties.filterRooms}>
+          <span className="mb-1 block text-xs font-bold text-muted-foreground">
+            {t.properties.filterRooms}
+          </span>
+          <select
+            className="field"
+            value={rooms}
+            onChange={(e) => setRooms(e.target.value)}
+            aria-label={t.properties.filterRooms}
+          >
             <option value="all">{t.properties.all}</option>
             <option value="2">2+</option>
             <option value="3">3+</option>
@@ -173,8 +189,15 @@ export function PropertySection({ listings, updatedAt }: Props) {
           </select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.properties.filterPrice}</span>
-          <select className="field" value={range} onChange={(e) => setRange(e.target.value)} aria-label={t.properties.filterPrice}>
+          <span className="mb-1 block text-xs font-bold text-muted-foreground">
+            {t.properties.filterPrice}
+          </span>
+          <select
+            className="field"
+            value={range}
+            onChange={(e) => setRange(e.target.value)}
+            aria-label={t.properties.filterPrice}
+          >
             <option value="all">{t.properties.all}</option>
             {priceRanges.map((r, i) => (
               <option key={r.label} value={String(i)}>
@@ -184,8 +207,15 @@ export function PropertySection({ listings, updatedAt }: Props) {
           </select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.properties.filterArea}</span>
-          <select className="field" value={area} onChange={(e) => setArea(e.target.value)} aria-label={t.properties.filterArea}>
+          <span className="mb-1 block text-xs font-bold text-muted-foreground">
+            {t.properties.filterArea}
+          </span>
+          <select
+            className="field"
+            value={area}
+            onChange={(e) => setArea(e.target.value)}
+            aria-label={t.properties.filterArea}
+          >
             <option value="all">{t.properties.allAreas}</option>
             {neighborhoods.map((n) => (
               <option key={n} value={n}>
@@ -284,7 +314,9 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
       </div>
 
       <div className="flex flex-1 flex-col p-4">
-        <p className="font-display text-xl font-extrabold text-primary">{formatListingPrice(p.price)}</p>
+        <p className="font-display text-xl font-extrabold text-primary">
+          {formatListingPrice(p.price)}
+        </p>
         <h3 className="mt-1 text-base">{p.title}</h3>
         <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
           <MapPin className="size-4 shrink-0 text-sun" aria-hidden="true" />
@@ -357,7 +389,6 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
   const [err, setErr] = useState<string | null>(null);
   const gallery = listingImages(p);
   const [index, setIndex] = useState(0);
-
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -446,11 +477,12 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
             </div>
           )}
 
-
           <p className="mt-4 font-display text-2xl font-extrabold text-primary">
             {formatListingPrice(p.price)}
           </p>
-          <p className="mt-2 leading-relaxed text-foreground">{p.description ?? t.properties.noInfo}</p>
+          <p className="mt-2 leading-relaxed text-foreground">
+            {p.description ?? t.properties.noInfo}
+          </p>
 
           <table className="mt-4 w-full text-right text-sm">
             <caption className="sr-only">מפרט הנכס</caption>
@@ -460,12 +492,27 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
                 [t.properties.modal.deal, p.deal_type],
                 [t.properties.modal.address, p.address ?? t.properties.noInfo],
                 [t.properties.modal.rooms, p.rooms == null ? t.properties.noInfo : String(p.rooms)],
-                [t.properties.modal.size, p.size_sqm == null ? t.properties.noInfo : `${p.size_sqm} ${t.properties.sqm}`],
+                [
+                  t.properties.modal.size,
+                  p.size_sqm == null ? t.properties.noInfo : `${p.size_sqm} ${t.properties.sqm}`,
+                ],
                 [t.properties.modal.floor, p.floor ?? t.properties.noInfo],
-                [t.properties.modal.mamad, p.has_mamad ? t.properties.modal.yes : t.properties.modal.no],
-                [t.properties.modal.elevator, p.has_elevator ? t.properties.modal.yes : t.properties.modal.no],
-                [t.properties.modal.parking, p.has_parking ? t.properties.modal.yes : t.properties.modal.no],
-                [t.properties.modal.balcony, p.has_balcony ? t.properties.modal.yes : t.properties.modal.no],
+                [
+                  t.properties.modal.mamad,
+                  p.has_mamad ? t.properties.modal.yes : t.properties.modal.no,
+                ],
+                [
+                  t.properties.modal.elevator,
+                  p.has_elevator ? t.properties.modal.yes : t.properties.modal.no,
+                ],
+                [
+                  t.properties.modal.parking,
+                  p.has_parking ? t.properties.modal.yes : t.properties.modal.no,
+                ],
+                [
+                  t.properties.modal.balcony,
+                  p.has_balcony ? t.properties.modal.yes : t.properties.modal.no,
+                ],
               ].map(([k, v]) => (
                 <tr key={k}>
                   <th scope="row" className="py-2 font-semibold text-muted-foreground">
@@ -489,10 +536,14 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
           )}
 
           <form onSubmit={submit} className="mt-5 rounded-xl bg-secondary p-4" noValidate>
-            <p className="font-display text-lg font-bold text-primary">{t.properties.modal.interested}</p>
+            <p className="font-display text-lg font-bold text-primary">
+              {t.properties.modal.interested}
+            </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <label className="block">
-                <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.properties.modal.fullName}</span>
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                  {t.properties.modal.fullName}
+                </span>
                 <input
                   className="field"
                   value={form.name}
@@ -502,7 +553,9 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.properties.modal.phone}</span>
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                  {t.properties.modal.phone}
+                </span>
                 <input
                   className="field"
                   type="tel"
@@ -563,9 +616,7 @@ function WebCandidates({
 
   if (web.status === "quota_exceeded") {
     return (
-      <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">
-        {t.properties.web.quota}
-      </p>
+      <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">{t.properties.web.quota}</p>
     );
   }
 
@@ -579,9 +630,7 @@ function WebCandidates({
 
   if (web.candidates.length === 0) {
     return (
-      <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">
-        {t.properties.web.empty}
-      </p>
+      <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">{t.properties.web.empty}</p>
     );
   }
 
@@ -602,7 +651,9 @@ function WebCandidates({
               <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-secondary-foreground">
                 {c.source_site}
               </span>
-              <span className="text-xs font-bold text-sun">{t.properties.web.match} {c.match_score}%</span>
+              <span className="text-xs font-bold text-sun">
+                {t.properties.web.match} {c.match_score}%
+              </span>
             </div>
             <h4 className="mt-2 text-base font-bold text-primary">{c.title}</h4>
             <p className="mt-1 text-sm text-muted-foreground">

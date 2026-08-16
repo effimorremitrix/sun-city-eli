@@ -59,11 +59,20 @@ export function BuyerSection() {
         <p className="mt-1 text-sm text-muted-foreground">{t.buyer.formSubtitle}</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.contact.fullName}</span>
-            <input className="field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">
+              {t.contact.fullName}
+            </span>
+            <input
+              className="field"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              required
+            />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.contact.phoneField}</span>
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">
+              {t.contact.phoneField}
+            </span>
             <input
               className="field"
               type="tel"
@@ -75,8 +84,14 @@ export function BuyerSection() {
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.buyer.budget}</span>
-            <select className="field" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })}>
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">
+              {t.buyer.budget}
+            </span>
+            <select
+              className="field"
+              value={form.budget}
+              onChange={(e) => setForm({ ...form, budget: e.target.value })}
+            >
               <option value="">{t.seller.choose}</option>
               <option>עד 1,500,000 ₪</option>
               <option>1,500,000 – 2,000,000 ₪</option>
@@ -84,8 +99,14 @@ export function BuyerSection() {
             </select>
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.buyer.rooms}</span>
-            <select className="field" value={form.rooms} onChange={(e) => setForm({ ...form, rooms: e.target.value })}>
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">
+              {t.buyer.rooms}
+            </span>
+            <select
+              className="field"
+              value={form.rooms}
+              onChange={(e) => setForm({ ...form, rooms: e.target.value })}
+            >
               <option value="">{t.seller.choose}</option>
               {["2", "3", "3.5", "4", "5 ומעלה"].map((r) => (
                 <option key={r}>{r}</option>
@@ -93,8 +114,14 @@ export function BuyerSection() {
             </select>
           </label>
           <label className="block sm:col-span-2">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">{t.buyer.area}</span>
-            <select className="field" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })}>
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">
+              {t.buyer.area}
+            </span>
+            <select
+              className="field"
+              value={form.area}
+              onChange={(e) => setForm({ ...form, area: e.target.value })}
+            >
               <option value="">{t.seller.choose}</option>
               {neighborhoods.map((n) => (
                 <option key={n}>{n}</option>
@@ -107,7 +134,10 @@ export function BuyerSection() {
             {err}
           </p>
         )}
-        <button type="submit" className="mt-4 w-full rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground">
+        <button
+          type="submit"
+          className="mt-4 w-full rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground"
+        >
           {t.buyer.submit}
         </button>
       </form>

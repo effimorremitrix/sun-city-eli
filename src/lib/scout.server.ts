@@ -103,7 +103,8 @@ function sanitizeCandidates(raw: unknown, neighborhoods: string[]): ScoutCandida
     const title = s(c["title"], 160);
     if (!title) continue;
 
-    const deal = c["deal_type"] === "מכירה" || c["deal_type"] === "השכרה" ? (c["deal_type"] as string) : null;
+    const deal =
+      c["deal_type"] === "מכירה" || c["deal_type"] === "השכרה" ? (c["deal_type"] as string) : null;
     const hood = s(c["neighborhood"], 80);
     const score = Math.max(0, Math.min(100, Math.round(Number(c["match_score"]) || 0)));
 
@@ -144,8 +145,11 @@ function buildUserPrompt(p: ScoutProfile): string {
   if (needs.length) parts.push(`חובה: ${needs.join(", ")}`);
   if (p.notes) parts.push(`הערות: ${p.notes}`);
 
-  const sites = p.sources.map((x) => SITE_QUERY[x]).filter(Boolean).join(" OR ");
-  const scope = sites ? `חפש בעיקר ב: ${sites}` : "חפש באתרי הנדל\"ן המרכזיים בישראל";
+  const sites = p.sources
+    .map((x) => SITE_QUERY[x])
+    .filter(Boolean)
+    .join(" OR ");
+  const scope = sites ? `חפש בעיקר ב: ${sites}` : 'חפש באתרי הנדל"ן המרכזיים בישראל';
 
   return `${scope}
 מצא מודעות נדל"ן עדכניות שמתאימות לקריטריונים הבאים:
@@ -167,7 +171,13 @@ export async function runWebPropertySearch(
   const { AI_MODEL, logAiUsage } = await import("@/lib/ai-usage.server");
   const apiKey = process.env["ANTHROPIC_API_KEY"];
   if (!apiKey) {
-    await logAiUsage({ feature, model: AI_MODEL, status: "error", errorMessage: "missing ANTHROPIC_API_KEY", userId });
+    await logAiUsage({
+      feature,
+      model: AI_MODEL,
+      status: "error",
+      errorMessage: "missing ANTHROPIC_API_KEY",
+      userId,
+    });
     throw new Error("סוכן הסריקה אינו זמין כרגע (חסר מפתח API)");
   }
 
@@ -189,14 +199,26 @@ export async function runWebPropertySearch(
       }),
     });
   } catch (err) {
-    await logAiUsage({ feature, model: AI_MODEL, status: "error", errorMessage: String(err), userId });
+    await logAiUsage({
+      feature,
+      model: AI_MODEL,
+      status: "error",
+      errorMessage: String(err),
+      userId,
+    });
     throw new Error("הסריקה נכשלה. נסו שוב בעוד רגע");
   }
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     console.error("scout failed", res.status, body);
-    await logAiUsage({ feature, model: AI_MODEL, status: "error", errorMessage: `HTTP ${res.status}`, userId });
+    await logAiUsage({
+      feature,
+      model: AI_MODEL,
+      status: "error",
+      errorMessage: `HTTP ${res.status}`,
+      userId,
+    });
     if (res.status === 429) throw new Error("יותר מדי בקשות לסוכן. נסו שוב בעוד רגע");
     if (res.status === 401 || res.status === 403) throw new Error("סוכן הסריקה אינו זמין כרגע");
     throw new Error("הסריקה נכשלה. נסו שוב בעוד רגע");
@@ -204,7 +226,11 @@ export async function runWebPropertySearch(
 
   const json = (await res.json()) as {
     content?: Array<{ type?: string; text?: string }>;
-    usage?: { input_tokens?: number; output_tokens?: number; server_tool_use?: { web_search_requests?: number } };
+    usage?: {
+      input_tokens?: number;
+      output_tokens?: number;
+      server_tool_use?: { web_search_requests?: number };
+    };
   };
 
   await logAiUsage({

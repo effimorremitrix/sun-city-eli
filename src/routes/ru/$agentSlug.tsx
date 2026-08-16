@@ -36,7 +36,5 @@ function Page() {
     listings: Listing[];
     agents: PublicAgentRow[];
   };
-  return (
-    <AgentLandingPage live={live} listings={listings} agents={agents} isMainSite={false} />
-  );
+  return <AgentLandingPage live={live} listings={listings} agents={agents} isMainSite={false} />;
 }

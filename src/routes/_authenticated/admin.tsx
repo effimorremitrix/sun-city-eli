@@ -20,9 +20,7 @@ import AdminListingImages from "@/components/site/AdminListingImages";
 import { AdminPublish } from "@/components/site/AdminPublish";
 import { adminScoutNewCount } from "@/lib/scout.functions";
 
-
 type TabKey = "listings" | "scout" | "content" | "publish" | "users" | "usage";
-
 
 const title = 'אזור ניהול | סאן סיטי נדל"ן';
 const description = 'אזור הניהול של אתר סאן סיטי נדל"ן — ניהול נכסים, תוכן ופרטי העסק.';
@@ -141,8 +139,6 @@ function AdminPage() {
   });
   const newCount = scoutCount.data?.count ?? 0;
 
-
-
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<TabKey>("listings");
 
@@ -205,7 +201,6 @@ function AdminPage() {
       setMsg(
         `הנכס נשמר. אפשר להעלות עכשיו תמונות לנכס. נשלחו התראות ל-${res.matched} פרופילי חיפוש (מיילים שנשלחו: ${res.emailsSent}, ממתינים: ${res.emailsPending}).`,
       );
-
     }, "הנכס נשמר");
 
   if (site.isLoading) {
@@ -268,9 +263,14 @@ function AdminPage() {
         </div>
       </div>
 
-      {msg && <p className="mt-4 rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">{msg}</p>}
+      {msg && (
+        <p className="mt-4 rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">{msg}</p>
+      )}
       {err && (
-        <p role="alert" className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive">
+        <p
+          role="alert"
+          className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive"
+        >
           {err}
         </p>
       )}
@@ -340,184 +340,251 @@ function AdminPage() {
       {tab === "usage" && site.data?.isAdmin && <AdminUsage />}
       {tab === "scout" && site.data?.isAdmin && <AdminScout />}
 
-
-
       {/* ניהול נכסים */}
       {tab === "listings" && (
-      <section className="soft-card mt-6 p-5">
+        <section className="soft-card mt-6 p-5">
+          <h2 className="text-lg font-extrabold text-primary">
+            {form.id ? "עריכת נכס" : "הוספת נכס"}
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            כל נכס שמפורסם מייצר התראה אוטומטית לכל לקוח שהפרופיל שלו תואם. אין להזין נכס שאינו
+            אמיתי.
+          </p>
 
-        <h2 className="text-lg font-extrabold text-primary">{form.id ? "עריכת נכס" : "הוספת נכס"}</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
-          כל נכס שמפורסם מייצר התראה אוטומטית לכל לקוח שהפרופיל שלו תואם. אין להזין נכס שאינו אמיתי.
-        </p>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <label className="block sm:col-span-2">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">כותרת הנכס</span>
-            <input className="field" value={form.title} maxLength={200} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">סוג עסקה</span>
-            <select className="field" value={form.deal_type} onChange={(e) => setForm({ ...form, deal_type: e.target.value })}>
-              <option value="מכירה">מכירה</option>
-              <option value="השכרה">השכרה</option>
-            </select>
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">שכונה</span>
-            <select className="field" value={form.neighborhood} onChange={(e) => setForm({ ...form, neighborhood: e.target.value })}>
-              <option value="">אין מידע</option>
-              {neighborhoods.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">כתובת</span>
-            <input className="field" value={form.address} maxLength={200} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">מחיר (₪)</span>
-            <input className="field" type="number" dir="ltr" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">חדרים</span>
-            <input className="field" type="number" step="0.5" dir="ltr" value={form.rooms} onChange={(e) => setForm({ ...form, rooms: e.target.value })} />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">שטח (מ״ר)</span>
-            <input className="field" type="number" dir="ltr" value={form.size_sqm} onChange={(e) => setForm({ ...form, size_sqm: e.target.value })} />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">קומה</span>
-            <input className="field" value={form.floor} maxLength={20} onChange={(e) => setForm({ ...form, floor: e.target.value })} />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">תג (למשל: חדש)</span>
-            <input className="field" value={form.tag} maxLength={20} onChange={(e) => setForm({ ...form, tag: e.target.value })} />
-          </label>
-          <div className="sm:col-span-2">
-            <AdminListingImages listingId={form.id ?? null} onChanged={() => void listings.refetch()} />
-          </div>
-          <label className="block sm:col-span-2">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">
-              כתובת תמונה חיצונית (URL) — אופציונלי, בשימוש כשאין תמונות שהועלו
-            </span>
-            <input className="field" dir="ltr" value={form.image_url} maxLength={500} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
-          </label>
-
-          <label className="block sm:col-span-2">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">תיאור</span>
-            <textarea
-              className="field min-h-24"
-              value={form.description}
-              maxLength={2000}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">סדר הצגה</span>
-            <input className="field" type="number" dir="ltr" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} />
-          </label>
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-4 text-sm">
-          {(
-            [
-              ["has_mamad", "ממ״ד"],
-              ["has_elevator", "מעלית"],
-              ["has_parking", "חניה"],
-              ["has_balcony", "מרפסת"],
-              ["is_published", "מפורסם באתר"],
-            ] as Array<[keyof ListingForm, string]>
-          ).map(([key, label]) => (
-            <label className="flex items-center gap-2 font-semibold" key={String(key)}>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <label className="block sm:col-span-2">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">כותרת הנכס</span>
               <input
-                type="checkbox"
-                checked={Boolean(form[key])}
-                onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
+                className="field"
+                value={form.title}
+                maxLength={200}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
               />
-              {label}
             </label>
-          ))}
-        </div>
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">סוג עסקה</span>
+              <select
+                className="field"
+                value={form.deal_type}
+                onChange={(e) => setForm({ ...form, deal_type: e.target.value })}
+              >
+                <option value="מכירה">מכירה</option>
+                <option value="השכרה">השכרה</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">שכונה</span>
+              <select
+                className="field"
+                value={form.neighborhood}
+                onChange={(e) => setForm({ ...form, neighborhood: e.target.value })}
+              >
+                <option value="">אין מידע</option>
+                {neighborhoods.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">כתובת</span>
+              <input
+                className="field"
+                value={form.address}
+                maxLength={200}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">מחיר (₪)</span>
+              <input
+                className="field"
+                type="number"
+                dir="ltr"
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">חדרים</span>
+              <input
+                className="field"
+                type="number"
+                step="0.5"
+                dir="ltr"
+                value={form.rooms}
+                onChange={(e) => setForm({ ...form, rooms: e.target.value })}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">שטח (מ״ר)</span>
+              <input
+                className="field"
+                type="number"
+                dir="ltr"
+                value={form.size_sqm}
+                onChange={(e) => setForm({ ...form, size_sqm: e.target.value })}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">קומה</span>
+              <input
+                className="field"
+                value={form.floor}
+                maxLength={20}
+                onChange={(e) => setForm({ ...form, floor: e.target.value })}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                תג (למשל: חדש)
+              </span>
+              <input
+                className="field"
+                value={form.tag}
+                maxLength={20}
+                onChange={(e) => setForm({ ...form, tag: e.target.value })}
+              />
+            </label>
+            <div className="sm:col-span-2">
+              <AdminListingImages
+                listingId={form.id ?? null}
+                onChanged={() => void listings.refetch()}
+              />
+            </div>
+            <label className="block sm:col-span-2">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                כתובת תמונה חיצונית (URL) — אופציונלי, בשימוש כשאין תמונות שהועלו
+              </span>
+              <input
+                className="field"
+                dir="ltr"
+                value={form.image_url}
+                maxLength={500}
+                onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+              />
+            </label>
 
-        <div className="mt-5 flex gap-3">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={submitListing}
-            className="flex-1 rounded-xl bg-sun py-3 text-base font-bold text-sun-foreground disabled:opacity-60"
-          >
-            {form.id ? "עדכון הנכס" : "הוספת הנכס"}
-          </button>
-          {form.id && (
+            <label className="block sm:col-span-2">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">תיאור</span>
+              <textarea
+                className="field min-h-24"
+                value={form.description}
+                maxLength={2000}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">סדר הצגה</span>
+              <input
+                className="field"
+                type="number"
+                dir="ltr"
+                value={form.sort_order}
+                onChange={(e) => setForm({ ...form, sort_order: e.target.value })}
+              />
+            </label>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-4 text-sm">
+            {(
+              [
+                ["has_mamad", "ממ״ד"],
+                ["has_elevator", "מעלית"],
+                ["has_parking", "חניה"],
+                ["has_balcony", "מרפסת"],
+                ["is_published", "מפורסם באתר"],
+              ] as Array<[keyof ListingForm, string]>
+            ).map(([key, label]) => (
+              <label className="flex items-center gap-2 font-semibold" key={String(key)}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(form[key])}
+                  onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+
+          <div className="mt-5 flex gap-3">
             <button
               type="button"
-              onClick={() => setForm(emptyForm)}
-              className="rounded-xl border border-primary/30 px-5 py-3 text-sm font-bold text-primary"
+              disabled={busy}
+              onClick={submitListing}
+              className="flex-1 rounded-xl bg-sun py-3 text-base font-bold text-sun-foreground disabled:opacity-60"
             >
-              ביטול
+              {form.id ? "עדכון הנכס" : "הוספת הנכס"}
             </button>
-          )}
-        </div>
-      </section>
+            {form.id && (
+              <button
+                type="button"
+                onClick={() => setForm(emptyForm)}
+                className="rounded-xl border border-primary/30 px-5 py-3 text-sm font-bold text-primary"
+              >
+                ביטול
+              </button>
+            )}
+          </div>
+        </section>
       )}
 
       {tab === "listings" && (
-      <section className="soft-card mt-6 p-5">
-
-        <h2 className="text-lg font-extrabold text-primary">הנכסים במסד הנתונים</h2>
-        {listings.isLoading && <p className="mt-2 text-sm text-muted-foreground">טוען נכסים…</p>}
-        <ul className="mt-3 grid gap-3">
-          {(listings.data ?? []).map((l) => (
-            <li key={l.id} className="rounded-xl border border-border p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="font-bold text-primary">
-                    {l.title} {!l.is_published && <span className="text-xs text-muted-foreground">(מוסתר)</span>}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {l.deal_type} · {l.neighborhood ?? "אין מידע"} · {formatListingPrice(l.price)}
-                  </p>
+        <section className="soft-card mt-6 p-5">
+          <h2 className="text-lg font-extrabold text-primary">הנכסים במסד הנתונים</h2>
+          {listings.isLoading && <p className="mt-2 text-sm text-muted-foreground">טוען נכסים…</p>}
+          <ul className="mt-3 grid gap-3">
+            {(listings.data ?? []).map((l) => (
+              <li key={l.id} className="rounded-xl border border-border p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="font-bold text-primary">
+                      {l.title}{" "}
+                      {!l.is_published && (
+                        <span className="text-xs text-muted-foreground">(מוסתר)</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {l.deal_type} · {l.neighborhood ?? "אין מידע"} · {formatListingPrice(l.price)}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 text-sm">
+                    <button type="button" className="underline" onClick={() => setForm(toForm(l))}>
+                      עריכה
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      className="underline"
+                      title="תרגום הכותרת והתיאור מחדש לאנגלית, צרפתית ורוסית"
+                      onClick={() =>
+                        run(() => retranslate({ data: { id: l.id } }), "הנכס תורגם מחדש")
+                      }
+                    >
+                      תרגם מחדש
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      className="text-destructive underline"
+                      onClick={() => run(() => removeListing({ data: { id: l.id } }), "הנכס נמחק")}
+                    >
+                      מחיקה
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-2 text-sm">
-                  <button type="button" className="underline" onClick={() => setForm(toForm(l))}>
-                    עריכה
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="underline"
-                    title="תרגום הכותרת והתיאור מחדש לאנגלית, צרפתית ורוסית"
-                    onClick={() => run(() => retranslate({ data: { id: l.id } }), "הנכס תורגם מחדש")}
-                  >
-                    תרגם מחדש
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="text-destructive underline"
-                    onClick={() => run(() => removeListing({ data: { id: l.id } }), "הנכס נמחק")}
-                  >
-                    מחיקה
-                  </button>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-        {!listings.isLoading && (listings.data ?? []).length === 0 && (
-          <p className="mt-2 text-sm text-muted-foreground">אין נכסים במסד הנתונים.</p>
-        )}
-      </section>
+              </li>
+            ))}
+          </ul>
+          {!listings.isLoading && (listings.data ?? []).length === 0 && (
+            <p className="mt-2 text-sm text-muted-foreground">אין נכסים במסד הנתונים.</p>
+          )}
+        </section>
       )}
 
       {/* תוכן ופרטי העסק */}
       {tab === "content" && business && texts && (
-
         <section className="soft-card mt-6 p-5">
           <h2 className="text-lg font-extrabold text-primary">פרטי העסק וטקסטים</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -550,7 +617,9 @@ function AdminPage() {
 
           <div className="mt-4 grid gap-3">
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted-foreground">כותרת ראשית</span>
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                כותרת ראשית
+              </span>
               <input
                 className="field"
                 value={texts.heroTitle}
@@ -574,7 +643,11 @@ function AdminPage() {
               run(
                 () =>
                   saveContent({
-                    data: { siteId: selectedSiteId, business: business as never, texts: texts as never },
+                    data: {
+                      siteId: selectedSiteId,
+                      business: business as never,
+                      texts: texts as never,
+                    },
                   }),
                 "התוכן נשמר",
               )
