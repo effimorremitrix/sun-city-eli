@@ -154,16 +154,20 @@ ${parts.join("\n")}
 בצע כמה חיפושים לפי הצורך, ואז החזר JSON עם עד 10 מועמדים אמיתיים, כולל ה-URL המדויק של עמוד המודעה.`;
 }
 
-/** מריץ סריקת אינטרנט אמיתית עבור פרופיל אחד ומחזיר מועמדים מנוקים */
-export async function scoutProfileCandidates(
+/**
+ * ליבת סריקת האינטרנט — משותפת לסוכן הסריקה של האדמין ולחיפוש החכם
+ * של הלקוחות. feature קובע איך האירוע נרשם ב-ai_usage_events.
+ */
+export async function runWebPropertySearch(
   profile: ScoutProfile,
   neighborhoods: string[],
   userId: string | null = null,
+  feature = "admin_scout",
 ): Promise<{ candidates: ScoutCandidate[]; searches: number }> {
   const { AI_MODEL, logAiUsage } = await import("@/lib/ai-usage.server");
   const apiKey = process.env["ANTHROPIC_API_KEY"];
   if (!apiKey) {
-    await logAiUsage({ feature: "admin_scout", model: AI_MODEL, status: "error", errorMessage: "missing ANTHROPIC_API_KEY", userId });
+    await logAiUsage({ feature, model: AI_MODEL, status: "error", errorMessage: "missing ANTHROPIC_API_KEY", userId });
     throw new Error("סוכן הסריקה אינו זמין כרגע (חסר מפתח API)");
   }
 
@@ -185,14 +189,14 @@ export async function scoutProfileCandidates(
       }),
     });
   } catch (err) {
-    await logAiUsage({ feature: "admin_scout", model: AI_MODEL, status: "error", errorMessage: String(err), userId });
+    await logAiUsage({ feature, model: AI_MODEL, status: "error", errorMessage: String(err), userId });
     throw new Error("הסריקה נכשלה. נסו שוב בעוד רגע");
   }
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     console.error("scout failed", res.status, body);
-    await logAiUsage({ feature: "admin_scout", model: AI_MODEL, status: "error", errorMessage: `HTTP ${res.status}`, userId });
+    await logAiUsage({ feature, model: AI_MODEL, status: "error", errorMessage: `HTTP ${res.status}`, userId });
     if (res.status === 429) throw new Error("יותר מדי בקשות לסוכן. נסו שוב בעוד רגע");
     if (res.status === 401 || res.status === 403) throw new Error("סוכן הסריקה אינו זמין כרגע");
     throw new Error("הסריקה נכשלה. נסו שוב בעוד רגע");
@@ -204,7 +208,7 @@ export async function scoutProfileCandidates(
   };
 
   await logAiUsage({
-    feature: "admin_scout",
+    feature,
     model: AI_MODEL,
     inputTokens: json.usage?.input_tokens ?? 0,
     outputTokens: json.usage?.output_tokens ?? 0,
@@ -232,3 +236,10 @@ export async function scoutProfileCandidates(
     searches: json.usage?.server_tool_use?.web_search_requests ?? 0,
   };
 }
+
+/** מריץ סריקת אינטרנט עבור פרופיל של סוכן הסריקה (האדמין) */
+export const scoutProfileCandidates = (
+  profile: ScoutProfile,
+  neighborhoods: string[],
+  userId: string | null = null,
+) => runWebPropertySearch(profile, neighborhoods, userId, "admin_scout");

@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   UserRound,
+  Globe,
 } from "lucide-react";
 import { neighborhoods, priceRanges, waProps, openWa, business } from "@/lib/site-data";
 import {
@@ -29,7 +30,7 @@ import {
   type ListingFilters,
 } from "@/lib/listings";
 
-import { aiSearchListings } from "@/lib/ai-search.functions";
+import { aiSearchListings, type AiSearchResult } from "@/lib/ai-search.functions";
 import { useLive } from "@/lib/site-live";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
 import { Reveal } from "./Reveal";
@@ -54,7 +55,12 @@ export function PropertySection({ listings, updatedAt }: Props) {
   const [query, setQuery] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
   const [aiErr, setAiErr] = useState<string | null>(null);
-  const [ai, setAi] = useState<{ ids: string[]; explanation: string; filters: ListingFilters } | null>(null);
+  const [ai, setAi] = useState<{
+    ids: string[];
+    explanation: string;
+    filters: ListingFilters;
+    web: AiSearchResult["web"];
+  } | null>(null);
 
   const manual = useMemo(() => {
     const r = range === "all" ? null : priceRanges[Number(range)];
@@ -79,7 +85,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
     setAiBusy(true);
     try {
       const res = await aiSearchListings({ data: { query } });
-      setAi({ ids: res.ids, explanation: res.explanation, filters: res.filters });
+      setAi({ ids: res.ids, explanation: res.explanation, filters: res.filters, web: res.web });
     } catch (err) {
       setAi(null);
       setAiErr(err instanceof Error ? err.message : "החיפוש נכשל");
@@ -142,7 +148,8 @@ export function PropertySection({ listings, updatedAt }: Props) {
           </p>
         )}
         <p className="mt-2 text-xs text-muted-foreground">
-          החיפוש מסנן רק נכסים אמיתיים שקיימים במסד הנתונים של המשרד. אין המצאת נכסים.
+          החיפוש מציג קודם את הנכסים של המשרד, ולמשתמשים מחוברים — גם מודעות אמיתיות
+          מרחבי הרשת עם קישור למקור. אין המצאת נכסים.
         </p>
       </form>
 
@@ -227,6 +234,8 @@ export function PropertySection({ listings, updatedAt }: Props) {
           </a>
         </div>
       )}
+
+      {ai && <WebCandidates web={ai.web} agentPhone={live.phoneTel} agentName={live.agentName} />}
 
       <a
         href={business.yad2Url}
@@ -521,5 +530,123 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
         </div>
       </div>
     </div>
+  );
+}
+
+/** מודעות אמיתיות מהאינטרנט שנמצאו בסריקה — עם קישור למקור וניתוב לסוכן של הדף */
+function WebCandidates({
+  web,
+  agentPhone,
+  agentName,
+}: {
+  web: AiSearchResult["web"];
+  agentPhone: string;
+  agentName: string;
+}) {
+  if (web.status === "login_required") {
+    return (
+      <div className="soft-card mt-6 p-5">
+        <p className="flex items-center gap-1.5 font-bold text-primary">
+          <Globe className="size-4 text-sun" aria-hidden="true" />
+          רוצים שנחפש בשבילכם גם ברחבי הרשת?
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          משתמשים מחוברים מקבלים גם סריקת אינטרנט אמיתית (יד2, מדלן ועוד) לפי החיפוש שלהם.
+        </p>
+        <Link
+          to="/auth"
+          className="mt-3 inline-block rounded-xl bg-sun px-5 py-2.5 text-sm font-bold text-sun-foreground"
+        >
+          התחברות בחינם
+        </Link>
+      </div>
+    );
+  }
+
+  if (web.status === "quota_exceeded") {
+    return (
+      <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">
+        ניצלתם את מכסת סריקות האינטרנט להיום. הנכסים של המשרד ממשיכים להתעדכן כאן, ומחר
+        אפשר לסרוק שוב.
+      </p>
+    );
+  }
+
+  if (web.status === "unavailable") {
+    return (
+      <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">
+        סריקת האינטרנט לא הצליחה הפעם. הנכסים של המשרד מוצגים למעלה — נסו שוב בעוד רגע.
+      </p>
+    );
+  }
+
+  if (web.candidates.length === 0) {
+    return (
+      <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">
+        סרקנו את הרשת ולא נמצאו כרגע מודעות נוספות שמתאימות לחיפוש. נסו לנסח אחרת או
+        השאירו פרטים ונאתר עבורכם.
+      </p>
+    );
+  }
+
+  return (
+    <section className="mt-8" aria-label="אפשרויות נוספות מהשוק">
+      <h3 className="flex items-center gap-1.5 text-xl font-extrabold text-primary">
+        <Globe className="size-5 text-sun" aria-hidden="true" />
+        אפשרויות נוספות מהשוק
+      </h3>
+      <p className="mt-1 text-sm text-muted-foreground">
+        מודעות אמיתיות שנמצאו ברחבי הרשת לפי החיפוש שלכם, עם קישור למקור.
+        {web.remaining != null && ` נותרו ${web.remaining} סריקות להיום.`}
+      </p>
+      <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {web.candidates.map((c) => (
+          <li key={c.source_url} className="soft-card flex h-full flex-col p-4">
+            <div className="flex items-center justify-between gap-2">
+              <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-secondary-foreground">
+                {c.source_site}
+              </span>
+              <span className="text-xs font-bold text-sun">התאמה: {c.match_score}%</span>
+            </div>
+            <h4 className="mt-2 text-base font-bold text-primary">{c.title}</h4>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {[
+                c.neighborhood,
+                c.rooms != null ? `${c.rooms} חדרים` : null,
+                c.size_sqm != null ? `${c.size_sqm} מ״ר` : null,
+                c.price != null ? formatListingPrice(c.price) : null,
+              ]
+                .filter(Boolean)
+                .join(" · ") || "אין פרטים נוספים"}
+            </p>
+            {c.match_reason && (
+              <p className="mt-2 flex-1 text-xs leading-relaxed text-muted-foreground">
+                {c.match_reason}
+              </p>
+            )}
+            <div className="mt-3 flex gap-2">
+              <a
+                href={c.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-1 items-center justify-center rounded-xl border border-primary/30 py-2 text-xs font-bold text-primary"
+              >
+                למודעה המקורית
+              </a>
+              <a
+                {...waProps(
+                  `שלום ${agentName}, מצאתי דרך האתר מודעה שמעניינת אותי ואשמח שתבדקו אותה עבורי:\n${c.title}\n${c.source_url}`,
+                  agentPhone,
+                )}
+                className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-whatsapp py-2 text-xs font-bold text-whatsapp-foreground"
+              >
+                <MessageCircle className="size-3.5" aria-hidden="true" />
+                דברו איתי על הנכס
+              </a>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
