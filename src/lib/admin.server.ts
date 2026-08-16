@@ -37,8 +37,47 @@ export async function getManagerAccess(context: Ctx): Promise<{
     .order("sort_order", { ascending: true });
   if (sitesError) throw new Error(sitesError.message);
 
-  const rows = (sites ?? []) as ManagedSite[];
+  let rows = (sites ?? []) as ManagedSite[];
+
+  // ריפוי-עצמי: אדמין בלי אף רשומת site (מסד שהוקם לפני מודל האתרים) —
+  // יוצרים לו את אתר ברירת המחדל, כדי שכל הטאבים תלויי-ה-site יעבדו.
+  if (isAdmin && rows.length === 0) {
+    rows = await ensureDefaultSite(context.userId);
+  }
+
   return { isAdmin: Boolean(isAdmin), isAgent: !isAdmin && rows.length > 0, sites: rows };
+}
+
+/** יוצר את אתר ברירת המחדל (sun-city) בבעלות האדמין הנתון ומחזיר את הרשימה */
+async function ensureDefaultSite(ownerId: string): Promise<ManagedSite[]> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { SITE_CONFIG } = await import("@/lib/site-data");
+
+    const { data: existing } = await supabaseAdmin
+      .from("sites")
+      .select("id, slug, name, is_active")
+      .eq("slug", "sun-city")
+      .maybeSingle();
+    if (!existing) {
+      const { error } = await supabaseAdmin
+        .from("sites")
+        .insert({ slug: "sun-city", name: SITE_CONFIG.name, owner_id: ownerId });
+      if (error) {
+        console.error("ensureDefaultSite insert failed", error.message);
+        return [];
+      }
+    }
+
+    const { data: sites } = await supabaseAdmin
+      .from("sites")
+      .select("id, slug, name, is_active")
+      .order("sort_order", { ascending: true });
+    return (sites ?? []) as ManagedSite[];
+  } catch (err) {
+    console.error("ensureDefaultSite failed", err);
+    return [];
+  }
 }
 
 /** מאמת גישת ניהול (אדמין או סוכן עם אתר) ומחזיר את ההרשאות */

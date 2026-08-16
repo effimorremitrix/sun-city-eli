@@ -343,9 +343,15 @@ function AdminPage() {
             לא נמצאה רשומת אתר במסד הנתונים — לא ניתן לנהל את מדור הנמכרים.
           </p>
         ))}
-      {tab === "publish" && selectedSiteId && (
-        <AdminPublish siteId={selectedSiteId} listings={listings.data ?? []} />
-      )}
+      {tab === "publish" &&
+        (selectedSiteId ? (
+          <AdminPublish siteId={selectedSiteId} listings={listings.data ?? []} />
+        ) : (
+          <p className="mt-6 rounded-xl bg-secondary p-4 text-sm text-muted-foreground">
+            לא נמצאה רשומת אתר במסד הנתונים — לא ניתן לנהל את הפרסום. רעננו את העמוד; אם ההודעה
+            נשארת, פנו לתמיכה.
+          </p>
+        ))}
       {tab === "users" && site.data?.isAdmin && <AdminUsers />}
       {tab === "usage" && site.data?.isAdmin && <AdminUsage />}
       {tab === "scout" && site.data?.isAdmin && <AdminScout />}
