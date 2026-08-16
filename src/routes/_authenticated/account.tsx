@@ -178,7 +178,7 @@ function AccountPage() {
           <Link to="/" className="underline">
             לאתר
           </Link>
-          {account.data?.isAdmin && (
+          {(account.data?.isAdmin || account.data?.isAgent) && (
             <Link to="/admin" className="underline">
               אזור ניהול
             </Link>
@@ -206,13 +206,13 @@ function AccountPage() {
         </p>
       )}
 
-      {/* טאבים — מוצגים למנהלים בלבד */}
-      {account.data?.isAdmin && (
+      {/* טאבים — מוצגים למנהל ולסוכנים */}
+      {(account.data?.isAdmin || account.data?.isAgent) && (
         <div className="mt-6 flex flex-wrap gap-2" role="tablist">
           {(
             [
               ["overview", "החשבון שלי"],
-              ["guide", "מדריך למנהל"],
+              ["guide", account.data?.isAdmin ? "מדריך למנהל" : "מדריך לסוכן"],
             ] as Array<[AccountTabKey, string]>
           ).map(([key, label]) => (
             <button
@@ -233,9 +233,11 @@ function AccountPage() {
         </div>
       )}
 
-      {account.data?.isAdmin && tab === "guide" && <AdminGuide />}
+      {(account.data?.isAdmin || account.data?.isAgent) && tab === "guide" && (
+        <AdminGuide isAdmin={account.data?.isAdmin ?? false} />
+      )}
 
-      {(!account.data?.isAdmin || tab === "overview") && (
+      {((!account.data?.isAdmin && !account.data?.isAgent) || tab === "overview") && (
         <>
           {/* פרטי פרופיל */}
           <section className="soft-card mt-6 p-5">
