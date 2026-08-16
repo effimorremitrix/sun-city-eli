@@ -24,6 +24,7 @@ import { Route as FrIndexRouteImport } from './routes/fr/index'
 import { Route as FrAgentSlugRouteImport } from './routes/fr/$agentSlug'
 import { Route as RuIndexRouteImport } from './routes/ru/index'
 import { Route as RuAgentSlugRouteImport } from './routes/ru/$agentSlug'
+import { Route as ApiFacebookCallbackRouteImport } from './routes/api/facebook/callback'
 import { Route as ApiPublicScoutCronRouteImport } from './routes/api/public/scout-cron'
 
 const IndexRoute = IndexRouteImport.update({
@@ -100,6 +101,11 @@ const RuAgentSlugRoute = RuAgentSlugRouteImport.update({
   path: '/ru/$agentSlug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFacebookCallbackRoute = ApiFacebookCallbackRouteImport.update({
+  id: '/api/facebook/callback',
+  path: '/api/facebook/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicScoutCronRoute = ApiPublicScoutCronRouteImport.update({
   id: '/api/public/scout-cron',
   path: '/api/public/scout-cron',
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/en/': typeof EnIndexRoute
   '/fr/': typeof FrIndexRoute
   '/ru/': typeof RuIndexRoute
+  '/api/facebook/callback': typeof ApiFacebookCallbackRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
 }
 export interface FileRoutesByTo {
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/en': typeof EnIndexRoute
   '/fr': typeof FrIndexRoute
   '/ru': typeof RuIndexRoute
+  '/api/facebook/callback': typeof ApiFacebookCallbackRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
 }
 export interface FileRoutesById {
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/en/': typeof EnIndexRoute
   '/fr/': typeof FrIndexRoute
   '/ru/': typeof RuIndexRoute
+  '/api/facebook/callback': typeof ApiFacebookCallbackRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
 }
 export interface FileRouteTypes {
@@ -176,6 +185,7 @@ export interface FileRouteTypes {
     | '/en/'
     | '/fr/'
     | '/ru/'
+    | '/api/facebook/callback'
     | '/api/public/scout-cron'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
     | '/en'
     | '/fr'
     | '/ru'
+    | '/api/facebook/callback'
     | '/api/public/scout-cron'
   id:
     | '__root__'
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/en/'
     | '/fr/'
     | '/ru/'
+    | '/api/facebook/callback'
     | '/api/public/scout-cron'
   fileRoutesById: FileRoutesById
 }
@@ -228,6 +240,7 @@ export interface RootRouteChildren {
   EnIndexRoute: typeof EnIndexRoute
   FrIndexRoute: typeof FrIndexRoute
   RuIndexRoute: typeof RuIndexRoute
+  ApiFacebookCallbackRoute: typeof ApiFacebookCallbackRoute
   ApiPublicScoutCronRoute: typeof ApiPublicScoutCronRoute
 }
 
@@ -338,6 +351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RuAgentSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/facebook/callback': {
+      id: '/api/facebook/callback'
+      path: '/api/facebook/callback'
+      fullPath: '/api/facebook/callback'
+      preLoaderRoute: typeof ApiFacebookCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/scout-cron': {
       id: '/api/public/scout-cron'
       path: '/api/public/scout-cron'
@@ -375,6 +395,7 @@ const rootRouteChildren: RootRouteChildren = {
   EnIndexRoute: EnIndexRoute,
   FrIndexRoute: FrIndexRoute,
   RuIndexRoute: RuIndexRoute,
+  ApiFacebookCallbackRoute: ApiFacebookCallbackRoute,
   ApiPublicScoutCronRoute: ApiPublicScoutCronRoute,
 }
 export const routeTree = rootRouteImport

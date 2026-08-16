@@ -17,10 +17,11 @@ import { AdminUsers } from "@/components/site/AdminUsers";
 import AdminUsage from "@/components/site/AdminUsage";
 import AdminScout from "@/components/site/AdminScout";
 import AdminListingImages from "@/components/site/AdminListingImages";
+import { AdminPublish } from "@/components/site/AdminPublish";
 import { adminScoutNewCount } from "@/lib/scout.functions";
 
 
-type TabKey = "listings" | "scout" | "content" | "users" | "usage";
+type TabKey = "listings" | "scout" | "content" | "publish" | "users" | "usage";
 
 
 const title = 'אזור ניהול | סאן סיטי נדל"ן';
@@ -306,6 +307,7 @@ function AdminPage() {
                 >)
               : []),
             ["content", "תוכן העסק"],
+            ["publish", "פרסום"],
             ...(site.data?.isAdmin
               ? ([
                   ["users", "משתמשים רשומים"],
@@ -331,6 +333,9 @@ function AdminPage() {
         ))}
       </div>
 
+      {tab === "publish" && selectedSiteId && (
+        <AdminPublish siteId={selectedSiteId} listings={listings.data ?? []} />
+      )}
       {tab === "users" && site.data?.isAdmin && <AdminUsers />}
       {tab === "usage" && site.data?.isAdmin && <AdminUsage />}
       {tab === "scout" && site.data?.isAdmin && <AdminScout />}

@@ -53,6 +53,96 @@ export type Database = {
         }
         Relationships: []
       }
+      facebook_connections: {
+        Row: {
+          ad_account_id: string | null
+          connected_at: string
+          connected_by: string | null
+          page_access_token: string
+          page_id: string
+          page_name: string
+          site_id: string
+        }
+        Insert: {
+          ad_account_id?: string | null
+          connected_at?: string
+          connected_by?: string | null
+          page_access_token: string
+          page_id: string
+          page_name: string
+          site_id: string
+        }
+        Update: {
+          ad_account_id?: string | null
+          connected_at?: string
+          connected_by?: string | null
+          page_access_token?: string
+          page_id?: string
+          page_name?: string
+          site_id?: string
+        }
+        Relationships: []
+      }
+      facebook_groups: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          site_id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          site_id: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          site_id?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      listing_posts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          error: string | null
+          fb_campaign_id: string | null
+          fb_post_id: string | null
+          id: string
+          listing_id: string
+          status: string
+          target: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          fb_campaign_id?: string | null
+          fb_post_id?: string | null
+          id?: string
+          listing_id: string
+          status?: string
+          target: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          fb_campaign_id?: string | null
+          fb_post_id?: string | null
+          id?: string
+          listing_id?: string
+          status?: string
+          target?: string
+        }
+        Relationships: []
+      }
       listing_images: {
         Row: {
           created_at: string
@@ -186,6 +276,7 @@ export type Database = {
           image_url: string | null
           is_published: boolean
           neighborhood: string | null
+          post_copy: Json | null
           price: number | null
           published_at: string
           rooms: number | null
@@ -212,6 +303,7 @@ export type Database = {
           image_url?: string | null
           is_published?: boolean
           neighborhood?: string | null
+          post_copy?: Json | null
           price?: number | null
           published_at?: string
           rooms?: number | null
@@ -238,6 +330,7 @@ export type Database = {
           image_url?: string | null
           is_published?: boolean
           neighborhood?: string | null
+          post_copy?: Json | null
           price?: number | null
           published_at?: string
           rooms?: number | null
