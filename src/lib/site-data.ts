@@ -77,29 +77,29 @@ export const WA_PHONE = "0525551200";
 
 export const toIntl = (p: string) => "972" + p.replace(/\D/g, "").replace(/^0/, "");
 
-/** קישור wa.me התקני – מקור אמת יחיד */
-export const buildWa = (msg: string) =>
-  "https://wa.me/" + toIntl(WA_PHONE) + "?text=" + encodeURIComponent(msg);
+/** קישור wa.me התקני – מקור אמת יחיד. phone הוא מספר הסוכן של הדף הנוכחי. */
+export const buildWa = (msg: string, phone: string = WA_PHONE) =>
+  "https://wa.me/" + toIntl(phone) + "?text=" + encodeURIComponent(msg);
 
 /** הפונקציה היחידה לפתיחת וואטסאפ בכל האתר */
-export const openWa = (msg: string) =>
-  window.open(buildWa(msg), "_blank", "noopener,noreferrer");
+export const openWa = (msg: string, phone?: string) =>
+  window.open(buildWa(msg, phone), "_blank", "noopener,noreferrer");
 
 
 /** props לקישור/כפתור וואטסאפ – מבטיח שהפתיחה תמיד עוברת דרך openWa */
-export const waProps = (msg: string) => ({
-  href: buildWa(msg),
+export const waProps = (msg: string, phone?: string) => ({
+  href: buildWa(msg, phone),
   target: "_blank" as const,
   rel: "noopener noreferrer",
   onClick: (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    openWa(msg);
+    openWa(msg, phone);
   },
 });
 
 /** שמות תאימות – מפנים לאותה פונקציה יחידה */
-export const whatsappLink = (text: string) => buildWa(text);
-export const agentWhatsappLink = (_phone: string, text: string) => buildWa(text);
+export const whatsappLink = (text: string, phone?: string) => buildWa(text, phone);
+export const agentWhatsappLink = (phone: string, text: string) => buildWa(text, phone);
 
 
 /* ---------------------------- טקסטים ---------------------------- */

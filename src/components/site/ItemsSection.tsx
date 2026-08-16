@@ -35,7 +35,7 @@ export function ItemsSection() {
                 </p>
               )}
               <a
-                {...waProps(`שלום ${business.name}, אשמח לפרטים על: ${item.title}`)}
+                {...waProps(`שלום ${business.agentName}, אשמח לפרטים על: ${item.title}`, business.phoneTel)}
                 className="mt-4 block rounded-xl bg-whatsapp py-2.5 text-center text-sm font-bold text-whatsapp-foreground"
               >
                 לפרטים בוואטסאפ

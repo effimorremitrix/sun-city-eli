@@ -17,8 +17,8 @@ export function ContactSection() {
     if (!form.name.trim()) return setErr("נא להזין שם");
     if (!isValidIsraeliPhone(form.phone)) return setErr(phoneError);
     setErr(null);
-    const msg = `שלום ${business.name},\nשם: ${form.name}\nטלפון: ${form.phone}\nנושא הפנייה: ${form.topic || "אחר"}\nהודעה: ${form.message || "-"}`;
-    openWa(msg);
+    const msg = `שלום ${business.agentName},\nשם: ${form.name}\nטלפון: ${form.phone}\nנושא הפנייה: ${form.topic || "אחר"}\nהודעה: ${form.message || "-"}`;
+    openWa(msg, business.phoneTel);
   };
 
   return (
@@ -57,7 +57,7 @@ export function ContactSection() {
             <li className="flex items-start gap-3 py-4">
               <Phone className="mt-0.5 size-5 shrink-0 text-sun" aria-hidden="true" />
               <div>
-                <p className="font-bold text-primary">טלפון המשרד</p>
+                <p className="font-bold text-primary">טלפון</p>
                 <a href={`tel:${business.phoneTel}`} className="text-sm text-muted-foreground underline" dir="ltr">
                   {business.phone}
                 </a>
@@ -89,7 +89,7 @@ export function ContactSection() {
           </ul>
 
           <a
-            {...waProps(`שלום ${business.name}, אשמח לקבל פרטים`)}
+            {...waProps(`שלום ${business.agentName}, אשמח לקבל פרטים`, business.phoneTel)}
             className="flex items-center justify-center gap-2 rounded-xl bg-whatsapp py-3 text-sm font-bold text-whatsapp-foreground"
           >
             <MessageCircle className="size-5" aria-hidden="true" />
@@ -177,7 +177,7 @@ export function Footer() {
           <p className="mt-1 text-sm text-navy-foreground/75">{business.tagline}</p>
           <div className="mt-4 flex gap-2">
             <a
-              href={SITE_CONFIG.social.facebook}
+              href={business.social.facebook || SITE_CONFIG.social.facebook}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="עמוד הפייסבוק שלנו"
@@ -186,7 +186,7 @@ export function Footer() {
               <Facebook className="size-4" aria-hidden="true" />
             </a>
             <a
-              href={SITE_CONFIG.social.instagram}
+              href={business.social.instagram || SITE_CONFIG.social.instagram}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="עמוד האינסטגרם שלנו"
@@ -195,7 +195,7 @@ export function Footer() {
               <Instagram className="size-4" aria-hidden="true" />
             </a>
             <a
-              href={SITE_CONFIG.social.tiktok}
+              href={business.social.tiktok || SITE_CONFIG.social.tiktok}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="עמוד הטיקטוק שלנו"

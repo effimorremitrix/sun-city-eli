@@ -6,6 +6,7 @@ import {
   adminGetUserDetail,
   adminSetUserRole,
   adminDeleteUser,
+  adminCreateAgentSite,
   type AdminUserRow,
 } from "@/lib/users.functions";
 
@@ -35,6 +36,9 @@ export function AdminUsers() {
   const [roleTarget, setRoleTarget] = useState<{ user: AdminUserRow; makeAdmin: boolean } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUserRow | null>(null);
   const [confirmEmail, setConfirmEmail] = useState("");
+  const createAgent = useServerFn(adminCreateAgentSite);
+  const [agentTarget, setAgentTarget] = useState<AdminUserRow | null>(null);
+  const [agentForm, setAgentForm] = useState({ slug: "", agentName: "", roleTitle: "", phone: "", email: "" });
 
   const detail = useQuery({
     queryKey: ["admin-user-detail", openId],
@@ -106,6 +110,11 @@ export function AdminUsers() {
                     {u.is_admin && (
                       <span className="rounded-full bg-sun/20 px-2 py-0.5 text-xs font-bold text-primary">מנהל</span>
                     )}
+                    {u.is_agent && (
+                      <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-primary">
+                        סוכן{u.agent_slug ? ` · /${u.agent_slug}` : ""}
+                      </span>
+                    )}
                     {isSelf && <span className="text-xs font-normal text-muted-foreground">(אני)</span>}
                   </p>
                   <p className="truncate text-xs text-muted-foreground" dir="ltr">
@@ -129,6 +138,25 @@ export function AdminUsers() {
                       >
                         {u.is_admin ? "הסרת הרשאת מנהל" : "הפיכה למנהל"}
                       </button>
+                      {!u.is_agent && (
+                        <button
+                          type="button"
+                          className="underline"
+                          disabled={busy}
+                          onClick={() => {
+                            setAgentTarget(u);
+                            setAgentForm({
+                              slug: "",
+                              agentName: u.full_name ?? "",
+                              roleTitle: "",
+                              phone: "",
+                              email: u.email ?? "",
+                            });
+                          }}
+                        >
+                          הפיכה לסוכן עם דף אישי
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="text-destructive underline"
@@ -191,6 +219,93 @@ export function AdminUsers() {
           );
         })}
       </ul>
+
+      {/* הקמת סוכן עם דף אישי */}
+      {agentTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/50 p-4">
+          <div className="soft-card w-full max-w-md bg-background p-5">
+            <h3 className="text-base font-extrabold text-primary">הקמת דף אישי לסוכן</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {val(agentTarget.full_name)} יקבל תפקיד סוכן ודף אישי בכתובת /‏slug באותו עיצוב של האתר.
+              הנכסים שיעלה ישויכו אליו והפניות עליהם ינותבו אליו.
+            </p>
+            <div className="mt-3 grid gap-3">
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                  כתובת הדף (אותיות לטיניות, למשל: yelena)
+                </span>
+                <input
+                  className="field"
+                  dir="ltr"
+                  value={agentForm.slug}
+                  onChange={(e) => setAgentForm({ ...agentForm, slug: e.target.value })}
+                  placeholder="yelena"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">שם הסוכן להצגה</span>
+                <input
+                  className="field"
+                  value={agentForm.agentName}
+                  onChange={(e) => setAgentForm({ ...agentForm, agentName: e.target.value })}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">תפקיד (למשל: מומחית נדל"ן, דוברת רוסית)</span>
+                <input
+                  className="field"
+                  value={agentForm.roleTitle}
+                  onChange={(e) => setAgentForm({ ...agentForm, roleTitle: e.target.value })}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">טלפון (הפניות מהדף ינותבו אליו)</span>
+                <input
+                  className="field"
+                  dir="ltr"
+                  value={agentForm.phone}
+                  onChange={(e) => setAgentForm({ ...agentForm, phone: e.target.value })}
+                  placeholder="050-1234567"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">מייל להצגה בדף</span>
+                <input
+                  className="field"
+                  dir="ltr"
+                  value={agentForm.email}
+                  onChange={(e) => setAgentForm({ ...agentForm, email: e.target.value })}
+                />
+              </label>
+            </div>
+            <div className="mt-4 flex gap-3">
+              <button
+                type="button"
+                disabled={busy || !agentForm.slug.trim() || !agentForm.agentName.trim()}
+                className="flex-1 rounded-xl bg-sun py-3 text-sm font-bold text-sun-foreground disabled:opacity-60"
+                onClick={async () => {
+                  const t = agentTarget;
+                  const f = agentForm;
+                  setAgentTarget(null);
+                  await run(
+                    () => createAgent({ data: { userId: t.id, ...f } }),
+                    `הדף האישי הוקם בכתובת /${f.slug}`,
+                  );
+                }}
+              >
+                הקמת הדף
+              </button>
+              <button
+                type="button"
+                className="rounded-xl border border-primary/30 px-5 py-3 text-sm font-bold text-primary"
+                onClick={() => setAgentTarget(null)}
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* אישור שינוי הרשאה */}
       {roleTarget && (

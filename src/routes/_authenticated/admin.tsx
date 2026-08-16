@@ -112,11 +112,19 @@ function AdminPage() {
   const removeListing = useServerFn(adminDeleteListing);
   const claim = useServerFn(claimAdminRole);
 
-  const site = useQuery({ queryKey: ["admin-site"], queryFn: () => fetchSite() });
+  // ה-site הנבחר: אדמין יכול לעבור בין הסוכנים; סוכן רואה רק את שלו
+  const [siteId, setSiteId] = useState<string | null>(null);
+
+  const site = useQuery({
+    queryKey: ["admin-site", siteId],
+    queryFn: () => fetchSite({ data: { siteId } }),
+  });
+  const isManager = site.data?.isAdmin === true || site.data?.isAgent === true;
+  const selectedSiteId = site.data?.site?.id ?? null;
   const listings = useQuery({
-    queryKey: ["admin-listings"],
-    queryFn: () => fetchListings(),
-    enabled: site.data?.isAdmin === true,
+    queryKey: ["admin-listings", selectedSiteId],
+    queryFn: () => fetchListings({ data: { siteId: selectedSiteId } }),
+    enabled: isManager && selectedSiteId != null,
   });
   const fetchScoutCount = useServerFn(adminScoutNewCount);
   const scoutCount = useQuery({
@@ -164,6 +172,7 @@ function AdminPage() {
       const res = (await saveListing({
         data: {
           ...(form.id ? { id: form.id } : {}),
+          site_id: selectedSiteId,
           title: form.title,
           deal_type: form.deal_type,
           description: str(form.description),
@@ -196,7 +205,7 @@ function AdminPage() {
     return <main className="p-8 text-center text-muted-foreground">טוען…</main>;
   }
 
-  if (!site.data?.isAdmin) {
+  if (!isManager) {
     return (
       <main className="mx-auto max-w-md px-4 py-16">
         <div className="soft-card p-6 text-center">
@@ -259,15 +268,44 @@ function AdminPage() {
         </p>
       )}
 
+      {/* בורר אתר/סוכן — לאדמין שמנהל כמה דפים */}
+      {(site.data?.sites ?? []).length > 1 && (
+        <label className="mt-6 block max-w-sm">
+          <span className="mb-1 block text-xs font-bold text-muted-foreground">
+            אני צופה כ־ (הדף המנוהל)
+          </span>
+          <select
+            className="field"
+            value={selectedSiteId ?? ""}
+            onChange={(e) => setSiteId(e.target.value || null)}
+          >
+            {(site.data?.sites ?? []).map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} — /{s.slug}
+                {s.is_active ? "" : " (מושבת)"}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
       {/* טאבים */}
       <div className="mt-6 flex flex-wrap gap-2" role="tablist">
         {(
           [
             ["listings", "נכסים"],
-            ["scout", newCount > 0 ? `סוכן סריקה (${newCount})` : "סוכן סריקה"],
+            ...(site.data?.isAdmin
+              ? ([["scout", newCount > 0 ? `סוכן סריקה (${newCount})` : "סוכן סריקה"]] as Array<
+                  [TabKey, string]
+                >)
+              : []),
             ["content", "תוכן העסק"],
-            ["users", "משתמשים רשומים"],
-            ["usage", "שימוש (Usage)"],
+            ...(site.data?.isAdmin
+              ? ([
+                  ["users", "משתמשים רשומים"],
+                  ["usage", "שימוש (Usage)"],
+                ] as Array<[TabKey, string]>)
+              : []),
           ] as Array<[TabKey, string]>
         ).map(([key, label]) => (
           <button
@@ -287,9 +325,9 @@ function AdminPage() {
         ))}
       </div>
 
-      {tab === "users" && <AdminUsers />}
-      {tab === "usage" && <AdminUsage />}
-      {tab === "scout" && <AdminScout />}
+      {tab === "users" && site.data?.isAdmin && <AdminUsers />}
+      {tab === "usage" && site.data?.isAdmin && <AdminUsage />}
+      {tab === "scout" && site.data?.isAdmin && <AdminScout />}
 
 
 
@@ -473,6 +511,10 @@ function AdminPage() {
                 ["phoneTel", "טלפון לחיוג (ספרות)"],
                 ["email", "אימייל"],
                 ["license", "מספר רישיון"],
+                ["agentName", "שם הסוכן (הדף האישי)"],
+                ["roleTitle", "תפקיד הסוכן"],
+                ["photoUrl", "כתובת תמונת הסוכן (URL)"],
+                ["bio", "כמה מילים על הסוכן"],
               ] as Array<[keyof LiveBusiness, string]>
             ).map(([key, label]) => (
               <label className="block" key={String(key)}>
@@ -510,7 +552,10 @@ function AdminPage() {
             disabled={busy}
             onClick={() =>
               run(
-                () => saveContent({ data: { business: business as never, texts: texts as never } }),
+                () =>
+                  saveContent({
+                    data: { siteId: selectedSiteId, business: business as never, texts: texts as never },
+                  }),
                 "התוכן נשמר",
               )
             }

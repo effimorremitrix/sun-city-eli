@@ -162,6 +162,7 @@ export type Database = {
           price: number | null
           published_at: string
           rooms: number | null
+          site_id: string | null
           size_sqm: number | null
           sort_order: number
           tag: string | null
@@ -187,6 +188,7 @@ export type Database = {
           price?: number | null
           published_at?: string
           rooms?: number | null
+          site_id?: string | null
           size_sqm?: number | null
           sort_order?: number
           tag?: string | null
@@ -212,6 +214,7 @@ export type Database = {
           price?: number | null
           published_at?: string
           rooms?: number | null
+          site_id?: string | null
           size_sqm?: number | null
           sort_order?: number
           tag?: string | null
@@ -549,25 +552,31 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_active: boolean
           name: string
           owner_id: string
           slug: string
+          sort_order: number
           updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
+          is_active?: boolean
           name: string
           owner_id: string
           slug: string
+          sort_order?: number
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
+          is_active?: boolean
           name?: string
           owner_id?: string
           slug?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
@@ -598,7 +607,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_public_agents: { Args: Record<PropertyKey, never>; Returns: Json }
       get_public_site: { Args: { p_slug: string }; Returns: Json }
+      get_site_id: { Args: { p_slug: string }; Returns: string | null }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -610,10 +621,11 @@ export type Database = {
         Args: { p_listing_id: string }
         Returns: number
       }
+      owns_listing: { Args: { _listing_id: string }; Returns: boolean }
       owns_site: { Args: { _site_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "client"
+      app_role: "admin" | "agent" | "client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -741,7 +753,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "client"],
+      app_role: ["admin", "agent", "client"],
     },
   },
 } as const

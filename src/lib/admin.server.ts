@@ -3,7 +3,9 @@ import { sendPendingListingEmails } from "@/lib/notify.server";
 
 type Ctx = { supabase: any; userId: string };
 
-/** מאמת שהמשתמש הוא ה־ADMIN היחיד של המערכת */
+export type ManagedSite = { id: string; slug: string; name: string; is_active: boolean };
+
+/** מאמת שהמשתמש הוא ה־ADMIN (הבעלים — אלי) */
 export async function assertAdmin(context: Ctx) {
   const { data, error } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
@@ -11,6 +13,46 @@ export async function assertAdmin(context: Ctx) {
   });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden");
+}
+
+/**
+ * ההרשאות של המשתמש באזור הניהול: אדמין רואה את כל האתרים,
+ * סוכן רואה רק את האתרים שבבעלותו (RLS על sites כבר אוכף את זה).
+ */
+export async function getManagerAccess(context: Ctx): Promise<{
+  isAdmin: boolean;
+  isAgent: boolean;
+  sites: ManagedSite[];
+}> {
+  const { data: isAdmin, error } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "admin",
+  });
+  if (error) throw new Error(error.message);
+
+  const { data: sites, error: sitesError } = await context.supabase
+    .from("sites")
+    .select("id, slug, name, is_active")
+    .order("sort_order", { ascending: true });
+  if (sitesError) throw new Error(sitesError.message);
+
+  const rows = (sites ?? []) as ManagedSite[];
+  return { isAdmin: Boolean(isAdmin), isAgent: !isAdmin && rows.length > 0, sites: rows };
+}
+
+/** מאמת גישת ניהול (אדמין או סוכן עם אתר) ומחזיר את ההרשאות */
+export async function assertManager(context: Ctx) {
+  const access = await getManagerAccess(context);
+  if (!access.isAdmin && !access.isAgent) throw new Error("Forbidden");
+  return access;
+}
+
+/** מאמת שהמשתמש רשאי לנהל את ה-site המבוקש, ומחזיר את הרשומה */
+export async function assertSiteAccess(context: Ctx, siteId: string): Promise<ManagedSite> {
+  const access = await assertManager(context);
+  const site = access.sites.filter((s) => s.id === siteId)[0];
+  if (!site) throw new Error("Forbidden");
+  return site;
 }
 
 /** שומר נכס, ואם הוא מפורסם — מייצר התראות ושולח מיילים ללקוחות תואמים */

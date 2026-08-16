@@ -1,11 +1,13 @@
 import { BadgeCheck, Calculator, Handshake, Scale, ShieldCheck, Eye, Award } from "lucide-react";
 import { services, values, business, about, story, waProps } from "@/lib/site-data";
+import { useLive } from "@/lib/site-live";
 import { Reveal } from "./Reveal";
 
 const svcIcons = [BadgeCheck, Calculator, Handshake, Scale];
 const valIcons = [Award, Eye, ShieldCheck];
 
 export function Services() {
+  const { business: live } = useLive();
   return (
     <section id="services" className="mx-auto max-w-6xl px-4 py-14 md:py-20">
       <p className="text-sm font-bold text-sun">מה אנחנו עושים</p>
@@ -21,7 +23,7 @@ export function Services() {
                   <h3 className="mt-3 text-lg">{s.title}</h3>
                   <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{s.text}</p>
                   <a
-                    {...waProps(`שלום ${business.name}, אשמח לפרטים בנושא: ${s.title}. שם: `)}
+                    {...waProps(`שלום ${live.agentName}, אשמח לפרטים בנושא: ${s.title}. שם: `, live.phoneTel)}
                     className="mt-4 rounded-xl bg-primary py-2.5 text-center text-sm font-bold text-primary-foreground"
                   >
                     לפרטים בוואטסאפ
@@ -37,11 +39,15 @@ export function Services() {
 }
 
 export function WhyUs() {
+  const { business: live } = useLive();
   return (
     <section id="why" className="bg-secondary py-14 md:py-20">
       <div className="mx-auto max-w-6xl px-4">
         <p className="text-sm font-bold text-sun">למה אנחנו</p>
         <h2 className="mt-2 text-3xl md:text-4xl">למה סאן סיטי</h2>
+        {live.bio && (
+          <p className="mt-4 max-w-3xl leading-relaxed text-foreground">{live.bio}</p>
+        )}
         <p className="mt-4 max-w-3xl leading-relaxed text-foreground">{about}</p>
         <p className="mt-3 max-w-3xl leading-relaxed text-muted-foreground">{story}</p>
 

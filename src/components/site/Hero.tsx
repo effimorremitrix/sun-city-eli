@@ -16,16 +16,30 @@ export function Hero() {
   return (
     <section id="top">
       <div className="mx-auto flex max-w-6xl flex-col items-center px-4 pt-10 pb-8 text-center md:pt-14">
-        <img
-          src={logo}
-          alt='לוגו סאן סיטי נדל"ן — שמש כתומה מעל גג בית'
-          width={160}
-          height={160}
-          className="size-24 md:size-32"
-        />
+        <div className="flex items-center gap-4">
+          {business.photoUrl && (
+            <img
+              src={business.photoUrl}
+              alt={`${business.agentName} — ${business.roleTitle}`}
+              width={128}
+              height={128}
+              className="size-24 rounded-full border-2 border-sun object-cover object-top md:size-32"
+            />
+          )}
+          <img
+            src={logo}
+            alt='לוגו סאן סיטי נדל"ן — שמש כתומה מעל גג בית'
+            width={160}
+            height={160}
+            className="size-24 md:size-32"
+          />
+        </div>
         <p className="mt-3 font-display text-3xl font-extrabold tracking-tight text-primary md:text-5xl">
-          Sun City <span className="text-sun">·</span> {business.name}
+          {business.agentName} <span className="text-sun">·</span> {business.name}
         </p>
+        {business.roleTitle && (
+          <p className="mt-1 text-sm font-bold text-sun md:text-base">{business.roleTitle}</p>
+        )}
         <p className="mt-2 text-sm font-semibold text-muted-foreground md:text-base">
           {business.subtitle}
         </p>

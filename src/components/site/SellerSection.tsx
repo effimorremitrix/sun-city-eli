@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ClipboardList, Home, FileCheck2 } from "lucide-react";
 import { business, openWa } from "@/lib/site-data";
+import { useLive } from "@/lib/site-live";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
 
 const steps = [
@@ -10,6 +11,7 @@ const steps = [
 ];
 
 export function SellerSection() {
+  const { business: live } = useLive();
   const [form, setForm] = useState({ name: "", phone: "", address: "", rooms: "" });
   const [err, setErr] = useState<string | null>(null);
 
@@ -19,8 +21,8 @@ export function SellerSection() {
     if (!isValidIsraeliPhone(form.phone)) return setErr(phoneError);
     if (!form.address.trim()) return setErr("נא להזין את כתובת הנכס");
     setErr(null);
-    const msg = `שלום ${business.name},\nאני מעוניין בהערכת שווי חינם לנכס שלי.\nשם: ${form.name}\nטלפון: ${form.phone}\nכתובת הנכס: ${form.address}\nמספר חדרים: ${form.rooms || "לא צוין"}`;
-    openWa(msg);
+    const msg = `שלום ${live.agentName},\nאני מעוניין בהערכת שווי חינם לנכס שלי.\nשם: ${form.name}\nטלפון: ${form.phone}\nכתובת הנכס: ${form.address}\nמספר חדרים: ${form.rooms || "לא צוין"}`;
+    openWa(msg, live.phoneTel);
   };
 
   return (

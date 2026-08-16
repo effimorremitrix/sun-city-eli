@@ -7,6 +7,8 @@ export type AdminUserRow = {
   full_name: string | null;
   created_at: string;
   is_admin: boolean;
+  is_agent: boolean;
+  agent_slug: string | null;
   profiles_count: number;
   notifications_count: number;
 };
@@ -40,15 +42,18 @@ export const adminListUsers = createServerFn({ method: "GET" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const [{ data: profiles, error }, { data: roles }, { data: sp }, { data: notes }] = await Promise.all([
+    const [{ data: profiles, error }, { data: roles }, { data: sp }, { data: notes }, { data: sites }] = await Promise.all([
       supabaseAdmin.from("profiles").select("id, email, full_name, created_at").order("created_at", { ascending: false }),
       supabaseAdmin.from("user_roles").select("user_id, role"),
       supabaseAdmin.from("search_profiles").select("user_id"),
       supabaseAdmin.from("listing_notifications").select("user_id"),
+      supabaseAdmin.from("sites").select("owner_id, slug"),
     ]);
     if (error) throw new Error(error.message);
 
     const adminIds = new Set((roles ?? []).filter((r) => r.role === "admin").map((r) => r.user_id));
+    const agentIds = new Set((roles ?? []).filter((r) => r.role === "agent").map((r) => r.user_id));
+    const siteByOwner = new Map((sites ?? []).map((s) => [s.owner_id as string, s.slug as string]));
     const countBy = (rows: Array<{ user_id: string }> | null) => {
       const map = new Map<string, number>();
       for (const r of rows ?? []) map.set(r.user_id, (map.get(r.user_id) ?? 0) + 1);
@@ -63,6 +68,8 @@ export const adminListUsers = createServerFn({ method: "GET" })
       full_name: (p.full_name as string | null) ?? null,
       created_at: p.created_at as string,
       is_admin: adminIds.has(p.id as string),
+      is_agent: agentIds.has(p.id as string) || siteByOwner.has(p.id as string),
+      agent_slug: siteByOwner.get(p.id as string) ?? null,
       profiles_count: spCount.get(p.id as string) ?? 0,
       notifications_count: noteCount.get(p.id as string) ?? 0,
     }));
@@ -129,6 +136,91 @@ export const adminSetUserRole = createServerFn({ method: "POST" })
       .eq("role", "admin");
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?$/;
+const RESERVED_SLUGS = new Set([
+  "auth",
+  "admin",
+  "account",
+  "privacy",
+  "accessibility",
+  "reset-password",
+  "api",
+  "en",
+  "fr",
+  "ru",
+]);
+
+/**
+ * הפיכת משתמש לסוכן: תפקיד agent + אתר אישי (sites) + תוכן ראשוני.
+ * הדף האישי יעלה בכתובת /<slug> באותו עיצוב של האתר הראשי.
+ */
+export const adminCreateAgentSite = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (input: { userId: string; slug: string; agentName: string; roleTitle?: string; phone?: string; email?: string }) => ({
+      userId: String(input.userId),
+      slug: String(input.slug ?? "").trim().toLowerCase(),
+      agentName: String(input.agentName ?? "").trim(),
+      roleTitle: String(input.roleTitle ?? "").trim(),
+      phone: String(input.phone ?? "").trim(),
+      email: String(input.email ?? "").trim(),
+    }),
+  )
+  .handler(async ({ data, context }) => {
+    const { assertAdmin } = await import("@/lib/admin.server");
+    await assertAdmin(context);
+
+    if (!SLUG_RE.test(data.slug)) {
+      throw new Error("כתובת הדף (slug) חייבת להיות באותיות לטיניות קטנות, ספרות ומקפים");
+    }
+    if (RESERVED_SLUGS.has(data.slug)) throw new Error("הכתובת הזו שמורה למערכת");
+    if (data.agentName.length < 2) throw new Error("נדרש שם סוכן");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: existing } = await supabaseAdmin
+      .from("sites")
+      .select("id")
+      .eq("slug", data.slug)
+      .maybeSingle();
+    if (existing) throw new Error("כבר קיים דף עם הכתובת הזו");
+
+    const { error: roleError } = await supabaseAdmin
+      .from("user_roles")
+      .upsert({ user_id: data.userId, role: "agent" }, { onConflict: "user_id,role" });
+    if (roleError) throw new Error(roleError.message);
+
+    const { data: site, error: siteError } = await supabaseAdmin
+      .from("sites")
+      .insert({ slug: data.slug, name: data.agentName, owner_id: data.userId })
+      .select("id")
+      .single();
+    if (siteError) throw new Error(siteError.message);
+
+    // תוכן ראשוני כדי שהדף לא יציג את הפרטים של הסוכן הראשי
+    const phoneTel = data.phone.replace(/\D/g, "");
+    const { error: contentError } = await supabaseAdmin.from("site_content").upsert(
+      {
+        site_id: site.id as string,
+        business: {
+          agentName: data.agentName,
+          roleTitle: data.roleTitle || 'יועץ/ת נדל"ן',
+          ...(data.phone ? { phone: data.phone, phoneTel } : {}),
+          ...(data.email ? { email: data.email } : {}),
+          photoUrl: "",
+          bio: "",
+        } as never,
+        texts: {
+          heroTitle: `${data.agentName} — נדל"ן בנתניה`,
+        } as never,
+      },
+      { onConflict: "site_id" },
+    );
+    if (contentError) throw new Error(contentError.message);
+
+    return { ok: true, siteId: site.id as string, slug: data.slug };
   });
 
 /** מחיקה מלאה של חשבון משתמש וכל הנתונים שלו */

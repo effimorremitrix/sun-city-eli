@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Users } from "lucide-react";
 import { business, neighborhoods, openWa } from "@/lib/site-data";
+import { useLive } from "@/lib/site-live";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
 
 export function BuyerSection() {
+  const { business: live } = useLive();
   const [form, setForm] = useState({ name: "", phone: "", budget: "", rooms: "", area: "" });
   const [err, setErr] = useState<string | null>(null);
 
@@ -12,8 +14,8 @@ export function BuyerSection() {
     if (!form.name.trim()) return setErr("נא להזין שם");
     if (!isValidIsraeliPhone(form.phone)) return setErr(phoneError);
     setErr(null);
-    const msg = `שלום ${business.name},\nאני מחפש נכס לפי דרישה.\nשם: ${form.name}\nטלפון: ${form.phone}\nתקציב: ${form.budget || "לא צוין"}\nחדרים: ${form.rooms || "לא צוין"}\nאזור מועדף: ${form.area || "לא צוין"}`;
-    openWa(msg);
+    const msg = `שלום ${live.agentName},\nאני מחפש נכס לפי דרישה.\nשם: ${form.name}\nטלפון: ${form.phone}\nתקציב: ${form.budget || "לא צוין"}\nחדרים: ${form.rooms || "לא צוין"}\nאזור מועדף: ${form.area || "לא צוין"}`;
+    openWa(msg, live.phoneTel);
   };
 
   return (

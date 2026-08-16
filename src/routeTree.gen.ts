@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgentSlugRouteImport } from './routes/$agentSlug'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AccessibilityRouteImport } from './routes/accessibility'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -22,6 +23,11 @@ import { Route as ApiPublicScoutCronRouteImport } from './routes/api/public/scou
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentSlugRoute = AgentSlugRouteImport.update({
+  id: '/$agentSlug',
+  path: '/$agentSlug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -66,6 +72,7 @@ const ApiPublicScoutCronRoute = ApiPublicScoutCronRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$agentSlug': typeof AgentSlugRoute
   '/accessibility': typeof AccessibilityRoute
   '/auth': typeof AuthRoute
   '/privacy': typeof PrivacyRoute
@@ -76,6 +83,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$agentSlug': typeof AgentSlugRoute
   '/accessibility': typeof AccessibilityRoute
   '/auth': typeof AuthRoute
   '/privacy': typeof PrivacyRoute
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/$agentSlug': typeof AgentSlugRoute
   '/accessibility': typeof AccessibilityRoute
   '/auth': typeof AuthRoute
   '/privacy': typeof PrivacyRoute
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$agentSlug'
     | '/accessibility'
     | '/auth'
     | '/privacy'
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$agentSlug'
     | '/accessibility'
     | '/auth'
     | '/privacy'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/$agentSlug'
     | '/accessibility'
     | '/auth'
     | '/privacy'
@@ -133,6 +145,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AgentSlugRoute: typeof AgentSlugRoute
   AccessibilityRoute: typeof AccessibilityRoute
   AuthRoute: typeof AuthRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -147,6 +160,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$agentSlug': {
+      id: '/$agentSlug'
+      path: '/$agentSlug'
+      fullPath: '/$agentSlug'
+      preLoaderRoute: typeof AgentSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -224,6 +244,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AgentSlugRoute: AgentSlugRoute,
   AccessibilityRoute: AccessibilityRoute,
   AuthRoute: AuthRoute,
   PrivacyRoute: PrivacyRoute,

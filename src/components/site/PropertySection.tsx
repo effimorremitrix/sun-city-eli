@@ -17,6 +17,7 @@ import {
   Images,
   ChevronLeft,
   ChevronRight,
+  UserRound,
 } from "lucide-react";
 import { neighborhoods, priceRanges, waProps, openWa, business } from "@/lib/site-data";
 import {
@@ -29,6 +30,7 @@ import {
 } from "@/lib/listings";
 
 import { aiSearchListings } from "@/lib/ai-search.functions";
+import { useLive } from "@/lib/site-live";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
 import { Reveal } from "./Reveal";
 
@@ -42,6 +44,7 @@ const featureList = [
 type Props = { listings: Listing[]; updatedAt: string | null };
 
 export function PropertySection({ listings, updatedAt }: Props) {
+  const { business: live } = useLive();
   const [deal, setDeal] = useState("all");
   const [rooms, setRooms] = useState("all");
   const [range, setRange] = useState("all");
@@ -217,7 +220,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
             ספרו לנו מה אתם מחפשים ונאתר עבורכם נכס מתאים.
           </p>
           <a
-            {...waProps("שלום, אני מחפש נכס בנתניה. הפרטים שלי: ")}
+            {...waProps("שלום, אני מחפש נכס בנתניה. הפרטים שלי: ", live.phoneTel)}
             className="mt-4 inline-block rounded-xl bg-whatsapp px-5 py-3 text-sm font-bold text-whatsapp-foreground"
           >
             נכס לפי דרישה בוואטסאפ
@@ -310,6 +313,13 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
             ))}
         </ul>
 
+        {p.agent && (
+          <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+            <UserRound className="size-3.5 text-sun" aria-hidden="true" />
+            הסוכן של הנכס: {p.agent.name}
+          </p>
+        )}
+
         <div className="mt-4 flex gap-2 pt-1">
           <button
             type="button"
@@ -320,7 +330,8 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
           </button>
           <a
             {...waProps(
-              `שלום, הגעתי מהאתר של סאן סיטי נדל"ן.\nמעוניין בפרטים על הנכס:\n${p.title}\n${p.address ?? p.neighborhood ?? ""}\nמחיר: ${formatListingPrice(p.price)}`,
+              `שלום${p.agent ? ` ${p.agent.name}` : ""}, הגעתי מהאתר של סאן סיטי נדל"ן.\nמעוניין בפרטים על הנכס:\n${p.title}\n${p.address ?? p.neighborhood ?? ""}\nמחיר: ${formatListingPrice(p.price)}`,
+              p.agent?.phoneTel ?? undefined,
             )}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-whatsapp py-2.5 text-sm font-bold text-whatsapp-foreground"
           >
@@ -346,7 +357,8 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
     if (!isValidIsraeliPhone(form.phone)) return setErr(phoneError);
     setErr(null);
     openWa(
-      `שלום ${business.name},\nאני מעוניין בנכס: ${p.title}\nאזור: ${p.neighborhood ?? "אין מידע"}\nמחיר: ${formatListingPrice(p.price)}\nשם: ${form.name}\nטלפון: ${form.phone}`,
+      `שלום ${p.agent?.name ?? business.name},\nאני מעוניין בנכס: ${p.title}\nאזור: ${p.neighborhood ?? "אין מידע"}\nמחיר: ${formatListingPrice(p.price)}\nשם: ${form.name}\nטלפון: ${form.phone}`,
+      p.agent?.phoneTel ?? undefined,
     );
   };
 
@@ -436,6 +448,7 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
             <caption className="sr-only">מפרט הנכס</caption>
             <tbody className="divide-y divide-border">
               {[
+                ["סוכן", p.agent?.name ?? "אין מידע"],
                 ["סוג עסקה", p.deal_type],
                 ["כתובת", p.address ?? "אין מידע"],
                 ["חדרים", p.rooms == null ? "אין מידע" : String(p.rooms)],

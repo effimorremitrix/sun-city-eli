@@ -6,39 +6,88 @@ import { listingInputSchema } from "@/lib/listing-schema";
 
 /* ----------------------- קריאה ציבורית ----------------------- */
 
-export const listPublicListings = createServerFn({ method: "GET" }).handler(
-  async (): Promise<Listing[]> => {
+/**
+ * הנכסים המפורסמים באתר. בלי slug — כל הנכסים של כל הסוכנים (הדף הראשי);
+ * עם slug — רק הנכסים של הסוכן של אותו דף. לכל נכס מוצמד הסוכן שלו,
+ * כדי שכל פנייה תנותב אליו.
+ */
+export const listPublicListings = createServerFn({ method: "GET" })
+  .inputValidator((input?: { slug?: string | null }) => ({ slug: input?.slug ?? null }))
+  .handler(async ({ data }): Promise<Listing[]> => {
     const { publicDb } = await import("@/lib/public-db.server");
     const db = publicDb();
     if (!db) return [];
-    const { data, error } = await db
+
+    let query = db
       .from("listings")
       .select(LISTING_COLUMNS)
       .eq("is_published", true)
       .order("sort_order", { ascending: true });
+
+    if (data.slug) {
+      const { DEFAULT_SLUG } = await import("@/lib/agents.server");
+      const { data: siteId } = await db.rpc("get_site_id", { p_slug: data.slug });
+      if (!siteId) return [];
+      // נכסים ישנים ללא site_id שייכים לאתר הראשי
+      query =
+        data.slug === DEFAULT_SLUG
+          ? query.or(`site_id.eq.${siteId},site_id.is.null`)
+          : query.eq("site_id", siteId as string);
+    }
+
+    const { data: rows, error } = await query;
     if (error) {
       console.error("listPublicListings failed", error.message);
       return [];
     }
     const { attachListingImages } = await import("@/lib/listing-images.server");
-    return attachListingImages((data ?? []) as unknown as Listing[]);
-  },
-);
+    const { attachListingAgents } = await import("@/lib/agents.server");
+    const withImages = await attachListingImages((rows ?? []) as unknown as Listing[]);
+    return attachListingAgents(withImages);
+  });
 
-/* ----------------------- ניהול (ADMIN בלבד) ----------------------- */
+/** רשימת הסוכנים הפעילים להצגה ציבורית (כרטיסי צוות + קישור לדף האישי) */
+export const listPublicAgents = createServerFn({ method: "GET" }).handler(async () => {
+  const { fetchPublicAgents } = await import("@/lib/agents.server");
+  return fetchPublicAgents();
+});
+
+/* ------------------ ניהול (אדמין או סוכן, לפי ה-site) ------------------ */
 
 export const adminListListings = createServerFn({ method: "GET" })
+  .inputValidator((input?: { siteId?: string | null }) => ({ siteId: input?.siteId ?? null }))
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { assertAdmin } = await import("@/lib/admin.server");
-    await assertAdmin(context);
-    const { data, error } = await context.supabase
+  .handler(async ({ data, context }) => {
+    const { assertManager } = await import("@/lib/admin.server");
+    const access = await assertManager(context);
+
+    let query = context.supabase
       .from("listings")
       .select(LISTING_COLUMNS)
       .order("sort_order", { ascending: true });
+
+    const ownIds = access.sites.map((s) => s.id);
+    const includesDefault = (ids: string[]) =>
+      access.sites.some((s) => ids.includes(s.id) && s.slug === "sun-city");
+
+    if (data.siteId) {
+      if (!ownIds.includes(data.siteId)) throw new Error("Forbidden");
+      // נכסים ישנים ללא site_id שייכים לאתר הראשי
+      query = includesDefault([data.siteId])
+        ? query.or(`site_id.eq.${data.siteId},site_id.is.null`)
+        : query.eq("site_id", data.siteId);
+    } else if (!access.isAdmin) {
+      query = includesDefault(ownIds)
+        ? query.or(`site_id.in.(${ownIds.join(",")}),site_id.is.null`)
+        : query.in("site_id", ownIds);
+    }
+    // אדמין ללא סינון — כל הנכסים של כל הסוכנים
+
+    const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
     const { attachListingImages } = await import("@/lib/listing-images.server");
-    return attachListingImages((data ?? []) as unknown as Listing[]);
+    const { attachListingAgents } = await import("@/lib/agents.server");
+    return attachListingAgents(await attachListingImages((rows ?? []) as unknown as Listing[]));
   });
 
 
@@ -46,18 +95,30 @@ export const adminSaveListing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => listingInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { assertAdmin, saveListingAndNotify } = await import("@/lib/admin.server");
-    await assertAdmin(context);
+    const { assertManager, saveListingAndNotify } = await import("@/lib/admin.server");
+    const access = await assertManager(context);
+
+    // הנכס משויך ל-site: אם לא נבחר — האתר של הסוכן (או הראשי לאדמין)
+    let siteId = data.site_id ?? null;
+    if (siteId) {
+      if (!access.sites.some((s) => s.id === siteId)) throw new Error("Forbidden");
+    } else {
+      const fallback =
+        access.sites.filter((s) => s.slug === "sun-city")[0] ?? access.sites[0] ?? null;
+      siteId = fallback?.id ?? null;
+    }
+
     const origin = new URL(getRequest().url).origin;
-    return saveListingAndNotify(context, data, origin);
+    return saveListingAndNotify(context, { ...data, site_id: siteId }, origin);
   });
 
 export const adminDeleteListing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string }) => input)
   .handler(async ({ data, context }) => {
-    const { assertAdmin } = await import("@/lib/admin.server");
-    await assertAdmin(context);
+    const { assertManager } = await import("@/lib/admin.server");
+    await assertManager(context);
+    // RLS מוודא שרק בעל ה-site (או אדמין) יכול למחוק את הנכס
     const { error } = await context.supabase.from("listings").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -74,8 +135,13 @@ export const adminAddListingImages = createServerFn({ method: "POST" })
     }) => input,
   )
   .handler(async ({ data, context }) => {
-    const { assertAdmin } = await import("@/lib/admin.server");
-    await assertAdmin(context);
+    const { assertManager } = await import("@/lib/admin.server");
+    await assertManager(context);
+
+    const { data: canManage } = await context.supabase.rpc("owns_listing", {
+      _listing_id: data.listing_id,
+    });
+    if (!canManage) throw new Error("Forbidden");
 
     const { data: existing, error: countError } = await context.supabase
       .from("listing_images")
@@ -102,8 +168,8 @@ export const adminDeleteListingImage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string }) => input)
   .handler(async ({ data, context }) => {
-    const { assertAdmin } = await import("@/lib/admin.server");
-    await assertAdmin(context);
+    const { assertManager } = await import("@/lib/admin.server");
+    await assertManager(context);
 
     const { data: row, error: readError } = await context.supabase
       .from("listing_images")
@@ -128,8 +194,8 @@ export const adminReorderListingImages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { listing_id: string; ids: string[] }) => input)
   .handler(async ({ data, context }) => {
-    const { assertAdmin } = await import("@/lib/admin.server");
-    await assertAdmin(context);
+    const { assertManager } = await import("@/lib/admin.server");
+    await assertManager(context);
 
     for (const [index, id] of data.ids.entries()) {
       const { error } = await context.supabase
@@ -146,8 +212,13 @@ export const adminListListingImages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { listing_id: string }) => input)
   .handler(async ({ data, context }) => {
-    const { assertAdmin } = await import("@/lib/admin.server");
-    await assertAdmin(context);
+    const { assertManager } = await import("@/lib/admin.server");
+    await assertManager(context);
+
+    const { data: canManage } = await context.supabase.rpc("owns_listing", {
+      _listing_id: data.listing_id,
+    });
+    if (!canManage) throw new Error("Forbidden");
     const { fetchListingImages } = await import("@/lib/listing-images.server");
     const map = await fetchListingImages([data.listing_id]);
     return map.get(data.listing_id) ?? [];

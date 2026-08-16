@@ -7,6 +7,7 @@ const optionalNumber = z
 
 export const listingInputSchema = z.object({
   id: z.string().uuid().optional(),
+  site_id: z.string().uuid().nullable().optional(),
   title: z.string().trim().min(2, "נדרשת כותרת").max(200),
   deal_type: z.string().trim().max(20).default("מכירה"),
   description: z.string().trim().max(2000).nullable().default(null),
