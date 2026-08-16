@@ -32,7 +32,12 @@ const schema = {
       telephone: SITE_CONFIG.phone,
       email: SITE_CONFIG.email,
       areaServed: "נתניה",
-      sameAs: [SITE_CONFIG.social.facebook, SITE_CONFIG.social.instagram, SITE_CONFIG.madlanUrl],
+      sameAs: [
+        SITE_CONFIG.social.facebook,
+        SITE_CONFIG.social.instagram,
+        SITE_CONFIG.social.tiktok,
+        SITE_CONFIG.madlanUrl,
+      ],
       address: {
         "@type": "PostalAddress",
         streetAddress: "שמואל הנציב 20",

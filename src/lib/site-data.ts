@@ -30,8 +30,8 @@ export const SITE_CONFIG = {
   /** מספר יחיד לכל האתר — אלי כליף */
   phone: PHONE,
   phoneTel: "0525551200",
-  email: "sun.city.netanya@gmail.com",
-  license: "307233",
+  email: "kalifeli.suncity@gmail.com",
+  license: "30723354",
   areaServed: "נתניה והסביבה",
   coords: { lat: 32.3303316, lng: 34.8567176 },
   hours: [
@@ -50,6 +50,7 @@ export const SITE_CONFIG = {
     facebook: "https://www.facebook.com/share/199jyqdNZY/",
     instagram:
       "https://www.instagram.com/kalif.eli_sun_city?igsh=MXZ1NmIyYjhoYWljcw==",
+    tiktok: "https://www.tiktok.com/@elikalif.suncity?_r=1&_t=ZS-98vPBhf7ZcG2",
   },
   badges: [
     'בין 10 משרדי התיווך המובילים בנתניה, בדירוג מדל"ן 2023-2026',
@@ -424,7 +425,7 @@ export const faq = [
   },
   {
     q: "אתם עובדים בבלעדיות?",
-    a: "אנחנו מציעים גם שיווק בבלעדיות וגם שיווק רגיל. בבלעדיות אנחנו משקיעים תקציב וזמן שיווק גדולים יותר, אך ההחלטה תמיד שלכם.",
+    a: "כן, אנחנו עובדים בבלעדיות בלבד. בלעדיות מאפשרת לנו להשקיע בנכס שלכם תקציב שיווק מלא, לשלוט במחיר ובאופן הצגת הנכס מול כל הקונים, ולתת לכם דיווח שוטף ואחיד מגורם אחד שאחראי על התוצאה מתחילת הדרך ועד סגירת העסקה.",
   },
   {
     q: "אילו שכונות אתם מכסים?",

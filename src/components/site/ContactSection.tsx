@@ -5,6 +5,7 @@ import { SITE_CONFIG, mapsEmbedUrl, mapsUrl, wazeUrl, waProps, openWa } from "@/
 import { useLive } from "@/lib/site-live";
 import logoAsset from "@/assets/sun-city-logo-real.png.asset.json";
 import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
+import { TikTokIcon } from "./icons/TikTok";
 
 export function ContactSection() {
   const { business } = useLive();
@@ -193,6 +194,15 @@ export function Footer() {
             >
               <Instagram className="size-4" aria-hidden="true" />
             </a>
+            <a
+              href={SITE_CONFIG.social.tiktok}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="עמוד הטיקטוק שלנו"
+              className="inline-flex size-9 items-center justify-center rounded-lg bg-[oklch(1_0_0/0.1)]"
+            >
+              <TikTokIcon className="size-4" aria-hidden="true" />
+            </a>
           </div>
         </div>
 
@@ -251,7 +261,7 @@ export function Footer() {
       </div>
 
       <p className="mx-auto mt-8 max-w-6xl text-xs text-navy-foreground/60">
-        רישיון תיווך משרד: {business.license}
+        רישיון תיווך: {business.license}
       </p>
       <p className="mx-auto mt-2 max-w-6xl text-xs text-navy-foreground/60">
         © {new Date().getFullYear()} {business.name}. כל הזכויות שמורות.
