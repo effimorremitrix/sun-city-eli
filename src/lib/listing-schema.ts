@@ -26,6 +26,15 @@ export const listingInputSchema = z.object({
   image_key: z.string().trim().max(60).nullable().default(null),
   is_published: z.boolean().default(true),
   sort_order: z.number().int().min(0).max(9999).default(0),
+  /** תרגומים לפי קוד שפה: { en: { title, description }, ... } */
+  translations: z
+    .record(
+      z.object({
+        title: z.string().trim().max(200).optional(),
+        description: z.string().trim().max(2000).optional(),
+      }),
+    )
+    .default({}),
 });
 
 export type ListingInput = z.infer<typeof listingInputSchema>;

@@ -1,17 +1,20 @@
 import { BadgeCheck, Calculator, Handshake, Scale, ShieldCheck, Eye, Award } from "lucide-react";
-import { services, values, business, about, story, waProps } from "@/lib/site-data";
+import { business, waProps } from "@/lib/site-data";
+import { useLang } from "@/lib/i18n";
 import { Reveal } from "./Reveal";
 
 const svcIcons = [BadgeCheck, Calculator, Handshake, Scale];
 const valIcons = [Award, Eye, ShieldCheck];
 
 export function Services() {
+  const { t } = useLang();
+
   return (
     <section id="services" className="mx-auto max-w-6xl px-4 py-14 md:py-20">
-      <p className="text-sm font-bold text-sun">מה אנחנו עושים</p>
-      <h2 className="mt-2 text-3xl md:text-4xl">השירותים שלנו</h2>
+      <p className="text-sm font-bold text-sun">{t.services.kicker}</p>
+      <h2 className="mt-2 text-3xl md:text-4xl">{t.services.title}</h2>
       <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {services.map((s, i) => {
+        {t.services.items.map((s, i) => {
           const Icon = svcIcons[i] ?? BadgeCheck;
           return (
             <li key={s.title}>
@@ -19,12 +22,14 @@ export function Services() {
                 <article className="soft-card flex h-full flex-col p-5 transition-transform hover:-translate-y-1">
                   <Icon className="size-7 text-sun" aria-hidden="true" />
                   <h3 className="mt-3 text-lg">{s.title}</h3>
-                  <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{s.text}</p>
+                  <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
+                    {s.text}
+                  </p>
                   <a
-                    {...waProps(`שלום ${business.name}, אשמח לפרטים בנושא: ${s.title}. שם: `)}
+                    {...waProps(t.services.waMsg(business.name, s.title))}
                     className="mt-4 rounded-xl bg-primary py-2.5 text-center text-sm font-bold text-primary-foreground"
                   >
-                    לפרטים בוואטסאפ
+                    {t.services.waBtn}
                   </a>
                 </article>
               </Reveal>
@@ -37,16 +42,18 @@ export function Services() {
 }
 
 export function WhyUs() {
+  const { t } = useLang();
+
   return (
     <section id="why" className="bg-secondary py-14 md:py-20">
       <div className="mx-auto max-w-6xl px-4">
-        <p className="text-sm font-bold text-sun">למה אנחנו</p>
-        <h2 className="mt-2 text-3xl md:text-4xl">למה סאן סיטי</h2>
-        <p className="mt-4 max-w-3xl leading-relaxed text-foreground">{about}</p>
-        <p className="mt-3 max-w-3xl leading-relaxed text-muted-foreground">{story}</p>
+        <p className="text-sm font-bold text-sun">{t.whyUs.kicker}</p>
+        <h2 className="mt-2 text-3xl md:text-4xl">{t.whyUs.title}</h2>
+        <p className="mt-4 max-w-3xl leading-relaxed text-foreground">{t.whyUs.about}</p>
+        <p className="mt-3 max-w-3xl leading-relaxed text-muted-foreground">{t.whyUs.story}</p>
 
         <ul className="mt-8 grid gap-4 md:grid-cols-3">
-          {values.map((v, i) => {
+          {t.whyUs.values.map((v, i) => {
             const Icon = valIcons[i] ?? Award;
             return (
               <li key={v.title}>
@@ -63,7 +70,7 @@ export function WhyUs() {
         </ul>
 
         <ul className="mt-6 flex flex-wrap gap-2">
-          {business.badges.slice(1).map((b) => (
+          {t.whyUs.badges.map((b) => (
             <li
               key={b}
               className="rounded-full bg-card px-4 py-2 text-sm font-bold text-primary shadow-soft"
@@ -80,7 +87,7 @@ export function WhyUs() {
           className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-navy px-5 py-4 text-sm font-bold text-navy-foreground shadow-soft"
         >
           <Award className="size-5 text-sun" aria-hidden="true" />
-          {business.badge}
+          {t.whyUs.badge}
         </a>
       </div>
     </section>

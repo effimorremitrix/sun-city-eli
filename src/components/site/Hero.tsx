@@ -4,6 +4,7 @@ import logoAsset from "@/assets/sun-city-logo-real.png.asset.json";
 const logo = logoAsset.url;
 import { SITE_CONFIG } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
+import { useLang } from "@/lib/i18n";
 
 const scrollTo = (id: string) => (e: React.MouseEvent) => {
   e.preventDefault();
@@ -12,13 +13,14 @@ const scrollTo = (id: string) => (e: React.MouseEvent) => {
 
 export function Hero() {
   const { business, texts } = useLive();
+  const { t } = useLang();
 
   return (
     <section id="top">
       <div className="mx-auto flex max-w-6xl flex-col items-center px-4 pt-10 pb-8 text-center md:pt-14">
         <img
           src={logo}
-          alt='לוגו סאן סיטי נדל"ן — שמש כתומה מעל גג בית'
+          alt={t.hero.logoAlt}
           width={160}
           height={160}
           className="size-24 md:size-32"
@@ -34,12 +36,13 @@ export function Hero() {
       <div className="relative isolate">
         <img
           src={heroImg}
-          alt="סלון מרווח ומואר בדירה מפוארת עם חלונות גדולים ואור יום"
+          alt={t.hero.imageAlt}
           width={1600}
           height={1008}
           className="absolute inset-0 size-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-l from-[oklch(0.263_0.038_260/0.9)] via-[oklch(0.263_0.038_260/0.72)] to-[oklch(0.263_0.038_260/0.4)]" />
+        {/* הצד הכהה של הגרדיאנט נשאר תמיד מאחורי הטקסט — לפי כיוון השפה */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[oklch(0.263_0.038_260/0.9)] via-[oklch(0.263_0.038_260/0.72)] to-[oklch(0.263_0.038_260/0.4)] rtl:bg-gradient-to-l" />
 
         <div className="relative mx-auto max-w-6xl px-4 py-16 md:py-28">
           <h1 className="max-w-2xl font-display text-3xl font-extrabold text-primary-foreground md:text-5xl">
@@ -55,14 +58,14 @@ export function Hero() {
               onClick={scrollTo("sellers")}
               className="rounded-xl bg-sun px-6 py-3 text-center text-base font-bold text-sun-foreground shadow-lift"
             >
-              קבלו הערכת שווי חינם
+              {t.hero.ctaValuation}
             </a>
             <a
               href="#properties"
               onClick={scrollTo("properties")}
               className="rounded-xl border border-primary-foreground/50 px-6 py-3 text-center text-base font-bold text-primary-foreground"
             >
-              לצפייה בנכסים
+              {t.hero.ctaProperties}
             </a>
           </div>
 
@@ -74,7 +77,7 @@ export function Hero() {
                 rel="noopener noreferrer"
                 className="inline-block rounded-full bg-[oklch(1_0_0/0.12)] px-4 py-2 text-sm font-semibold text-primary-foreground backdrop-blur"
               >
-                בין 10 המובילים בנתניה
+                {t.hero.badgeTop10}
               </a>
             </li>
             <li>
@@ -84,7 +87,7 @@ export function Hero() {
                 rel="noopener noreferrer"
                 className="inline-block rounded-full bg-[oklch(1_0_0/0.12)] px-4 py-2 text-sm font-semibold text-primary-foreground backdrop-blur"
               >
-                לקבוצת הנכסים בוואטסאפ
+                {t.hero.badgeGroup}
               </a>
             </li>
           </ul>

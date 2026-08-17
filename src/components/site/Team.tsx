@@ -1,6 +1,7 @@
 import { DataSource } from "@/components/site/DataSource";
 import { Phone, MessageCircle } from "lucide-react";
 import { team, business, waProps } from "@/lib/site-data";
+import { useLang } from "@/lib/i18n";
 import { Reveal } from "./Reveal";
 
 const initials = (name: string) =>
@@ -11,78 +12,78 @@ const initials = (name: string) =>
     .join("");
 
 export function Team() {
+  const { t } = useLang();
+
   return (
     <section id="team" className="bg-secondary py-14 md:py-20">
       <div className="mx-auto max-w-6xl px-4">
-        <p className="text-sm font-bold text-sun">אנשים, לא חברה</p>
-        <h2 className="mt-2 text-3xl md:text-4xl">הצוות שלנו</h2>
+        <p className="text-sm font-bold text-sun">{t.team.kicker}</p>
+        <h2 className="mt-2 text-3xl md:text-4xl">{t.team.title}</h2>
         <DataSource source="office" updatedAt={null} className="mt-2" />
-        <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">
-          בוחרים סוכן, לא חברה. דברו ישירות עם מי שיטפל בכם.
-        </p>
+        <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">{t.team.subtitle}</p>
 
         <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {team.map((m, i) => (
-            <li key={m.name}>
-              <Reveal delay={i * 70}>
-                <article className="soft-card h-full p-5 text-center transition-transform hover:-translate-y-1">
-                  {m.image ? (
-                    <img
-                      src={m.image}
-                      alt={`${m.name} — ${m.role}`}
-                      width={140}
-                      height={140}
-                      loading="lazy"
-                      className="mx-auto size-[140px] rounded-full border-2 border-sun object-cover object-top"
-                    />
-                  ) : (
-                    <div
-                      className="mx-auto flex size-[140px] items-center justify-center rounded-full border-2 border-sun bg-sun/20 font-display text-3xl font-extrabold text-primary"
-                      aria-hidden="true"
-                    >
-                      {initials(m.name)}
-                    </div>
-                  )}
-                  <h3 className="mt-3 text-lg font-extrabold">{m.name}</h3>
-                  <p className="mt-1 text-sm font-semibold text-sun">{m.role}</p>
+          {team.map((m, i) => {
+            const name = t.team.names[m.name] ?? m.name;
+            const role = t.team.roles[m.name] ?? m.role;
+            return (
+              <li key={m.name}>
+                <Reveal delay={i * 70}>
+                  <article className="soft-card h-full p-5 text-center transition-transform hover:-translate-y-1">
+                    {m.image ? (
+                      <img
+                        src={m.image}
+                        alt={t.team.photoAlt(name, role)}
+                        width={140}
+                        height={140}
+                        loading="lazy"
+                        className="mx-auto size-[140px] rounded-full border-2 border-sun object-cover object-top"
+                      />
+                    ) : (
+                      <div
+                        className="mx-auto flex size-[140px] items-center justify-center rounded-full border-2 border-sun bg-sun/20 font-display text-3xl font-extrabold text-primary"
+                        aria-hidden="true"
+                      >
+                        {initials(name)}
+                      </div>
+                    )}
+                    <h3 className="mt-3 text-lg font-extrabold">{name}</h3>
+                    <p className="mt-1 text-sm font-semibold text-sun">{role}</p>
 
-                  {m.phone ? (
-                    <div className="mt-4 flex gap-2">
+                    {m.phone ? (
+                      <div className="mt-4 flex gap-2">
+                        <a
+                          {...waProps(t.team.waAgent(name, business.name))}
+                          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-whatsapp py-2.5 text-sm font-bold text-whatsapp-foreground"
+                          aria-label={t.team.waAgentAria(name)}
+                        >
+                          <MessageCircle className="size-4" aria-hidden="true" />
+                          {t.team.whatsapp}
+                        </a>
+                        <a
+                          href={`tel:${business.phoneTel}`}
+                          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-primary/30 py-2.5 text-sm font-bold text-primary"
+                          aria-label={t.team.callAria(name)}
+                        >
+                          <Phone className="size-4" aria-hidden="true" />
+                          {t.team.call}
+                        </a>
+                      </div>
+                    ) : (
                       <a
-                        {...waProps(
-                          `שלום ${m.name}, הגעתי מהאתר של ${business.name} ואשמח לדבר.`,
-                        )}
-                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-whatsapp py-2.5 text-sm font-bold text-whatsapp-foreground"
-                        aria-label={`שליחת וואטסאפ ל${m.name}`}
+                        {...waProps(t.team.waOffice(business.name, name))}
+                        className="mt-4 flex items-center justify-center gap-1.5 rounded-xl bg-whatsapp py-2.5 text-sm font-bold text-whatsapp-foreground"
+                        aria-label={t.team.officeAria(name)}
                       >
                         <MessageCircle className="size-4" aria-hidden="true" />
-                        וואטסאפ
+                        {t.team.contactOffice}
                       </a>
-                      <a
-                        href={`tel:${business.phoneTel}`}
-                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-primary/30 py-2.5 text-sm font-bold text-primary"
-                        aria-label={`התקשרות ל${m.name}`}
-                      >
-                        <Phone className="size-4" aria-hidden="true" />
-                        התקשרו
-                      </a>
-                    </div>
-                  ) : (
-                    <a
-                      {...waProps(
-                        `שלום ${business.name}, אשמח לפנייה למשרד בנוגע ל${m.name}.`,
-                      )}
-                      className="mt-4 flex items-center justify-center gap-1.5 rounded-xl bg-whatsapp py-2.5 text-sm font-bold text-whatsapp-foreground"
-                      aria-label={`לפנייה למשרד בנוגע ל${m.name}`}
-                    >
-                      <MessageCircle className="size-4" aria-hidden="true" />
-                      לפנייה למשרד
-                    </a>
-                  )}
-                </article>
-              </Reveal>
-            </li>
-          ))}
+                    )}
+                  </article>
+                </Reveal>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </section>

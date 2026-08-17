@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useParams,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -11,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { DEFAULT_LOCALE, dirFor, isLocale } from "../lib/i18n";
 
 function NotFoundComponent() {
   return (
@@ -77,7 +79,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "author", content: "סאן סיטי נדל\"ן" },
+      { name: "author", content: 'סאן סיטי נדל"ן' },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -88,7 +90,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Assistant:wght@400;500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Assistant:wght@400;500;600;700&family=Rubik:wght@400;500;700;800&display=swap",
       },
       {
         rel: "stylesheet",
@@ -104,8 +106,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  // שפת העמוד נגזרת מהסגמנט האופציונלי {-$lang}; ראוטים בלי הפרמטר
+  // (אדמין, אזור אישי, auth) נשארים בעברית RTL.
+  const params = useParams({ strict: false }) as { lang?: string };
+  const lang = isLocale(params.lang) ? params.lang : DEFAULT_LOCALE;
+
   return (
-    <html lang="he" dir="rtl">
+    <html lang={lang} dir={dirFor(lang)}>
       <head>
         <HeadContent />
       </head>
