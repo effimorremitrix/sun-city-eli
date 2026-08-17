@@ -16,8 +16,9 @@
   --radius-xl: calc(var(--radius) + 6px);
   --radius-2xl: calc(var(--radius) + 12px);
   --radius-3xl: calc(var(--radius) + 20px);
-  --font-sans: "Assistant", system-ui, sans-serif;
-  --font-display: "Heebo", system-ui, sans-serif;
+  /* Rubik כ-fallback: מכסה קירילית (רוסית) שאינה קיימת ב-Assistant/Heebo */
+  --font-sans: "Assistant", "Rubik", system-ui, sans-serif;
+  --font-display: "Heebo", "Rubik", system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

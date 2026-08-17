@@ -6,6 +6,7 @@ import prop5 from "@/assets/prop-5.jpg";
 import prop6 from "@/assets/prop-6.jpg";
 import prop7 from "@/assets/prop-7.jpg";
 import prop8 from "@/assets/prop-8.jpg";
+import { DICTS, formatPrice, type Locale } from "@/lib/i18n";
 
 /** תמונה בגלריית הנכס */
 export type ListingImage = {
@@ -16,12 +17,19 @@ export type ListingImage = {
   sort_order: number;
 };
 
+/** תרגום פר-שפה של שדות הטקסט של נכס (עמודת translations) */
+export type ListingTranslation = {
+  title?: string;
+  description?: string;
+};
+
 /** נכס כפי שהוא נשמר במסד הנתונים ומוצג באתר */
 export type Listing = {
   id: string;
   deal_type: string;
   title: string;
   description: string | null;
+  translations?: Partial<Record<string, ListingTranslation>> | null;
   city: string;
   neighborhood: string | null;
   address: string | null;
@@ -105,8 +113,20 @@ export function matchesFilters(l: Listing, f: ListingFilters): boolean {
   return true;
 }
 
-export const formatListingPrice = (n: number | null) =>
-  n == null ? "אין מידע" : `${n.toLocaleString("he-IL")} ₪`;
+/** מחזיר עותק של הנכס בשפת העמוד — כותרת ותיאור מתורגמים, fallback לעברית */
+export function localizeListing(l: Listing, lang: string): Listing {
+  if (lang === "he") return l;
+  const tr = l.translations?.[lang];
+  if (!tr) return l;
+  return {
+    ...l,
+    title: tr.title ?? l.title,
+    description: tr.description ?? l.description,
+  };
+}
+
+export const formatListingPrice = (n: number | null, lang: Locale = "he") =>
+  n == null ? DICTS[lang].misc.noInfo : formatPrice(n, lang);
 
 export const LISTING_COLUMNS =
-  "id, deal_type, title, description, city, neighborhood, address, price, rooms, size_sqm, floor, has_mamad, has_elevator, has_parking, has_balcony, tag, image_url, image_key, is_published, sort_order, updated_at";
+  "id, deal_type, title, description, translations, city, neighborhood, address, price, rooms, size_sqm, floor, has_mamad, has_elevator, has_parking, has_balcony, tag, image_url, image_key, is_published, sort_order, updated_at";

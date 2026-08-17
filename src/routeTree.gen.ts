@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AccessibilityRouteImport } from './routes/accessibility'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -17,13 +16,9 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as Char123LangChar125IndexRouteImport } from './routes/{-$lang}/index'
 import { Route as ApiPublicScoutCronRouteImport } from './routes/api/public/scout-cron'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -58,6 +53,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const Char123LangChar125IndexRoute = Char123LangChar125IndexRouteImport.update({
+  id: '/{-$lang}/',
+  path: '/{-$lang}/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicScoutCronRoute = ApiPublicScoutCronRouteImport.update({
   id: '/api/public/scout-cron',
   path: '/api/public/scout-cron',
@@ -65,28 +65,29 @@ const ApiPublicScoutCronRoute = ApiPublicScoutCronRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AuthenticatedRouteRouteWithChildren
   '/accessibility': typeof AccessibilityRoute
   '/auth': typeof AuthRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/{-$lang}/': typeof Char123LangChar125IndexRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/': typeof AuthenticatedRouteRouteWithChildren
   '/accessibility': typeof AccessibilityRoute
   '/auth': typeof AuthRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/{-$lang}': typeof Char123LangChar125IndexRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/accessibility': typeof AccessibilityRoute
   '/auth': typeof AuthRoute
@@ -94,6 +95,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/{-$lang}/': typeof Char123LangChar125IndexRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
 }
 export interface FileRouteTypes {
@@ -106,6 +108,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/account'
     | '/admin'
+    | '/{-$lang}/'
     | '/api/public/scout-cron'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -116,10 +119,10 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/account'
     | '/admin'
+    | '/{-$lang}'
     | '/api/public/scout-cron'
   id:
     | '__root__'
-    | '/'
     | '/_authenticated'
     | '/accessibility'
     | '/auth'
@@ -127,28 +130,22 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/account'
     | '/_authenticated/admin'
+    | '/{-$lang}/'
     | '/api/public/scout-cron'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AccessibilityRoute: typeof AccessibilityRoute
   AuthRoute: typeof AuthRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  Char123LangChar125IndexRoute: typeof Char123LangChar125IndexRoute
   ApiPublicScoutCronRoute: typeof ApiPublicScoutCronRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -198,6 +195,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/{-$lang}/': {
+      id: '/{-$lang}/'
+      path: '/{-$lang}'
+      fullPath: '/{-$lang}/'
+      preLoaderRoute: typeof Char123LangChar125IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/scout-cron': {
       id: '/api/public/scout-cron'
       path: '/api/public/scout-cron'
@@ -222,12 +226,12 @@ const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AccessibilityRoute: AccessibilityRoute,
   AuthRoute: AuthRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  Char123LangChar125IndexRoute: Char123LangChar125IndexRoute,
   ApiPublicScoutCronRoute: ApiPublicScoutCronRoute,
 }
 export const routeTree = rootRouteImport
