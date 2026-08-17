@@ -122,7 +122,7 @@ const guideSections: GuideSection[] = [
 ];
 
 export default function AdminGuide() {
-  const [open, setOpen] = useState<string | null>(guideSections[0].id);
+  const [open, setOpen] = useState<string | null>(guideSections[0]?.id ?? null);
 
   return (
     <div>
