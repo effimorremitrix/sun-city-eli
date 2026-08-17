@@ -4,26 +4,34 @@ import { MapPin, Phone, Mail, Clock, MessageCircle, Facebook, Instagram } from "
 import { SITE_CONFIG, mapsEmbedUrl, mapsUrl, wazeUrl, waProps, openWa } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
 import logoAsset from "@/assets/sun-city-logo-real.png.asset.json";
-import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
+import { isValidIsraeliPhone } from "@/lib/leads";
+import { useLang } from "@/lib/i18n";
 
 export function ContactSection() {
   const { business } = useLive();
+  const { t } = useLang();
   const [form, setForm] = useState({ name: "", phone: "", topic: "", message: "" });
   const [err, setErr] = useState<string | null>(null);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) return setErr("נא להזין שם");
-    if (!isValidIsraeliPhone(form.phone)) return setErr(phoneError);
+    if (!form.name.trim()) return setErr(t.contact.errName);
+    if (!isValidIsraeliPhone(form.phone)) return setErr(t.misc.phoneError);
     setErr(null);
-    const msg = `שלום ${business.name},\nשם: ${form.name}\nטלפון: ${form.phone}\nנושא הפנייה: ${form.topic || "אחר"}\nהודעה: ${form.message || "-"}`;
-    openWa(msg);
+    openWa(
+      t.contact.waMsg(business.name, {
+        name: form.name,
+        phone: form.phone,
+        topic: form.topic || t.contact.topicOther,
+        message: form.message || "-",
+      }),
+    );
   };
 
   return (
     <section id="contact" className="mx-auto max-w-6xl px-4 py-14 md:py-20">
-      <p className="text-sm font-bold text-sun">צור קשר</p>
-      <h2 className="mt-2 text-3xl md:text-4xl">מדברים איתנו</h2>
+      <p className="text-sm font-bold text-sun">{t.contact.kicker}</p>
+      <h2 className="mt-2 text-3xl md:text-4xl">{t.contact.title}</h2>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
@@ -31,7 +39,7 @@ export function ContactSection() {
             <li className="flex items-start gap-3 pb-4">
               <MapPin className="mt-0.5 size-5 shrink-0 text-sun" aria-hidden="true" />
               <div>
-                <p className="font-bold text-primary">כתובת</p>
+                <p className="font-bold text-primary">{t.contact.addressLabel}</p>
                 <p className="text-sm text-muted-foreground">{business.address}</p>
                 <div className="mt-2 flex gap-2">
                   <a
@@ -40,7 +48,7 @@ export function ContactSection() {
                     rel="noopener noreferrer"
                     className="rounded-lg border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary"
                   >
-                    ניווט בוויז
+                    {t.contact.waze}
                   </a>
                   <a
                     href={mapsUrl}
@@ -48,7 +56,7 @@ export function ContactSection() {
                     rel="noopener noreferrer"
                     className="rounded-lg border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary"
                   >
-                    ניווט בגוגל מפות
+                    {t.contact.gmaps}
                   </a>
                 </div>
               </div>
@@ -56,8 +64,12 @@ export function ContactSection() {
             <li className="flex items-start gap-3 py-4">
               <Phone className="mt-0.5 size-5 shrink-0 text-sun" aria-hidden="true" />
               <div>
-                <p className="font-bold text-primary">טלפון המשרד</p>
-                <a href={`tel:${business.phoneTel}`} className="text-sm text-muted-foreground underline" dir="ltr">
+                <p className="font-bold text-primary">{t.contact.phoneLabel}</p>
+                <a
+                  href={`tel:${business.phoneTel}`}
+                  className="text-sm text-muted-foreground underline"
+                  dir="ltr"
+                >
                   {business.phone}
                 </a>
               </div>
@@ -66,8 +78,11 @@ export function ContactSection() {
             <li className="flex items-start gap-3 py-4">
               <Mail className="mt-0.5 size-5 shrink-0 text-sun" aria-hidden="true" />
               <div>
-                <p className="font-bold text-primary">מייל</p>
-                <a href={`mailto:${business.email}`} className="text-sm text-muted-foreground underline">
+                <p className="font-bold text-primary">{t.contact.emailLabel}</p>
+                <a
+                  href={`mailto:${business.email}`}
+                  className="text-sm text-muted-foreground underline"
+                >
                   {business.email}
                 </a>
               </div>
@@ -75,7 +90,7 @@ export function ContactSection() {
             <li className="flex items-start gap-3 pt-4">
               <Clock className="mt-0.5 size-5 shrink-0 text-sun" aria-hidden="true" />
               <div>
-                <p className="font-bold text-primary">שעות פעילות</p>
+                <p className="font-bold text-primary">{t.contact.hoursLabel}</p>
                 <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
                   {business.hours.map((h) => (
                     <li key={h.day}>
@@ -88,16 +103,16 @@ export function ContactSection() {
           </ul>
 
           <a
-            {...waProps(`שלום ${business.name}, אשמח לקבל פרטים`)}
+            {...waProps(t.contact.waHello(business.name))}
             className="flex items-center justify-center gap-2 rounded-xl bg-whatsapp py-3 text-sm font-bold text-whatsapp-foreground"
           >
             <MessageCircle className="size-5" aria-hidden="true" />
-            שליחת הודעה בוואטסאפ
+            {t.contact.waSend}
           </a>
 
           <div className="overflow-hidden rounded-xl border border-border">
             <iframe
-              title="מפת Google — שמואל הנציב 20, נתניה"
+              title={t.contact.mapTitle}
               src={mapsEmbedUrl}
               loading="lazy"
               className="h-64 w-full"
@@ -105,36 +120,57 @@ export function ContactSection() {
           </div>
         </div>
 
-        <form onSubmit={submit} noValidate className="soft-card h-fit p-5" aria-label="טופס יצירת קשר">
+        <form
+          onSubmit={submit}
+          noValidate
+          className="soft-card h-fit p-5"
+          aria-label={t.contact.formAria}
+        >
           <div className="grid gap-3">
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted-foreground">שם מלא</span>
-              <input className="field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.contact.fullName}
+              </span>
+              <input
+                className="field"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                required
+              />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted-foreground">טלפון</span>
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.contact.phone}
+              </span>
               <input
                 className="field"
                 type="tel"
                 inputMode="tel"
-                placeholder="050-1234567"
+                placeholder={t.contact.phonePlaceholder}
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 required
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted-foreground">נושא הפנייה</span>
-              <select className="field" value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })}>
-                <option value="">בחירה</option>
-                <option>מוכר</option>
-                <option>קונה</option>
-                <option>משקיע</option>
-                <option>אחר</option>
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.contact.topicLabel}
+              </span>
+              <select
+                className="field"
+                value={form.topic}
+                onChange={(e) => setForm({ ...form, topic: e.target.value })}
+              >
+                <option value="">{t.contact.choose}</option>
+                {t.contact.topics.map((topic) => (
+                  <option key={topic}>{topic}</option>
+                ))}
               </select>
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted-foreground">הודעה</span>
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.contact.message}
+              </span>
               <textarea
                 className="field min-h-28"
                 value={form.message}
@@ -147,8 +183,11 @@ export function ContactSection() {
               {err}
             </p>
           )}
-          <button type="submit" className="mt-4 w-full rounded-xl bg-sun py-3.5 text-base font-bold text-sun-foreground">
-            שליחה
+          <button
+            type="submit"
+            className="mt-4 w-full rounded-xl bg-sun py-3.5 text-base font-bold text-sun-foreground"
+          >
+            {t.contact.submit}
           </button>
         </form>
       </div>
@@ -158,6 +197,7 @@ export function ContactSection() {
 
 export function Footer() {
   const { business } = useLive();
+  const { t } = useLang();
 
   return (
     <footer className="border-t border-border bg-navy px-4 py-10 pb-28 text-navy-foreground lg:pb-10">
@@ -166,7 +206,7 @@ export function Footer() {
           <p className="flex items-center gap-2 font-display text-lg font-extrabold text-navy-foreground">
             <img
               src={logoAsset.url}
-              alt='לוגו סאן סיטי נדל"ן'
+              alt={t.footer.logoAlt}
               width={48}
               height={48}
               className="size-12 rounded-lg bg-white object-contain p-1"
@@ -179,7 +219,7 @@ export function Footer() {
               href={SITE_CONFIG.social.facebook}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="עמוד הפייסבוק שלנו"
+              aria-label={t.footer.facebookAria}
               className="inline-flex size-9 items-center justify-center rounded-lg bg-[oklch(1_0_0/0.1)]"
             >
               <Facebook className="size-4" aria-hidden="true" />
@@ -188,7 +228,7 @@ export function Footer() {
               href={SITE_CONFIG.social.instagram}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="עמוד האינסטגרם שלנו"
+              aria-label={t.footer.instagramAria}
               className="inline-flex size-9 items-center justify-center rounded-lg bg-[oklch(1_0_0/0.1)]"
             >
               <Instagram className="size-4" aria-hidden="true" />
@@ -197,7 +237,7 @@ export function Footer() {
         </div>
 
         <div className="text-sm text-navy-foreground/85">
-          <p className="font-bold text-navy-foreground">פרטי קשר</p>
+          <p className="font-bold text-navy-foreground">{t.footer.contactTitle}</p>
           <p className="mt-2">{business.address}</p>
           <p className="mt-1">
             <a href={`tel:${business.phoneTel}`} className="underline">
@@ -211,14 +251,18 @@ export function Footer() {
           </p>
         </div>
 
-        <nav aria-label="קישורים בתחתית העמוד" className="text-sm text-navy-foreground/85">
-          <p className="font-bold text-navy-foreground">קישורים</p>
+        <nav aria-label={t.footer.linksAria} className="text-sm text-navy-foreground/85">
+          <p className="font-bold text-navy-foreground">{t.footer.linksTitle}</p>
           <ul className="mt-2 space-y-1.5">
             <li>
-              <a href="#properties" className="underline">נכסים</a>
+              <a href="#properties" className="underline">
+                {t.footer.properties}
+              </a>
             </li>
             <li>
-              <a href="#sellers" className="underline">הערכת שווי חינם</a>
+              <a href="#sellers" className="underline">
+                {t.footer.freeValuation}
+              </a>
             </li>
             <li>
               <a
@@ -227,34 +271,45 @@ export function Footer() {
                 rel="noopener noreferrer"
                 className="underline"
               >
-                דף הסוכנות במדל"ן
+                {t.footer.madlan}
               </a>
             </li>
             <li>
-              <a href="#team" className="underline">הצוות</a>
+              <a href="#team" className="underline">
+                {t.footer.team}
+              </a>
             </li>
 
             <li>
-              <Link to="/accessibility" className="underline">הצהרת נגישות</Link>
+              <Link to="/accessibility" className="underline">
+                {t.footer.accessibility}
+              </Link>
             </li>
             <li>
-              <Link to="/privacy" className="underline">מדיניות פרטיות</Link>
+              <Link to="/privacy" className="underline">
+                {t.footer.privacy}
+              </Link>
             </li>
             <li className="mt-3 border-t border-navy-foreground/15 pt-3 text-xs text-navy-foreground/55">
-              <Link to="/account" className="underline">האזור האישי שלי</Link>
-              <span aria-hidden="true" className="px-1.5">·</span>
-              <Link to="/admin" className="underline">ניהול האתר</Link>
+              <Link to="/account" className="underline">
+                {t.footer.myAccount}
+              </Link>
+              <span aria-hidden="true" className="px-1.5">
+                ·
+              </span>
+              <Link to="/admin" className="underline">
+                {t.footer.adminSite}
+              </Link>
             </li>
           </ul>
-
         </nav>
       </div>
 
       <p className="mx-auto mt-8 max-w-6xl text-xs text-navy-foreground/60">
-        רישיון תיווך משרד: {business.license}
+        {t.footer.license(business.license)}
       </p>
       <p className="mx-auto mt-2 max-w-6xl text-xs text-navy-foreground/60">
-        © {new Date().getFullYear()} {business.name}. כל הזכויות שמורות.
+        {t.footer.rights(new Date().getFullYear(), business.name)}
       </p>
     </footer>
   );

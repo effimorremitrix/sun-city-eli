@@ -22,26 +22,27 @@ import { neighborhoods, priceRanges, waProps, openWa, business } from "@/lib/sit
 import {
   formatListingPrice,
   listingImages,
-
   matchesFilters,
   type Listing,
   type ListingFilters,
 } from "@/lib/listings";
 
 import { aiSearchListings } from "@/lib/ai-search.functions";
-import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
+import { isValidIsraeliPhone } from "@/lib/leads";
+import { mapValue, useLang } from "@/lib/i18n";
 import { Reveal } from "./Reveal";
 
-const featureList = [
-  { key: "has_mamad", label: "ממ״ד", Icon: ShieldCheck },
-  { key: "has_elevator", label: "מעלית", Icon: MoveVertical },
-  { key: "has_parking", label: "חניה", Icon: Car },
-  { key: "has_balcony", label: "מרפסת", Icon: Trees },
-] as const;
+const featureIcons = {
+  has_mamad: { key: "mamad", Icon: ShieldCheck },
+  has_elevator: { key: "elevator", Icon: MoveVertical },
+  has_parking: { key: "parking", Icon: Car },
+  has_balcony: { key: "balcony", Icon: Trees },
+} as const;
 
 type Props = { listings: Listing[]; updatedAt: string | null };
 
 export function PropertySection({ listings, updatedAt }: Props) {
+  const { t } = useLang();
   const [deal, setDeal] = useState("all");
   const [rooms, setRooms] = useState("all");
   const [range, setRange] = useState("all");
@@ -51,7 +52,11 @@ export function PropertySection({ listings, updatedAt }: Props) {
   const [query, setQuery] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
   const [aiErr, setAiErr] = useState<string | null>(null);
-  const [ai, setAi] = useState<{ ids: string[]; explanation: string; filters: ListingFilters } | null>(null);
+  const [ai, setAi] = useState<{
+    ids: string[];
+    explanation: string;
+    filters: ListingFilters;
+  } | null>(null);
 
   const manual = useMemo(() => {
     const r = range === "all" ? null : priceRanges[Number(range)];
@@ -79,7 +84,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
       setAi({ ids: res.ids, explanation: res.explanation, filters: res.filters });
     } catch (err) {
       setAi(null);
-      setAiErr(err instanceof Error ? err.message : "החיפוש נכשל");
+      setAiErr(err instanceof Error ? err.message : t.properties.aiFailed);
     } finally {
       setAiBusy(false);
     }
@@ -87,8 +92,8 @@ export function PropertySection({ listings, updatedAt }: Props) {
 
   return (
     <section id="properties" className="mx-auto max-w-6xl px-4 py-14 md:py-20">
-      <p className="text-sm font-bold text-sun">נכסים בנתניה</p>
-      <h2 className="mt-2 text-3xl md:text-4xl">נכסים למכירה ולהשכרה</h2>
+      <p className="text-sm font-bold text-sun">{t.properties.kicker}</p>
+      <h2 className="mt-2 text-3xl md:text-4xl">{t.properties.title}</h2>
       <DataSource source="db" updatedAt={updatedAt} className="mt-2" />
 
       {/* חיפוש חכם בטקסט חופשי */}
@@ -96,15 +101,15 @@ export function PropertySection({ listings, updatedAt }: Props) {
         <label className="block">
           <span className="mb-1 flex items-center gap-1.5 text-sm font-bold text-primary">
             <Sparkles className="size-4 text-sun" aria-hidden="true" />
-            חיפוש חכם במילים שלכם
+            {t.properties.aiLabel}
           </span>
           <input
             className="field"
             value={query}
             maxLength={300}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder='למשל: 4 חדרים עם ממ״ד וחניה בעיר הימים עד 2.5 מיליון'
-            aria-label="תיאור חופשי של הנכס שאתם מחפשים"
+            placeholder={t.properties.aiPlaceholder}
+            aria-label={t.properties.aiAria}
           />
         </label>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -113,7 +118,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
             disabled={aiBusy}
             className="rounded-xl bg-sun px-5 py-2.5 text-sm font-bold text-sun-foreground disabled:opacity-60"
           >
-            {aiBusy ? "מחפש…" : "חיפוש חכם"}
+            {aiBusy ? t.properties.aiSearching : t.properties.aiSearch}
           </button>
           {ai && (
             <button
@@ -124,7 +129,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
               }}
               className="rounded-xl border border-primary/30 px-5 py-2.5 text-sm font-bold text-primary"
             >
-              ניקוי החיפוש החכם
+              {t.properties.aiClear}
             </button>
           )}
         </div>
@@ -134,29 +139,44 @@ export function PropertySection({ listings, updatedAt }: Props) {
           </p>
         )}
         {ai && (
-          <p className="mt-3 rounded-xl bg-secondary p-3 text-sm text-secondary-foreground" aria-live="polite">
-            {ai.explanation || "סיננו את הנכסים לפי הבקשה שלכם."}
+          <p
+            className="mt-3 rounded-xl bg-secondary p-3 text-sm text-secondary-foreground"
+            aria-live="polite"
+          >
+            {ai.explanation || t.properties.aiFallbackExplain}
           </p>
         )}
-        <p className="mt-2 text-xs text-muted-foreground">
-          החיפוש מסנן רק נכסים אמיתיים שקיימים במסד הנתונים של המשרד. אין המצאת נכסים.
-        </p>
+        <p className="mt-2 text-xs text-muted-foreground">{t.properties.aiDisclaimer}</p>
       </form>
 
       {/* סינון ידני */}
       <div className="soft-card mt-4 grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
         <label className="block">
-          <span className="mb-1 block text-xs font-bold text-muted-foreground">עסקה</span>
-          <select className="field" value={deal} onChange={(e) => setDeal(e.target.value)} aria-label="סוג עסקה">
-            <option value="all">הכל</option>
-            <option value="מכירה">מכירה</option>
-            <option value="השכרה">השכרה</option>
+          <span className="mb-1 block text-xs font-bold text-muted-foreground">
+            {t.properties.filterDeal}
+          </span>
+          <select
+            className="field"
+            value={deal}
+            onChange={(e) => setDeal(e.target.value)}
+            aria-label={t.properties.filterDealAria}
+          >
+            <option value="all">{t.properties.filterAll}</option>
+            <option value="מכירה">{t.maps.deal["מכירה"]}</option>
+            <option value="השכרה">{t.maps.deal["השכרה"]}</option>
           </select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-bold text-muted-foreground">חדרים (מינימום)</span>
-          <select className="field" value={rooms} onChange={(e) => setRooms(e.target.value)} aria-label="מספר חדרים">
-            <option value="all">הכל</option>
+          <span className="mb-1 block text-xs font-bold text-muted-foreground">
+            {t.properties.filterRooms}
+          </span>
+          <select
+            className="field"
+            value={rooms}
+            onChange={(e) => setRooms(e.target.value)}
+            aria-label={t.properties.filterRoomsAria}
+          >
+            <option value="all">{t.properties.filterAll}</option>
             <option value="2">2+</option>
             <option value="3">3+</option>
             <option value="4">4+</option>
@@ -164,23 +184,37 @@ export function PropertySection({ listings, updatedAt }: Props) {
           </select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-bold text-muted-foreground">טווח מחיר</span>
-          <select className="field" value={range} onChange={(e) => setRange(e.target.value)} aria-label="טווח מחיר">
-            <option value="all">הכל</option>
+          <span className="mb-1 block text-xs font-bold text-muted-foreground">
+            {t.properties.filterPrice}
+          </span>
+          <select
+            className="field"
+            value={range}
+            onChange={(e) => setRange(e.target.value)}
+            aria-label={t.properties.filterPriceAria}
+          >
+            <option value="all">{t.properties.filterAll}</option>
             {priceRanges.map((r, i) => (
               <option key={r.label} value={String(i)}>
-                {r.label}
+                {t.properties.priceRanges[i] ?? r.label}
               </option>
             ))}
           </select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-bold text-muted-foreground">אזור בנתניה</span>
-          <select className="field" value={area} onChange={(e) => setArea(e.target.value)} aria-label="אזור בנתניה">
-            <option value="all">כל האזורים</option>
+          <span className="mb-1 block text-xs font-bold text-muted-foreground">
+            {t.properties.filterArea}
+          </span>
+          <select
+            className="field"
+            value={area}
+            onChange={(e) => setArea(e.target.value)}
+            aria-label={t.properties.filterAreaAria}
+          >
+            <option value="all">{t.properties.allAreas}</option>
             {neighborhoods.map((n) => (
               <option key={n} value={n}>
-                {n}
+                {t.maps.neighborhoods[n] ?? n}
               </option>
             ))}
           </select>
@@ -189,14 +223,14 @@ export function PropertySection({ listings, updatedAt }: Props) {
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground" aria-live="polite">
-          נמצאו {filtered.length} נכסים
+          {t.properties.found(filtered.length)}
         </p>
         <Link
           to="/account"
           className="inline-flex items-center gap-1.5 rounded-xl border border-sun px-4 py-2 text-sm font-bold text-primary"
         >
           <BellPlus className="size-4 text-sun" aria-hidden="true" />
-          סוכן אישי: התראות על נכסים חדשים
+          {t.properties.personalAgent}
         </Link>
       </div>
 
@@ -212,15 +246,13 @@ export function PropertySection({ listings, updatedAt }: Props) {
 
       {filtered.length === 0 && (
         <div className="soft-card mt-4 p-6 text-center">
-          <p className="font-bold text-primary">לא נמצאו נכסים בסינון הזה</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            ספרו לנו מה אתם מחפשים ונאתר עבורכם נכס מתאים.
-          </p>
+          <p className="font-bold text-primary">{t.properties.noResultsTitle}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t.properties.noResultsText}</p>
           <a
-            {...waProps("שלום, אני מחפש נכס בנתניה. הפרטים שלי: ")}
+            {...waProps(t.properties.waNoResultsMsg)}
             className="mt-4 inline-block rounded-xl bg-whatsapp px-5 py-3 text-sm font-bold text-whatsapp-foreground"
           >
-            נכס לפי דרישה בוואטסאפ
+            {t.properties.waNoResultsBtn}
           </a>
         </div>
       )}
@@ -231,7 +263,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
         rel="noopener noreferrer"
         className="mt-8 flex w-full items-center justify-center rounded-2xl bg-primary px-6 py-4 text-base font-bold text-primary-foreground shadow-soft"
       >
-        לכל הנכסים של הסוכנות ביד2
+        {t.properties.yad2Btn}
       </a>
 
       {selected && <PropertyModal property={selected} onClose={() => setSelected(null)} />}
@@ -240,8 +272,13 @@ export function PropertySection({ listings, updatedAt }: Props) {
 }
 
 function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () => void }) {
+  const { lang, t } = useLang();
   const gallery = listingImages(p);
   const img = gallery[0] ?? null;
+  const noInfo = t.misc.noInfo;
+  const hood = mapValue(t.maps.neighborhoods, p.neighborhood);
+  const city = t.maps.cities[p.city] ?? p.city;
+  const price = formatListingPrice(p.price, lang);
 
   return (
     <article className="soft-card flex h-full flex-col overflow-hidden">
@@ -249,7 +286,7 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
         {img ? (
           <img
             src={img}
-            alt={`${p.title} ב${p.neighborhood ?? "נתניה"}`}
+            alt={t.properties.cardImgAlt(p.title, hood ?? city)}
             width={800}
             height={533}
             loading="lazy"
@@ -257,57 +294,60 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
           />
         ) : (
           <div className="flex aspect-[3/2] w-full items-center justify-center bg-secondary text-sm text-muted-foreground">
-            אין תמונה
+            {t.properties.noImage}
           </div>
         )}
         {p.tag && (
-          <span className="absolute top-3 right-3 rounded-full bg-sun px-3 py-1 text-xs font-bold text-sun-foreground">
-            {p.tag}
+          <span className="absolute top-3 start-3 rounded-full bg-sun px-3 py-1 text-xs font-bold text-sun-foreground">
+            {t.maps.tag[p.tag] ?? p.tag}
           </span>
         )}
         {gallery.length > 1 && (
-          <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-primary/85 px-2.5 py-1 text-xs font-bold text-primary-foreground">
+          <span className="absolute bottom-3 end-3 inline-flex items-center gap-1 rounded-full bg-primary/85 px-2.5 py-1 text-xs font-bold text-primary-foreground">
             <Images className="size-3.5" aria-hidden="true" />
-            {gallery.length} תמונות
+            {t.properties.photosCount(gallery.length)}
           </span>
         )}
       </div>
 
       <div className="flex flex-1 flex-col p-4">
-        <p className="font-display text-xl font-extrabold text-primary">{formatListingPrice(p.price)}</p>
+        <p className="font-display text-xl font-extrabold text-primary">{price}</p>
         <h3 className="mt-1 text-base">{p.title}</h3>
         <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
           <MapPin className="size-4 shrink-0 text-sun" aria-hidden="true" />
-          {p.neighborhood ?? "אין מידע"}, {p.city}
+          {hood ?? noInfo}, {city}
         </p>
 
         <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-foreground">
           <li className="flex items-center gap-1">
             <BedDouble className="size-4 text-sun" aria-hidden="true" />
-            {p.rooms ?? "אין מידע"} חדרים
+            {p.rooms ?? noInfo} {t.properties.roomsUnit}
           </li>
           <li className="flex items-center gap-1">
             <Ruler className="size-4 text-sun" aria-hidden="true" />
-            {p.size_sqm ?? "אין מידע"} מ״ר
+            {p.size_sqm ?? noInfo} {t.properties.sqm}
           </li>
           <li className="flex items-center gap-1">
             <Building className="size-4 text-sun" aria-hidden="true" />
-            קומה {p.floor ?? "אין מידע"}
+            {t.properties.floorLabel(p.floor ?? noInfo)}
           </li>
         </ul>
 
         <ul className="mt-3 flex flex-wrap gap-2">
-          {featureList
-            .filter(({ key }) => p[key])
-            .map(({ key, label, Icon }) => (
-              <li
-                key={key}
-                className="flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-secondary-foreground"
-              >
-                <Icon className="size-3.5" aria-hidden="true" />
-                {label}
-              </li>
-            ))}
+          {(Object.keys(featureIcons) as Array<keyof typeof featureIcons>)
+            .filter((key) => p[key])
+            .map((key) => {
+              const { key: labelKey, Icon } = featureIcons[key];
+              return (
+                <li
+                  key={key}
+                  className="flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-secondary-foreground"
+                >
+                  <Icon className="size-3.5" aria-hidden="true" />
+                  {t.properties.features[labelKey]}
+                </li>
+              );
+            })}
         </ul>
 
         <div className="mt-4 flex gap-2 pt-1">
@@ -316,16 +356,16 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
             onClick={onOpen}
             className="flex-1 rounded-xl border border-primary/30 py-2.5 text-sm font-bold text-primary"
           >
-            לפרטים
+            {t.properties.detailsBtn}
           </button>
           <a
             {...waProps(
-              `שלום, הגעתי מהאתר של סאן סיטי נדל"ן.\nמעוניין בפרטים על הנכס:\n${p.title}\n${p.address ?? p.neighborhood ?? ""}\nמחיר: ${formatListingPrice(p.price)}`,
+              t.properties.waListing(business.name, p.title, p.address ?? hood ?? "", price),
             )}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-whatsapp py-2.5 text-sm font-bold text-whatsapp-foreground"
           >
             <MessageCircle className="size-4" aria-hidden="true" />
-            לפרטים בוואטסאפ
+            {t.properties.waDetailsBtn}
           </a>
         </div>
       </div>
@@ -334,19 +374,33 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
 }
 
 function PropertyModal({ property: p, onClose }: { property: Listing; onClose: () => void }) {
+  const { lang, dir, t } = useLang();
   const [form, setForm] = useState({ name: "", phone: "" });
   const [err, setErr] = useState<string | null>(null);
   const gallery = listingImages(p);
   const [index, setIndex] = useState(0);
 
+  const noInfo = t.misc.noInfo;
+  const hood = mapValue(t.maps.neighborhoods, p.neighborhood);
+  const city = t.maps.cities[p.city] ?? p.city;
+  const price = formatListingPrice(p.price, lang);
+
+  const next = () => setIndex((i) => (i + 1) % gallery.length);
+  const prev = () => setIndex((i) => (i - 1 + gallery.length) % gallery.length);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) return setErr("נא להזין שם");
-    if (!isValidIsraeliPhone(form.phone)) return setErr(phoneError);
+    if (!form.name.trim()) return setErr(t.properties.errName);
+    if (!isValidIsraeliPhone(form.phone)) return setErr(t.misc.phoneError);
     setErr(null);
     openWa(
-      `שלום ${business.name},\nאני מעוניין בנכס: ${p.title}\nאזור: ${p.neighborhood ?? "אין מידע"}\nמחיר: ${formatListingPrice(p.price)}\nשם: ${form.name}\nטלפון: ${form.phone}`,
+      t.properties.waInterested(business.name, {
+        title: p.title,
+        hood: hood ?? noInfo,
+        price,
+        name: form.name,
+        phone: form.phone,
+      }),
     );
   };
 
@@ -354,7 +408,7 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`פרטי נכס: ${p.title}`}
+      aria-label={t.properties.modalAria(p.title)}
       className="fixed inset-0 z-50 flex items-end justify-center bg-[oklch(0.263_0.038_260/0.6)] p-0 sm:items-center sm:p-4"
     >
       <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl bg-card sm:rounded-2xl">
@@ -363,7 +417,7 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
           <button
             type="button"
             onClick={onClose}
-            aria-label="סגירת חלון פרטי הנכס"
+            aria-label={t.properties.closeModalAria}
             className="inline-flex size-9 items-center justify-center rounded-lg border border-border text-primary"
           >
             <X className="size-5" aria-hidden="true" />
@@ -376,7 +430,7 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
               <div className="relative">
                 <img
                   src={gallery[index]!}
-                  alt={`${p.title} ב${p.neighborhood ?? "נתניה"} — תמונה ${index + 1} מתוך ${gallery.length}`}
+                  alt={t.properties.galleryImgAlt(p.title, hood ?? city, index + 1, gallery.length)}
                   width={1200}
                   height={800}
                   loading="lazy"
@@ -384,18 +438,23 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
                 />
                 {gallery.length > 1 && (
                   <>
+                    {/* החיצים פיזיים: החץ השמאלי תמיד מציג את השכן משמאל, בהתאם לכיוון השפה */}
                     <button
                       type="button"
-                      onClick={() => setIndex((i) => (i + 1) % gallery.length)}
-                      aria-label="התמונה הבאה"
+                      onClick={dir === "rtl" ? next : prev}
+                      aria-label={
+                        dir === "rtl" ? t.properties.nextImgAria : t.properties.prevImgAria
+                      }
                       className="absolute top-1/2 left-2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 text-primary shadow"
                     >
                       <ChevronLeft className="size-5" aria-hidden="true" />
                     </button>
                     <button
                       type="button"
-                      onClick={() => setIndex((i) => (i - 1 + gallery.length) % gallery.length)}
-                      aria-label="התמונה הקודמת"
+                      onClick={dir === "rtl" ? prev : next}
+                      aria-label={
+                        dir === "rtl" ? t.properties.prevImgAria : t.properties.nextImgAria
+                      }
                       className="absolute top-1/2 right-2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 text-primary shadow"
                     >
                       <ChevronRight className="size-5" aria-hidden="true" />
@@ -414,7 +473,7 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
                       key={src}
                       type="button"
                       onClick={() => setIndex(i)}
-                      aria-label={`הצגת תמונה ${i + 1}`}
+                      aria-label={t.properties.showImgAria(i + 1)}
                       aria-current={i === index}
                       className={`shrink-0 overflow-hidden rounded-lg border-2 ${i === index ? "border-sun" : "border-transparent"}`}
                     >
@@ -426,31 +485,34 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
             </div>
           )}
 
+          <p className="mt-4 font-display text-2xl font-extrabold text-primary">{price}</p>
+          <p className="mt-2 leading-relaxed text-foreground">{p.description ?? noInfo}</p>
 
-          <p className="mt-4 font-display text-2xl font-extrabold text-primary">
-            {formatListingPrice(p.price)}
-          </p>
-          <p className="mt-2 leading-relaxed text-foreground">{p.description ?? "אין מידע"}</p>
-
-          <table className="mt-4 w-full text-right text-sm">
-            <caption className="sr-only">מפרט הנכס</caption>
+          <table className="mt-4 w-full text-start text-sm">
+            <caption className="sr-only">{t.properties.specCaption}</caption>
             <tbody className="divide-y divide-border">
               {[
-                ["סוג עסקה", p.deal_type],
-                ["כתובת", p.address ?? "אין מידע"],
-                ["חדרים", p.rooms == null ? "אין מידע" : String(p.rooms)],
-                ["שטח", p.size_sqm == null ? "אין מידע" : `${p.size_sqm} מ״ר`],
-                ["קומה", p.floor ?? "אין מידע"],
-                ["ממ״ד", p.has_mamad ? "יש" : "אין"],
-                ["מעלית", p.has_elevator ? "יש" : "אין"],
-                ["חניה", p.has_parking ? "יש" : "אין"],
-                ["מרפסת", p.has_balcony ? "יש" : "אין"],
+                [t.properties.specDeal, t.maps.deal[p.deal_type] ?? p.deal_type],
+                [t.properties.specAddress, p.address ?? noInfo],
+                [t.properties.specRooms, p.rooms == null ? noInfo : String(p.rooms)],
+                [
+                  t.properties.specSize,
+                  p.size_sqm == null ? noInfo : t.properties.sqmValue(p.size_sqm),
+                ],
+                [t.properties.specFloor, p.floor ?? noInfo],
+                [t.properties.features.mamad, p.has_mamad ? t.properties.yes : t.properties.no],
+                [
+                  t.properties.features.elevator,
+                  p.has_elevator ? t.properties.yes : t.properties.no,
+                ],
+                [t.properties.features.parking, p.has_parking ? t.properties.yes : t.properties.no],
+                [t.properties.features.balcony, p.has_balcony ? t.properties.yes : t.properties.no],
               ].map(([k, v]) => (
                 <tr key={k}>
-                  <th scope="row" className="py-2 font-semibold text-muted-foreground">
+                  <th scope="row" className="py-2 text-start font-semibold text-muted-foreground">
                     {k}
                   </th>
-                  <td className="py-2">{v}</td>
+                  <td className="py-2 text-start">{v}</td>
                 </tr>
               ))}
             </tbody>
@@ -459,7 +521,7 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
           {p.neighborhood && (
             <div className="mt-4 overflow-hidden rounded-xl border border-border">
               <iframe
-                title={`מפת האזור: ${p.neighborhood}, ${p.city}`}
+                title={t.properties.mapTitle(hood ?? p.neighborhood, city)}
                 src={`https://www.google.com/maps?q=${encodeURIComponent(`${p.neighborhood}, ${p.city}`)}&output=embed`}
                 loading="lazy"
                 className="h-56 w-full"
@@ -468,10 +530,14 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
           )}
 
           <form onSubmit={submit} className="mt-5 rounded-xl bg-secondary p-4" noValidate>
-            <p className="font-display text-lg font-bold text-primary">אני מעוניין בנכס</p>
+            <p className="font-display text-lg font-bold text-primary">
+              {t.properties.interestedTitle}
+            </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <label className="block">
-                <span className="mb-1 block text-xs font-bold text-muted-foreground">שם מלא</span>
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                  {t.properties.fullName}
+                </span>
                 <input
                   className="field"
                   value={form.name}
@@ -481,7 +547,9 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-bold text-muted-foreground">טלפון</span>
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                  {t.properties.phone}
+                </span>
                 <input
                   className="field"
                   type="tel"
@@ -502,7 +570,7 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
               type="submit"
               className="mt-3 w-full rounded-xl bg-whatsapp py-3 text-base font-bold text-whatsapp-foreground"
             >
-              שליחה בוואטסאפ
+              {t.properties.sendWa}
             </button>
           </form>
         </div>

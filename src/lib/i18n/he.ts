@@ -13,6 +13,7 @@ export const he = {
 
   nav: {
     langsLabel: "בחירת שפה",
+    brandSuffix: 'נדל"ן',
     links: [
       { id: "properties", label: "נכסים" },
       { id: "sellers", label: "מוכרים דירה" },
@@ -77,10 +78,8 @@ export const he = {
     waAgentAria: (name: string) => `שליחת וואטסאפ ל${name}`,
     callAria: (name: string) => `התקשרות ל${name}`,
     officeAria: (name: string) => `לפנייה למשרד בנוגע ל${name}`,
-    waAgent: (name: string, office: string) =>
-      `שלום ${name}, הגעתי מהאתר של ${office} ואשמח לדבר.`,
-    waOffice: (office: string, name: string) =>
-      `שלום ${office}, אשמח לפנייה למשרד בנוגע ל${name}.`,
+    waAgent: (name: string, office: string) => `שלום ${name}, הגעתי מהאתר של ${office} ואשמח לדבר.`,
+    waOffice: (office: string, name: string) => `שלום ${office}, אשמח לפנייה למשרד בנוגע ל${name}.`,
   },
 
   properties: {
@@ -182,10 +181,7 @@ export const he = {
     errName: "נא להזין שם",
     errAddress: "נא להזין את כתובת הנכס",
     notSpecified: "לא צוין",
-    waMsg: (
-      office: string,
-      d: { name: string; phone: string; address: string; rooms: string },
-    ) =>
+    waMsg: (office: string, d: { name: string; phone: string; address: string; rooms: string }) =>
       `שלום ${office},\nאני מעוניין בהערכת שווי חינם לנכס שלי.\nשם: ${d.name}\nטלפון: ${d.phone}\nכתובת הנכס: ${d.address}\nמספר חדרים: ${d.rooms}`,
   },
 
@@ -285,8 +281,7 @@ export const he = {
         type: "מכירת דירה",
       },
       {
-        quote:
-          'ליווי וניהול מו"מ מושלמים לכל אורכו. מקצועיות, שיקול דעת ושירותיות בהכי הכי שאפשר.',
+        quote: 'ליווי וניהול מו"מ מושלמים לכל אורכו. מקצועיות, שיקול דעת ושירותיות בהכי הכי שאפשר.',
         name: "שראל ד.",
         type: "קניית דירה להשקעה",
       },
@@ -362,10 +357,7 @@ export const he = {
     message: "הודעה",
     submit: "שליחה",
     errName: "נא להזין שם",
-    waMsg: (
-      office: string,
-      d: { name: string; phone: string; topic: string; message: string },
-    ) =>
+    waMsg: (office: string, d: { name: string; phone: string; topic: string; message: string }) =>
       `שלום ${office},\nשם: ${d.name}\nטלפון: ${d.phone}\nנושא הפנייה: ${d.topic}\nהודעה: ${d.message}`,
   },
 
@@ -431,6 +423,7 @@ export const he = {
   /* ברירות מחדל לתוכן החי — משמשות כשאין תרגום במסד והתוכן העברי
    * עדיין זהה לברירת המחדל של האתר */
   liveDefaults: {
+    name: 'סאן סיטי נדל"ן',
     heroTitle: 'ברוכים הבאים ל‑Sun City, סוכנות הנדל"ן שלכם בנתניה',
     heroSubtitle: "מחברים בין אנשים לנכסים. ליווי אישי ממכירה ועד מסירת מפתח.",
     tagline: "מחברים בין אנשים לנכסים",

@@ -12,6 +12,7 @@ export const fr: Dict = {
 
   nav: {
     langsLabel: "Choisir la langue",
+    brandSuffix: "Immobilier",
     links: [
       { id: "properties", label: "Biens" },
       { id: "sellers", label: "Vendre un bien" },
@@ -50,7 +51,8 @@ export const fr: Dict = {
   team: {
     kicker: "Des personnes, pas une société",
     title: "Notre équipe",
-    subtitle: "Choisissez un agent, pas une société. Parlez directement avec la personne qui s'occupera de vous.",
+    subtitle:
+      "Choisissez un agent, pas une société. Parlez directement avec la personne qui s'occupera de vous.",
     names: {
       "אלי כליף": "Eli Khalif",
       "עינבל קובל בוזגלו": "Inbal Kobel Bouzaglo",
@@ -63,10 +65,12 @@ export const fr: Dict = {
     roles: {
       "אלי כליף": "Associé et propriétaire, expert immobilier du sud de Netanya",
       "עינבל קובל בוזגלו": "Responsable d'équipe et associée, spécialiste des appartements anciens",
-      "קובי בוזגלו": "Conseiller immobilier et crédit — centre et nord de Netanya, clients de l'étranger",
+      "קובי בוזגלו":
+        "Conseiller immobilier et crédit — centre et nord de Netanya, clients de l'étranger",
       "ילנה גנדלין": "Experte immobilière, est et sud de Netanya, russophone",
       "אלעד אבוטבול": "Spécialiste des appartements anciens, centre et sud de Netanya",
-      "קוראל בוחבוט": "Conseillère immobilière, estimations et accompagnement des clients de l'étranger",
+      "קוראל בוחבוט":
+        "Conseillère immobilière, estimations et accompagnement des clients de l'étranger",
       "דניאל מוצא": "Expert immobilier, sud de Netanya",
     } as Record<string, string>,
     photoAlt: (name: string, role: string) => `${name} — ${role}`,
@@ -86,7 +90,8 @@ export const fr: Dict = {
     kicker: "Biens à Netanya",
     title: "Biens à vendre et à louer",
     aiLabel: "Recherche intelligente, avec vos mots",
-    aiPlaceholder: "Ex. : 4 pièces avec pièce sécurisée et parking à Ir Yamim, jusqu'à 2,5 millions",
+    aiPlaceholder:
+      "Ex. : 4 pièces avec pièce sécurisée et parking à Ir Yamim, jusqu'à 2,5 millions",
     aiAria: "Description libre du bien que vous recherchez",
     aiSearch: "Recherche intelligente",
     aiSearching: "Recherche…",
@@ -137,7 +142,12 @@ export const fr: Dict = {
     specRooms: "Pièces",
     specSize: "Surface",
     specFloor: "Étage",
-    features: { mamad: "Pièce sécurisée", elevator: "Ascenseur", parking: "Parking", balcony: "Balcon" },
+    features: {
+      mamad: "Pièce sécurisée",
+      elevator: "Ascenseur",
+      parking: "Parking",
+      balcony: "Balcon",
+    },
     yes: "Oui",
     no: "Non",
     mapTitle: (hood: string, city: string) => `Carte du quartier : ${hood}, ${city}`,
@@ -179,14 +189,12 @@ export const fr: Dict = {
     choose: "Choisir",
     roomsOptions: ["2", "2.5", "3", "3.5", "4", "4.5", "5", "6+"],
     submit: "Recevoir mon estimation gratuite",
-    privacyNote: "Vos coordonnées nous sont envoyées via WhatsApp et ne sont pas conservées sur le site.",
+    privacyNote:
+      "Vos coordonnées nous sont envoyées via WhatsApp et ne sont pas conservées sur le site.",
     errName: "Veuillez saisir un nom",
     errAddress: "Veuillez saisir l'adresse du bien",
     notSpecified: "Non précisé",
-    waMsg: (
-      office: string,
-      d: { name: string; phone: string; address: string; rooms: string },
-    ) =>
+    waMsg: (office: string, d: { name: string; phone: string; address: string; rooms: string }) =>
       `Bonjour ${office},\nJe souhaite une estimation gratuite de mon bien.\nNom : ${d.name}\nTéléphone : ${d.phone}\nAdresse du bien : ${d.address}\nPièces : ${d.rooms}`,
   },
 
@@ -199,7 +207,8 @@ export const fr: Dict = {
     groupFullQ: "Groupe complet ?",
     secondGroup: "Rejoignez le second groupe",
     formTitle: "Bien à la demande",
-    formText: "Dites-nous ce que vous cherchez et nous vous préviendrons dès qu'un bien correspondant arrive.",
+    formText:
+      "Dites-nous ce que vous cherchez et nous vous préviendrons dès qu'un bien correspondant arrive.",
     formAria: "Formulaire bien à la demande",
     fullName: "Nom complet",
     phone: "Téléphone",
@@ -255,12 +264,16 @@ export const fr: Dict = {
       "Sun City Immobilier est née d'une passion pour le marché immobilier et d'un engagement envers un service de qualité. Depuis notre création, nous avons aidé des centaines de clients à trouver le bien parfait, à vendre leur appartement rapidement et au meilleur prix, et à investir intelligemment dans l'immobilier.",
     values: [
       { title: "Professionnalisme", text: "Un service professionnel au plus haut niveau." },
-      { title: "Transparence", text: "Un partage complet de toutes les informations pertinentes avec les clients." },
+      {
+        title: "Transparence",
+        text: "Un partage complet de toutes les informations pertinentes avec les clients.",
+      },
       { title: "Fiabilité", text: "Intégrité et responsabilité dans chaque action." },
     ],
     badges: ["Plus de 55 avis clients", "5,0 étoiles sur Google"],
     badge: "Parmi les 10 meilleures agences immobilières de Netanya, classement Madlan 2023-2026",
-    successFeeNote: "Honoraires au succès uniquement — vous ne payez que lorsque la transaction est conclue.",
+    successFeeNote:
+      "Honoraires au succès uniquement — vous ne payez que lorsque la transaction est conclue.",
   },
 
   testimonials: {
@@ -363,10 +376,7 @@ export const fr: Dict = {
     message: "Message",
     submit: "Envoyer",
     errName: "Veuillez saisir un nom",
-    waMsg: (
-      office: string,
-      d: { name: string; phone: string; topic: string; message: string },
-    ) =>
+    waMsg: (office: string, d: { name: string; phone: string; topic: string; message: string }) =>
       `Bonjour ${office},\nNom : ${d.name}\nTéléphone : ${d.phone}\nObjet : ${d.topic}\nMessage : ${d.message}`,
   },
 
@@ -431,8 +441,10 @@ export const fr: Dict = {
   },
 
   liveDefaults: {
+    name: "Sun City Immobilier",
     heroTitle: "Bienvenue chez Sun City, votre agence immobilière à Netanya",
-    heroSubtitle: "Relier les personnes aux biens. Un accompagnement personnalisé de la mise en vente à la remise des clés.",
+    heroSubtitle:
+      "Relier les personnes aux biens. Un accompagnement personnalisé de la mise en vente à la remise des clés.",
     tagline: "Relier les personnes aux biens",
     subtitle: "Vente | Achat | Location",
     address: "20 rue Shmuel HaNatziv, Netanya, rez-de-chaussée (à côté de la banque Mercantile)",

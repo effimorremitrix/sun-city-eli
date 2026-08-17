@@ -18,15 +18,13 @@ export const URL_LOCALES = ["en", "fr", "ru"] as const;
 
 export const DEFAULT_LOCALE: Locale = "he";
 
-export const LOCALE_META: Record<
-  Locale,
-  { name: string; path: string; intl: string; og: string }
-> = {
-  he: { name: "עברית", path: "/", intl: "he-IL", og: "he_IL" },
-  en: { name: "English", path: "/en", intl: "en-US", og: "en_US" },
-  fr: { name: "Français", path: "/fr", intl: "fr-FR", og: "fr_FR" },
-  ru: { name: "Русский", path: "/ru", intl: "ru-RU", og: "ru_RU" },
-};
+export const LOCALE_META: Record<Locale, { name: string; path: string; intl: string; og: string }> =
+  {
+    he: { name: "עברית", path: "/", intl: "he-IL", og: "he_IL" },
+    en: { name: "English", path: "/en", intl: "en-US", og: "en_US" },
+    fr: { name: "Français", path: "/fr", intl: "fr-FR", og: "fr_FR" },
+    ru: { name: "Русский", path: "/ru", intl: "ru-RU", og: "ru_RU" },
+  };
 
 export const DICTS: Record<Locale, Dict> = { he, en, fr, ru };
 

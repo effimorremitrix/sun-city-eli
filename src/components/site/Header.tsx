@@ -39,7 +39,7 @@ export function Header() {
           <img src={logo} alt={t.nav.logoAlt} width={40} height={40} className="size-10" />
           <span className="flex flex-col leading-none">
             <span className="font-display text-base font-extrabold text-primary">
-              Sun City <span className="text-sun">נדל"ן</span>
+              Sun City <span className="text-sun">{t.nav.brandSuffix}</span>
             </span>
             <span className="mt-0.5 text-[10px] text-muted-foreground">{business.tagline}</span>
           </span>
@@ -131,7 +131,11 @@ export function Header() {
             onClick={() => setOpen((v) => !v)}
             className="inline-flex size-10 items-center justify-center rounded-lg border border-border text-primary"
           >
-            {open ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
+            {open ? (
+              <X className="size-5" aria-hidden="true" />
+            ) : (
+              <Menu className="size-5" aria-hidden="true" />
+            )}
           </button>
         </div>
       </div>

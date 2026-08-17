@@ -12,6 +12,7 @@ export const en: Dict = {
 
   nav: {
     langsLabel: "Choose language",
+    brandSuffix: "Real Estate",
     links: [
       { id: "properties", label: "Properties" },
       { id: "sellers", label: "Selling a Home" },
@@ -40,7 +41,8 @@ export const en: Dict = {
 
   hero: {
     logoAlt: "Sun City Real Estate logo — an orange sun over a rooftop",
-    imageAlt: "A bright, spacious living room in a luxury apartment with large windows and daylight",
+    imageAlt:
+      "A bright, spacious living room in a luxury apartment with large windows and daylight",
     ctaValuation: "Get a Free Valuation",
     ctaProperties: "View Properties",
     badgeTop10: "Among Netanya's Top 10",
@@ -50,7 +52,8 @@ export const en: Dict = {
   team: {
     kicker: "People, not a corporation",
     title: "Our Team",
-    subtitle: "Choose an agent, not a company. Talk directly with the person who will handle your deal.",
+    subtitle:
+      "Choose an agent, not a company. Talk directly with the person who will handle your deal.",
     names: {
       "אלי כליף": "Eli Khalif",
       "עינבל קובל בוזגלו": "Inbal Kobel Bouzaglo",
@@ -157,8 +160,7 @@ export const en: Dict = {
     kicker: "From the Office",
     title: "Updates & Opportunities",
     waBtn: "Details on WhatsApp",
-    waMsg: (office: string, title: string) =>
-      `Hello ${office}, I'd love details about: ${title}`,
+    waMsg: (office: string, title: string) => `Hello ${office}, I'd love details about: ${title}`,
   },
 
   sellers: {
@@ -183,10 +185,7 @@ export const en: Dict = {
     errName: "Please enter a name",
     errAddress: "Please enter the property address",
     notSpecified: "Not specified",
-    waMsg: (
-      office: string,
-      d: { name: string; phone: string; address: string; rooms: string },
-    ) =>
+    waMsg: (office: string, d: { name: string; phone: string; address: string; rooms: string }) =>
       `Hello ${office},\nI'd like a free valuation for my property.\nName: ${d.name}\nPhone: ${d.phone}\nProperty address: ${d.address}\nRooms: ${d.rooms}`,
   },
 
@@ -199,7 +198,8 @@ export const en: Dict = {
     groupFullQ: "Group full?",
     secondGroup: "Join the second group",
     formTitle: "Property on Demand",
-    formText: "Tell us what you're looking for and we'll update you the moment a matching property arrives.",
+    formText:
+      "Tell us what you're looking for and we'll update you the moment a matching property arrives.",
     formAria: "Property on demand form",
     fullName: "Full name",
     phone: "Phone",
@@ -363,10 +363,7 @@ export const en: Dict = {
     message: "Message",
     submit: "Send",
     errName: "Please enter a name",
-    waMsg: (
-      office: string,
-      d: { name: string; phone: string; topic: string; message: string },
-    ) =>
+    waMsg: (office: string, d: { name: string; phone: string; topic: string; message: string }) =>
       `Hello ${office},\nName: ${d.name}\nPhone: ${d.phone}\nTopic: ${d.topic}\nMessage: ${d.message}`,
   },
 
@@ -431,8 +428,10 @@ export const en: Dict = {
   },
 
   liveDefaults: {
+    name: "Sun City Real Estate",
     heroTitle: "Welcome to Sun City, your real-estate agency in Netanya",
-    heroSubtitle: "Connecting people and properties. Personal guidance from listing to key handover.",
+    heroSubtitle:
+      "Connecting people and properties. Personal guidance from listing to key handover.",
     tagline: "Connecting people and properties",
     subtitle: "Sales | Purchases | Rentals",
     address: "20 Shmuel HaNatziv St., Netanya, ground floor (next to Mercantile Bank)",

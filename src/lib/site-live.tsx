@@ -31,6 +31,7 @@ export type LiveTexts = {
 export type LiveContentTranslation = {
   texts?: Partial<LiveTexts>;
   business?: {
+    name?: string;
     tagline?: string;
     subtitle?: string;
     address?: string;
@@ -149,6 +150,12 @@ export function localizeLive(live: LiveSite, lang: Locale, t: Dict): LiveSite {
 
   const business: LiveBusiness = {
     ...live.business,
+    name: pickText(
+      tr.business?.name,
+      live.business.name,
+      DEFAULT_BUSINESS.name,
+      t.liveDefaults.name,
+    ),
     tagline: pickText(
       tr.business?.tagline,
       live.business.tagline,

@@ -1,7 +1,10 @@
 import { MessageCircle, Phone, Building2 } from "lucide-react";
 import { business, waProps } from "@/lib/site-data";
+import { useLang } from "@/lib/i18n";
 
 export function MobileBar() {
+  const { t } = useLang();
+
   const go = (e: React.MouseEvent) => {
     e.preventDefault();
     document.getElementById("properties")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -11,18 +14,18 @@ export function MobileBar() {
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
       <div className="flex gap-2">
         <a
-          {...waProps(`שלום ${business.name}, אשמח לקבל פרטים 🙂`)}
+          {...waProps(t.mobileBar.waMsg(business.name))}
           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-whatsapp py-3 text-sm font-bold text-whatsapp-foreground"
         >
           <MessageCircle className="size-5" aria-hidden="true" />
-          וואטסאפ
+          {t.mobileBar.wa}
         </a>
         <a
           href={`tel:${business.phoneTel}`}
           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground"
         >
           <Phone className="size-5" aria-hidden="true" />
-          התקשרו
+          {t.mobileBar.call}
         </a>
         <a
           href="#properties"
@@ -30,7 +33,7 @@ export function MobileBar() {
           className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary/40 py-3 text-sm font-bold text-primary"
         >
           <Building2 className="size-5" aria-hidden="true" />
-          נכסים
+          {t.mobileBar.properties}
         </a>
       </div>
     </div>
