@@ -40,14 +40,18 @@ export const getAdminSite = createServerFn({ method: "GET" })
       .limit(1);
     const site = ((sites ?? [])[0] ?? null) as SiteRow | null;
 
-    let content: { business: unknown; texts: unknown } | null = null;
+    let content: { business: unknown; texts: unknown; translations: unknown } | null = null;
     if (site) {
       const { data } = await supabase
         .from("site_content")
-        .select("business, texts")
+        .select("business, texts, translations")
         .eq("site_id", site.id)
         .maybeSingle();
-      content = (data ?? null) as { business: unknown; texts: unknown } | null;
+      content = (data ?? null) as {
+        business: unknown;
+        texts: unknown;
+        translations: unknown;
+      } | null;
     }
 
     return { isAdmin: true, site, live: mergeLive(content ? { ...content } : null) };
@@ -55,7 +59,13 @@ export const getAdminSite = createServerFn({ method: "GET" })
 
 export const saveSiteContent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { business: Record<string, unknown>; texts: Record<string, unknown> }) => input)
+  .inputValidator(
+    (input: {
+      business: Record<string, unknown>;
+      texts: Record<string, unknown>;
+      translations?: Record<string, unknown>;
+    }) => input,
+  )
   .handler(async ({ data, context }) => {
     const { assertAdmin } = await import("@/lib/admin.server");
     await assertAdmin(context);
@@ -73,6 +83,7 @@ export const saveSiteContent = createServerFn({ method: "POST" })
         site_id: siteId,
         business: data.business as never,
         texts: data.texts as never,
+        ...(data.translations ? { translations: data.translations as never } : {}),
       },
       { onConflict: "site_id" },
     );
