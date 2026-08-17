@@ -1,144 +1,54 @@
-# sun city
+# Sun City Real Estate — סאן סיטי נדל"ן
 
-בנה לי אתר תדמית ומכירה למסעדה יהודית קטנה ומשפחתית בנתניה.
-
-האתר כולו בעברית, RTL מלא (dir="rtl", lang="he"), מותאם קודם כל למובייל.
-
-פונט: Heebo או Assistant מגוגל פונטס. כל הריווחים, החצים והאייקונים
-
-צריכים להתהפך נכון ל‑RTL.
-
-
-
-=== פרטי העסק ===
-
-שם: החצר של אייזיק
-
-סלוגן: אוכל יהודי ביתי, כמו של פעם
-
-כתובת: דר' ישראל בורגנסקי 6, נתניה
-
-אופי: מקום שכונתי חם וביתי, לא רשמי, מתאים לילדים ולקבוצות.
-
-מתמחה בצ'ולנט. יש אכילה במקום ואיסוף עצמי.
-
-טלפון: [להשלמה]
-
-שעות פתיחה: [להשלמה]
-
-כשרות: [להשלמה]
-
-
-
-=== שפה עיצובית ===
-
-חם ונוסטלגי, לא תאגידי. פלטה: בורדו עמוק #7A2E2E, קרם חמים #F7F1E6,
-
-זהב קלוי #C8964B, טקסט פחם #2B2119. פינות מעוגלות רכות, טקסטורת פשתן
-
-עדינה ברקע, הרבה אוויר, תמונות אוכל גדולות ומעוררות תיאבון.
-
-תחושה של שולחן בחצר, לא של רשת מסעדות. בלי גרדיאנטים ניאוניים,
-
-בלי glassmorphism, בלי מראה SaaS גנרי.
-
-
-
-=== מבנה העמוד (לפי הסדר) ===
-
-
-
-1. הדר דביק
-
-   לוגו טקסטואלי מימין, תפריט המבורגר משמאל במובייל.
-
-   ניווט: תפריט, הזמנת שבת, הסיפור שלנו, גלריה, צור קשר.
-
-   בר תחתון קבוע במובייל עם שני כפתורים:
-
-   "הזמנה בוואטסאפ" (ירוק) ו"ניווט" (מתאר בלבד).
-
-
-
-2. הירו
-
-   תמונת אוכל רוחב מלא עם שכבת כהות.
-
-   כותרת ראשית: החצר של אייזיק
-
-   משנה: אוכל יהודי ביתי בנתניה. צ'ולנט, קוגל וחמין כמו בבית סבתא.
-
-   כפתור ראשי: להזמנת שבת
-
-   כפתור משני: לתפריט המלא
-
-   שורת תגיות קטנה: כשר | איסוף עצמי | מקום לשבת
-
-
-
-3. רצועת אמון
-
-   ארבעה כרטיסי אייקון, גלילה אופקית במובייל:
-
-   חמים וביתי | מתאים לילדים | מארחים קבוצות | איסוף עצמי
-
-
-
-4. מנת הדגל: "הצ'ולנט שלנו"
-
-   תמונה גדולה מצד אחד, טקסט מהשני:
-
-   "הצ'ולנט של אייזיק מתבשל לאט מליל חמישי, בסיר אחד, בלי קיצורי דרך.
-
-   זו המנה שאנשים חוזרים אליה, ולא במקרה."
-
-   מתחת, כרטיס ציטוט מביקורת אמיתית:
-
-   "צולנט טעים מאוד! אוירה נחמדה!" ,בנימין ב.
-
-
-
-5. תפריט (קומפוננטה MenuSection)
-
-   טאבים דביקים לפי קטגוריה:
-
-   מנות חמות | מרקים | תוספות | קינוחים | מגשי אירוח
-
-   כל פריט: שם, שורת תיאור אחת, מחיר, ותגית "מומלץ" אופציונלית.
-
-   כל הנתונים במערך אחד בראש הקובץ, כדי שאפשר יהיה לעדכן מחירים
-
-   בלי לגעת בעיצוב.
-
-   פריטי דוגמה: צ'ולנט, קוגל תפוחי אדמה, קישקע, מרק עוף עם קניידלך,
-
-   גפילטע פיש, חמין ירושלמי. [המחירים להשלמה]
-
-
-
-6. הזמנת שבת (הסקשן החשוב ביותר להמרה)
-
-   כותרת: הזמנת שבת
-
-This project was built with [Lovable](https://lovable.dev).
+Marketing and listings website for **Sun City Real Estate (סאן סיטי נדל"ן)**, a real-estate agency in Netanya, Israel ("מחברים בין אנשים לנכסים" — selling, buying, and renting properties in Netanya and the surrounding area).
 
 **Live app**: https://sun-city-eli.lovable.app
 
+## What's in the site
+
+- **Hebrew-first, fully RTL** public site with sections for property listings, sellers (free valuation), buyers, services, team, testimonials, and contact — plus a floating WhatsApp button, mobile action bar, and accessibility widget.
+- **Multi-language support** (עברית / English / Français / Русский) with `{-$lang}` URL prefixes, a flag language switcher in the header, correct RTL/LTR handling, and localized SEO metadata.
+- **AI property search**: converts a free-text request in Hebrew into structured listing filters (deal type, neighborhoods, price, rooms, mamad/elevator/parking/balcony) — filters only, no invented data.
+- **Personal area** with Supabase authentication (account settings, password reset).
+- **Admin area** for managing listings and their images, users, leads, per-language translation editing with AI auto-translation from Hebrew, AI usage tracking, and **Scout** — an agent that searches the web for real listing candidates matching saved search profiles.
+
+## Tech stack
+
+- [React 19](https://react.dev) + [TanStack Start / Router](https://tanstack.com/start) (file-based routes in `src/routes`)
+- [Vite](https://vite.dev) + [Tailwind CSS 4](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) (Radix primitives in `src/components/ui`)
+- [Supabase](https://supabase.com) — database, auth, and SQL migrations (`supabase/migrations`)
+- [TanStack Query](https://tanstack.com/query), [react-hook-form](https://react-hook-form.com) + [zod](https://zod.dev)
+
+## Project structure
+
+```
+src/
+  components/site/   # Site sections (Hero, PropertySection, Team, …) and admin panels
+  components/ui/     # shadcn/ui primitives
+  lib/               # Server functions, listings, leads, AI search, Scout, translations
+  lib/i18n/          # Dictionaries: he (source of truth), en, fr, ru + SEO strings
+  routes/            # TanStack file-based routes ({-$lang} public site, _authenticated area, api)
+  integrations/      # Supabase clients and auth middleware
+supabase/            # Supabase config and migrations
+```
+
+## Development
+
+Requires [Bun](https://bun.sh) (or Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)).
+
+```sh
+git clone <this-repository-url>
+cd sun-city-eli
+bun install   # or: npm i
+bun run dev   # or: npm run dev
+```
+
+Other scripts: `build`, `preview`, `lint`, `format`.
+
 ## Build with Lovable
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/fa1ddeb7-276a-43f9-9a11-88bf6cf82b41).
+This project was built with [Lovable](https://lovable.dev). Continue developing it in the [Lovable editor](https://lovable.dev/projects/fa1ddeb7-276a-43f9-9a11-88bf6cf82b41).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.
 - **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
