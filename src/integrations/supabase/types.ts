@@ -53,6 +53,76 @@ export type Database = {
         }
         Relationships: []
       }
+      facebook_connections: {
+        Row: {
+          ad_account_id: string | null
+          connected_at: string
+          connected_by: string | null
+          page_access_token: string
+          page_id: string
+          page_name: string
+          site_id: string
+        }
+        Insert: {
+          ad_account_id?: string | null
+          connected_at?: string
+          connected_by?: string | null
+          page_access_token: string
+          page_id: string
+          page_name: string
+          site_id: string
+        }
+        Update: {
+          ad_account_id?: string | null
+          connected_at?: string
+          connected_by?: string | null
+          page_access_token?: string
+          page_id?: string
+          page_name?: string
+          site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facebook_connections_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: true
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facebook_groups: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          site_id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          site_id: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          site_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facebook_groups_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_images: {
         Row: {
           created_at: string
@@ -142,6 +212,85 @@ export type Database = {
           },
         ]
       }
+      listing_posts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          error: string | null
+          fb_campaign_id: string | null
+          fb_post_id: string | null
+          id: string
+          listing_id: string
+          status: string
+          target: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          fb_campaign_id?: string | null
+          fb_post_id?: string | null
+          id?: string
+          listing_id: string
+          status?: string
+          target: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          fb_campaign_id?: string | null
+          fb_post_id?: string | null
+          id?: string
+          listing_id?: string
+          status?: string
+          target?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_posts_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_translations: {
+        Row: {
+          description: string | null
+          lang: string
+          listing_id: string
+          source_hash: string
+          title: string
+          translated_at: string
+        }
+        Insert: {
+          description?: string | null
+          lang: string
+          listing_id: string
+          source_hash: string
+          title: string
+          translated_at?: string
+        }
+        Update: {
+          description?: string | null
+          lang?: string
+          listing_id?: string
+          source_hash?: string
+          title?: string
+          translated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_translations_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listings: {
         Row: {
           address: string | null
@@ -159,14 +308,15 @@ export type Database = {
           image_url: string | null
           is_published: boolean
           neighborhood: string | null
+          post_copy: Json | null
           price: number | null
           published_at: string
           rooms: number | null
+          site_id: string | null
           size_sqm: number | null
           sort_order: number
           tag: string | null
           title: string
-          translations: Json
           updated_at: string
         }
         Insert: {
@@ -185,14 +335,15 @@ export type Database = {
           image_url?: string | null
           is_published?: boolean
           neighborhood?: string | null
+          post_copy?: Json | null
           price?: number | null
           published_at?: string
           rooms?: number | null
+          site_id?: string | null
           size_sqm?: number | null
           sort_order?: number
           tag?: string | null
           title: string
-          translations?: Json
           updated_at?: string
         }
         Update: {
@@ -211,17 +362,26 @@ export type Database = {
           image_url?: string | null
           is_published?: boolean
           neighborhood?: string | null
+          post_copy?: Json | null
           price?: number | null
           published_at?: string
           rooms?: number | null
+          site_id?: string | null
           size_sqm?: number | null
           sort_order?: number
           tag?: string | null
           title?: string
-          translations?: Json
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "listings_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -465,7 +625,6 @@ export type Database = {
           settings: Json
           site_id: string
           texts: Json
-          translations: Json
           updated_at: string
         }
         Insert: {
@@ -475,7 +634,6 @@ export type Database = {
           settings?: Json
           site_id: string
           texts?: Json
-          translations?: Json
           updated_at?: string
         }
         Update: {
@@ -485,7 +643,6 @@ export type Database = {
           settings?: Json
           site_id?: string
           texts?: Json
-          translations?: Json
           updated_at?: string
         }
         Relationships: [
@@ -511,7 +668,6 @@ export type Database = {
           site_id: string
           sort_order: number
           title: string
-          translations: Json
           updated_at: string
         }
         Insert: {
@@ -526,7 +682,6 @@ export type Database = {
           site_id: string
           sort_order?: number
           title: string
-          translations?: Json
           updated_at?: string
         }
         Update: {
@@ -541,7 +696,6 @@ export type Database = {
           site_id?: string
           sort_order?: number
           title?: string
-          translations?: Json
           updated_at?: string
         }
         Relationships: [
@@ -558,28 +712,87 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_active: boolean
           name: string
           owner_id: string
           slug: string
+          sort_order: number
           updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
+          is_active?: boolean
           name: string
           owner_id: string
           slug: string
+          sort_order?: number
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
+          is_active?: boolean
           name?: string
           owner_id?: string
           slug?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
+      }
+      sold_properties: {
+        Row: {
+          address: string
+          created_at: string
+          id: string
+          image_url: string | null
+          is_published: boolean
+          neighborhood: string | null
+          note: string | null
+          site_id: string
+          sold_at: string | null
+          sort_order: number
+          storage_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_published?: boolean
+          neighborhood?: string | null
+          note?: string | null
+          site_id: string
+          sold_at?: string | null
+          sort_order?: number
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_published?: boolean
+          neighborhood?: string | null
+          note?: string | null
+          site_id?: string
+          sold_at?: string | null
+          sort_order?: number
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sold_properties_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -607,7 +820,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_public_agents: { Args: never; Returns: Json }
       get_public_site: { Args: { p_slug: string }; Returns: Json }
+      get_site_id: { Args: { p_slug: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -615,14 +830,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_site_manager: { Args: never; Returns: boolean }
       match_listing_to_profiles: {
         Args: { p_listing_id: string }
         Returns: number
       }
+      owns_listing: { Args: { _listing_id: string }; Returns: boolean }
       owns_site: { Args: { _site_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "client"
+      app_role: "admin" | "client" | "agent"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -750,7 +967,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "client"],
+      app_role: ["admin", "client", "agent"],
     },
   },
 } as const
