@@ -86,7 +86,7 @@ export type ListingFilters = {
 };
 
 /** נרמול טקסט להשוואת רחוב/כתובת: הסרת גרשיים ורווחים כפולים */
-const normalizeText = (s: string) =>
+export const normalizeText = (s: string) =>
   s
     .replace(/["'׳״]/g, "")
     .replace(/\s+/g, " ")
@@ -151,6 +151,49 @@ export function matchesFilters(l: Listing, f: ListingFilters): boolean {
   if (f.needs_parking && !l.has_parking) return false;
   if (f.needs_balcony && !l.has_balcony) return false;
   return true;
+}
+
+/** גזירת רשימת רחובות ייחודיים מכתובות הנכסים — ללא מספרי בית, עיר ושכונה */
+export function streetVocabulary(
+  rows: Array<Pick<Listing, "address" | "title">>,
+  neighborhoods: string[] = [],
+): string[] {
+  const seen = new Set<string>();
+  const streets: string[] = [];
+  for (const row of rows) {
+    const address = (row.address ?? "").trim();
+    if (!address) continue;
+    let street = address.split(",")[0]!.replace(/\d+/g, "");
+    street = street.replace(/נתניה/g, "");
+    for (const hood of neighborhoods) street = street.split(hood).join("");
+    street = street.replace(/\s+/g, " ").trim();
+    if (street.length < 2) continue;
+    const key = normalizeText(street);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    streets.push(street);
+    if (streets.length >= 80) break;
+  }
+  return streets;
+}
+
+/** התאמה דטרמיניסטית: האם הבקשה (או מילה ממנה, גם עם תחילית ב/ל) היא רחוב מוכר */
+export function matchQueryStreet(query: string, streets: string[]): string | null {
+  const q = normalizeText(query);
+  if (q.length < 2) return null;
+  for (const street of streets) {
+    const s = normalizeText(street);
+    if (q.includes(s) || s.includes(q)) return street;
+  }
+  const tokens = q.split(" ").filter((t) => t.length >= 3);
+  for (const token of tokens) {
+    const variants = /^[בל]/.test(token) ? [token, token.slice(1)] : [token];
+    for (const street of streets) {
+      const s = normalizeText(street);
+      if (variants.some((v) => v === s || s.includes(v))) return street;
+    }
+  }
+  return null;
 }
 
 /** מחזיר עותק של הנכס בשפת העמוד — כותרת ותיאור מתורגמים, fallback לעברית */
