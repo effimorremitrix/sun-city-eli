@@ -175,6 +175,7 @@ export type Database = {
           search_profile_id: string | null
           updated_at: string
           user_id: string
+          whatsapp_sent_at: string | null
         }
         Insert: {
           created_at?: string
@@ -186,6 +187,7 @@ export type Database = {
           search_profile_id?: string | null
           updated_at?: string
           user_id: string
+          whatsapp_sent_at?: string | null
         }
         Update: {
           created_at?: string
@@ -197,6 +199,7 @@ export type Database = {
           search_profile_id?: string | null
           updated_at?: string
           user_id?: string
+          whatsapp_sent_at?: string | null
         }
         Relationships: [
           {
@@ -575,6 +578,7 @@ export type Database = {
           is_active: boolean
           label: string
           max_price: number | null
+          max_rooms: number | null
           min_price: number | null
           min_rooms: number | null
           min_size: number | null
@@ -585,8 +589,12 @@ export type Database = {
           neighborhoods: string[]
           notes: string | null
           notify_email: boolean
+          notify_whatsapp: boolean
+          rooms: number | null
+          street: string | null
           updated_at: string
           user_id: string
+          whatsapp_phone: string | null
         }
         Insert: {
           city?: string
@@ -596,6 +604,7 @@ export type Database = {
           is_active?: boolean
           label?: string
           max_price?: number | null
+          max_rooms?: number | null
           min_price?: number | null
           min_rooms?: number | null
           min_size?: number | null
@@ -606,8 +615,12 @@ export type Database = {
           neighborhoods?: string[]
           notes?: string | null
           notify_email?: boolean
+          notify_whatsapp?: boolean
+          rooms?: number | null
+          street?: string | null
           updated_at?: string
           user_id: string
+          whatsapp_phone?: string | null
         }
         Update: {
           city?: string
@@ -617,6 +630,7 @@ export type Database = {
           is_active?: boolean
           label?: string
           max_price?: number | null
+          max_rooms?: number | null
           min_price?: number | null
           min_rooms?: number | null
           min_size?: number | null
@@ -627,8 +641,12 @@ export type Database = {
           neighborhoods?: string[]
           notes?: string | null
           notify_email?: boolean
+          notify_whatsapp?: boolean
+          rooms?: number | null
+          street?: string | null
           updated_at?: string
           user_id?: string
+          whatsapp_phone?: string | null
         }
         Relationships: []
       }
