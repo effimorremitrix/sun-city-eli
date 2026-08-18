@@ -128,6 +128,7 @@ export type Database = {
           created_at: string
           external_url: string | null
           id: string
+          kind: string
           listing_id: string
           sort_order: number
           storage_path: string | null
@@ -137,6 +138,7 @@ export type Database = {
           created_at?: string
           external_url?: string | null
           id?: string
+          kind?: string
           listing_id: string
           sort_order?: number
           storage_path?: string | null
@@ -146,6 +148,7 @@ export type Database = {
           created_at?: string
           external_url?: string | null
           id?: string
+          kind?: string
           listing_id?: string
           sort_order?: number
           storage_path?: string | null
