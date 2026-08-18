@@ -9,6 +9,7 @@ type RawImage = {
   storage_path: string | null;
   external_url: string | null;
   sort_order: number;
+  kind: "image" | "video" | null;
 };
 
 /** מחזיר את התמונות של הנכסים, עם כתובות חתומות לקבצים שבאחסון */
@@ -22,7 +23,7 @@ export async function fetchListingImages(
 
   const { data, error } = await supabaseAdmin
     .from("listing_images")
-    .select("id, listing_id, storage_path, external_url, sort_order")
+    .select("id, listing_id, storage_path, external_url, sort_order, kind")
     .in("listing_id", listingIds)
     .order("sort_order", { ascending: true });
 
@@ -55,6 +56,7 @@ export async function fetchListingImages(
       storage_path: row.storage_path,
       external_url: row.external_url,
       sort_order: row.sort_order,
+      kind: row.kind === "video" ? "video" : "image",
     });
     map.set(row.listing_id, list);
   }

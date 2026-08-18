@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-/** תרגום אוטומטי של שדות תוכן מעברית לשפת יעד — למנהל האתר בלבד */
+/** תרגום אוטומטי של שדות תוכן מעברית לשפת יעד — לכל מנהל אתר (אדמין או סוכן) */
 export const adminTranslateFields = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { fields: Record<string, string>; target: string }) => {
@@ -21,8 +21,8 @@ export const adminTranslateFields = createServerFn({ method: "POST" })
     return { fields, target };
   })
   .handler(async ({ data, context }) => {
-    const { assertAdmin } = await import("@/lib/admin.server");
-    await assertAdmin(context);
+    const { assertManager } = await import("@/lib/admin.server");
+    await assertManager(context);
 
     const { translateFields, isTranslateTarget } = await import("@/lib/translate.server");
     if (!isTranslateTarget(data.target)) throw new Error("שפת יעד לא נתמכת");

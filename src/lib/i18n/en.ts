@@ -94,6 +94,9 @@ export const en: Dict = {
       subtitle: "Real listings found across the web for your search, with a link to the source.",
       remaining: (n: number) => ` ${n} scans left today.`,
       match: "Match:",
+      colSource: "Source",
+      colTitle: "Listing",
+      colPrice: "Price",
       source: "Original listing",
       talk: "Talk to me about this",
       talkMsg: (agent: string, title: string, url: string) =>
@@ -133,6 +136,14 @@ export const en: Dict = {
     allAreas: "All areas",
     priceRanges: ["Up to ₪1,500,000", "₪1,500,000 – ₪2,000,000", "₪2,000,000 and up"],
     found: (n: number) => `${n} properties found`,
+    sortLabel: "Sort by",
+    sortOptions: {
+      newest: "Date added (newest first)",
+      priceAsc: "Price: low to high",
+      priceDesc: "Price: high to low",
+      rooms: "Rooms",
+      size: "Size (sqm)",
+    },
     personalAgent: "Personal agent: alerts for new properties",
     noResultsTitle: "No properties match these filters",
     noResultsText: "Tell us what you're looking for and we'll find a matching property for you.",
@@ -163,7 +174,13 @@ export const en: Dict = {
     specRooms: "Rooms",
     specSize: "Size",
     specFloor: "Floor",
-    features: { mamad: "Safe room", elevator: "Elevator", parking: "Parking", balcony: "Balcony" },
+    features: {
+      mamad: "Safe room",
+      elevator: "Elevator",
+      parking: "Parking",
+      balcony: "Balcony",
+      storage: "Storage room",
+    },
     yes: "Yes",
     no: "No",
     mapTitle: (hood: string, city: string) => `Area map: ${hood}, ${city}`,
@@ -286,9 +303,14 @@ export const en: Dict = {
     successFeeNote: "Success-based fee only — you pay only when a deal closes.",
   },
 
+  agentProfile: {
+    kicker: "This page's agent",
+  },
+
   testimonials: {
     kicker: "Clients' stories",
     title: "Client Testimonials",
+    watchVideo: "Watch the video testimonial",
     items: [
       {
         quote:
@@ -494,10 +516,13 @@ export const en: Dict = {
       "רמת פולג": "Ramat Poleg",
       "עיר ימים": "Ir Yamim",
       "נאות הרצל": "Neot Herzl",
+      "נאות שקד": "Neot Shaked",
+      "נאות גנים": "Neot Ganim",
       אגמים: "Agamim",
       "פרדס הגדוד": "Pardes HaGdud",
       "מרכז העיר": "City Center",
       "צפון מערב מרכז העיר": "Northwest City Center",
+      "צפון העיר": "North of the City",
       "נוף הטיילת": "Nof HaTayelet",
       "עין התכלת": "Ein HaTchelet",
       "גבעת האירוסים": "Givat HaIrusim",

@@ -11,7 +11,6 @@ import { ContactSection, Footer } from "@/components/site/ContactSection";
 import { ItemsSection } from "@/components/site/ItemsSection";
 import { MobileBar } from "@/components/site/MobileBar";
 import { FloatingWhatsApp } from "@/components/site/FloatingWhatsApp";
-import { AccessibilityWidget } from "@/components/site/AccessibilityWidget";
 import { SiteLiveProvider, localizeLive, type LiveSite } from "@/lib/site-live";
 import { getPublicSite } from "@/lib/site.functions";
 import { listPublicListings, listPublicAgents } from "@/lib/listings.functions";
@@ -117,7 +116,6 @@ function IndexContent() {
         <Footer />
         <MobileBar />
         <FloatingWhatsApp />
-        <AccessibilityWidget />
       </div>
     </SiteLiveProvider>
   );

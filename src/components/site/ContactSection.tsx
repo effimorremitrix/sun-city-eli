@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { MapPin, Phone, Mail, Clock, MessageCircle, Facebook, Instagram } from "lucide-react";
-import { TikTokIcon } from "./icons/TikTok";
+import { MapPin, Phone, Mail, Clock, MessageCircle } from "lucide-react";
 import { SITE_CONFIG, mapsEmbedUrl, mapsUrl, wazeUrl, waProps, openWa } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
-import logoAsset from "@/assets/sun-city-logo-real.png.asset.json";
+import logoIcon from "@/assets/sun-city-logo-icon.svg";
 import { isValidIsraeliPhone } from "@/lib/leads";
 import { useLang } from "@/lib/i18n";
 
@@ -206,7 +205,7 @@ export function Footer() {
         <div>
           <p className="flex items-center gap-2 font-display text-lg font-extrabold text-navy-foreground">
             <img
-              src={logoAsset.url}
+              src={logoIcon}
               alt={t.footer.logoAlt}
               width={48}
               height={48}
@@ -215,35 +214,7 @@ export function Footer() {
             {business.name}
           </p>
           <p className="mt-1 text-sm text-navy-foreground/75">{business.tagline}</p>
-          <div className="mt-4 flex gap-2">
-            <a
-              href={business.social.facebook || SITE_CONFIG.social.facebook}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={t.footer.facebookAria}
-              className="inline-flex size-9 items-center justify-center rounded-lg bg-[oklch(1_0_0/0.1)]"
-            >
-              <Facebook className="size-4" aria-hidden="true" />
-            </a>
-            <a
-              href={business.social.instagram || SITE_CONFIG.social.instagram}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={t.footer.instagramAria}
-              className="inline-flex size-9 items-center justify-center rounded-lg bg-[oklch(1_0_0/0.1)]"
-            >
-              <Instagram className="size-4" aria-hidden="true" />
-            </a>
-            <a
-              href={business.social.tiktok || SITE_CONFIG.social.tiktok}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="TikTok"
-              className="inline-flex size-9 items-center justify-center rounded-lg bg-[oklch(1_0_0/0.1)]"
-            >
-              <TikTokIcon className="size-4" aria-hidden="true" />
-            </a>
-          </div>
+          {/* קישורי הרשתות החברתיות עברו לראש העמוד (Header) — אייקונים צבעוניים */}
         </div>
 
         <div className="text-sm text-navy-foreground/85">
@@ -307,7 +278,7 @@ export function Footer() {
               <span aria-hidden="true" className="px-1.5">
                 ·
               </span>
-              <Link to="/admin" className="underline">
+              <Link to="/account" search={{ tab: "listings" }} className="underline">
                 {t.footer.adminSite}
               </Link>
             </li>

@@ -12,6 +12,9 @@ export type SearchProfileRow = {
   min_price: number | null;
   max_price: number | null;
   min_rooms: number | null;
+  rooms: number | null;
+  max_rooms: number | null;
+  street: string | null;
   min_size: number | null;
   needs_mamad: boolean;
   needs_elevator: boolean;
@@ -19,6 +22,8 @@ export type SearchProfileRow = {
   needs_balcony: boolean;
   notes: string | null;
   notify_email: boolean;
+  notify_whatsapp: boolean;
+  whatsapp_phone: string | null;
   is_active: boolean;
   created_at: string;
 };
@@ -39,18 +44,20 @@ export const getMyAccount = createServerFn({ method: "GET" })
 
     const [
       { data: isAdmin },
+      { data: isSuperAdmin },
       { data: isAgent },
       { data: profile },
       { data: profiles },
       { data: notifications },
     ] = await Promise.all([
       supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+      supabase.rpc("has_role", { _user_id: userId, _role: "super_admin" }),
       supabase.rpc("has_role", { _user_id: userId, _role: "agent" }),
       supabase.from("profiles").select("full_name").eq("id", userId).single(),
       supabase
         .from("search_profiles")
         .select(
-          "id, label, deal_type, city, neighborhoods, min_price, max_price, min_rooms, min_size, needs_mamad, needs_elevator, needs_parking, needs_balcony, notes, notify_email, is_active, created_at",
+          "id, label, deal_type, city, neighborhoods, min_price, max_price, min_rooms, rooms, max_rooms, street, min_size, needs_mamad, needs_elevator, needs_parking, needs_balcony, notes, notify_email, notify_whatsapp, whatsapp_phone, is_active, created_at",
         )
         .eq("user_id", userId)
         .order("created_at", { ascending: true }),
@@ -66,6 +73,7 @@ export const getMyAccount = createServerFn({ method: "GET" })
 
     return {
       isAdmin: Boolean(isAdmin),
+      isSuperAdmin: Boolean(isSuperAdmin),
       isAgent: Boolean(isAgent),
       fullName: profile?.full_name ?? null,
       profiles: (profiles ?? []) as unknown as SearchProfileRow[],

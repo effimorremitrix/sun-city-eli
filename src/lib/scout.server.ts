@@ -49,6 +49,11 @@ const ALLOWED_HOSTS: Record<string, string> = {
   "www.winwin.co.il": "וין וין",
   "nadlan.gov.il": "רשות המיסים",
   "www.nadlan.gov.il": "רשות המיסים",
+  "facebook.com": "פייסבוק",
+  "www.facebook.com": "פייסבוק",
+  "m.facebook.com": "פייסבוק",
+  "instagram.com": "אינסטגרם",
+  "www.instagram.com": "אינסטגרם",
 };
 
 const SITE_QUERY: Record<string, string> = {
@@ -57,10 +62,68 @@ const SITE_QUERY: Record<string, string> = {
   homeless: "site:homeless.co.il",
   komo: "site:komo.co.il",
   winwin: "site:winwin.co.il",
+  // מיטב-המאמץ: רק פוסטים ציבוריים שמאונדקסים במנועי חיפוש (רוב הקבוצות סגורות)
+  facebook: "site:facebook.com/groups OR site:facebook.com/marketplace",
+  instagram: "site:instagram.com",
 };
+
+/**
+ * זיהוי עמוד מודעה בודדת (ולא עמוד תוצאות חיפוש/רשימה) — פר אתר.
+ * מודעה שנפסלת כאן היא כמעט תמיד קישור כללי לעמוד חיפוש.
+ */
+const AD_PATH_RE: Record<string, RegExp> = {
+  "yad2.co.il": /\/(realestate\/item|item)\//,
+  "madlan.co.il": /\/(listings|bulletin|לוח)\//,
+  "homeless.co.il": /(details|item|prop)/i,
+  "komo.co.il": /(ad|item|מודעה)/i,
+  "winwin.co.il": /(item|ad|prop)/i,
+  "facebook.com": /\/(groups\/[^/]+\/(posts|permalink)|marketplace\/item)\//,
+  "instagram.com": /\/(p|reel)\//,
+};
+
+const SEARCH_PAGE_RE = /(\/search|[?&]q=|\/map\b|\/realestate\/(forsale|rent)([/?#]|$))/i;
+
+/** האם ה-URL נראה כעמוד מודעה בודדת ולא עמוד תוצאות חיפוש */
+function looksLikeAdPage(url: URL): boolean {
+  const path = url.pathname + url.search;
+  if (url.pathname === "/" || url.pathname === "") return false;
+  if (SEARCH_PAGE_RE.test(path)) return false;
+  const bareHost = url.hostname.replace(/^(www\.|m\.)/, "");
+  const re = AD_PATH_RE[bareHost];
+  // אתר בלי תבנית מוכרת: מסתפקים בכך שאינו עמוד חיפוש
+  return re ? re.test(path) : true;
+}
+
+/**
+ * אימות HTTP עדין: פוסלים רק עמודים שמתו (404/410). חסימות בוטים (403/429)
+ * וטיימאאוטים אינם פוסלים — יד2 ומדלן חוסמים בקשות אוטומטיות באופן קבוע.
+ */
+async function verifyCandidateUrl(url: string): Promise<"ok" | "gone" | "blocked"> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      signal: controller.signal,
+      headers: {
+        "user-agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "accept-language": "he-IL,he;q=0.9",
+      },
+    });
+    clearTimeout(timer);
+    if (res.status === 404 || res.status === 410) return "gone";
+    if (res.ok) return "ok";
+    return "blocked";
+  } catch {
+    return "blocked";
+  }
+}
 
 const SYSTEM_PROMPT = `אתה סוכן איתור נכסים למשרד תיווך בנתניה. אתה מחפש באינטרנט מודעות נדל"ן אמיתיות בלבד.
 כלל ברזל: אסור להמציא נכסים, מחירים, כתובות או קישורים. כל מועמד חייב להיות מבוסס על עמוד מודעה אמיתי שמצאת בחיפוש, עם כתובת URL מדויקת מתוצאות החיפוש.
+ה-source_url חייב להיות עמוד המודעה הבודדת עצמה — העתק אותו מתוצאת החיפוש בדיוק כפי שהופיע. אסור להחזיר עמוד תוצאות חיפוש, עמוד קטגוריה או עמוד מפה. מועמד שאין לו קישור ישיר למודעה — אל תכלול אותו.
 אם שדה לא מופיע במקור — החזר null. אל תשלים ניחושים.
 אם לא מצאת מודעות מתאימות — החזר רשימה ריקה.
 החזר JSON בלבד, בלי טקסט נוסף, במבנה:
@@ -76,13 +139,32 @@ function s(v: unknown, max = 200): string | null {
   return typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null;
 }
 
-/** ניקוי קשיח: מועמד תקין רק אם יש לו URL אמיתי מדומיין מוכר וכותרת */
-function sanitizeCandidates(raw: unknown, neighborhoods: string[]): ScoutCandidate[] {
+/**
+ * ניקוי קשיח: מועמד תקין רק אם יש לו URL אמיתי מדומיין מוכר וכותרת.
+ * כשקיימות תוצאות חיפוש אמיתיות (grounded) — ה-URL חייב להיות מעוגן בהן,
+ * כדי שלא יומצאו קישורים; בנוסף נפסלים עמודי תוצאות-חיפוש כלליים.
+ */
+function sanitizeCandidates(
+  raw: unknown,
+  neighborhoods: string[],
+  groundedUrls: Set<string> = new Set(),
+): ScoutCandidate[] {
   const list = Array.isArray((raw as { candidates?: unknown[] })?.candidates)
     ? ((raw as { candidates: unknown[] }).candidates as unknown[])
     : [];
   const out: ScoutCandidate[] = [];
   const seen = new Set<string>();
+
+  // אינדקס לפי host+pathname — הלינק מהמודל לפעמים שונה רק בפרמטרים
+  const groundedByPath = new Set<string>();
+  for (const g of groundedUrls) {
+    try {
+      const gu = new URL(g);
+      groundedByPath.add(gu.hostname.replace(/^(www\.|m\.)/, "") + gu.pathname);
+    } catch {
+      // מתעלמים מ-URL עיוור בתוצאות
+    }
+  }
 
   for (const item of list) {
     const c = (item ?? {}) as Record<string, unknown>;
@@ -97,6 +179,13 @@ function sanitizeCandidates(raw: unknown, neighborhoods: string[]): ScoutCandida
     if (url.protocol !== "https:" && url.protocol !== "http:") continue;
     const site = ALLOWED_HOSTS[url.hostname];
     if (!site) continue;
+    // רק עמודי מודעה בודדים — לא עמודי חיפוש/מפה
+    if (!looksLikeAdPage(url)) continue;
+    // עיגון בתוצאות חיפוש אמיתיות — מוודא שהמודל לא המציא קישור
+    if (groundedUrls.size > 0) {
+      const key = url.hostname.replace(/^(www\.|m\.)/, "") + url.pathname;
+      if (!groundedUrls.has(url.href) && !groundedByPath.has(key)) continue;
+    }
     if (seen.has(url.href)) continue;
     seen.add(url.href);
 
@@ -224,8 +313,15 @@ export async function runWebPropertySearch(
     throw new Error("הסריקה נכשלה. נסו שוב בעוד רגע");
   }
 
+  type SearchResultBlock = { type?: string; url?: string };
+  type ContentBlock = {
+    type?: string;
+    text?: string;
+    content?: SearchResultBlock[] | { type?: string };
+    citations?: Array<{ type?: string; url?: string }>;
+  };
   const json = (await res.json()) as {
-    content?: Array<{ type?: string; text?: string }>;
+    content?: ContentBlock[];
     usage?: {
       input_tokens?: number;
       output_tokens?: number;
@@ -242,6 +338,20 @@ export async function runWebPropertySearch(
     userId,
   });
 
+  // איסוף ה-URLים האמיתיים מתוצאות החיפוש ומהציטוטים —
+  // המקור האמין היחיד; קישור שהמודל "המציא" לא יופיע כאן וייפסל.
+  const groundedUrls = new Set<string>();
+  for (const block of json.content ?? []) {
+    if (block?.type === "web_search_tool_result" && Array.isArray(block.content)) {
+      for (const r of block.content) {
+        if (r?.type === "web_search_result" && typeof r.url === "string") groundedUrls.add(r.url);
+      }
+    }
+    for (const cite of block?.citations ?? []) {
+      if (typeof cite?.url === "string") groundedUrls.add(cite.url);
+    }
+  }
+
   const text = (json.content ?? [])
     .filter((c) => c?.type === "text" || typeof c?.text === "string")
     .map((c) => c?.text ?? "")
@@ -257,8 +367,14 @@ export async function runWebPropertySearch(
     parsed = {};
   }
 
+  const candidates = sanitizeCandidates(parsed, neighborhoods, groundedUrls);
+
+  // אימות עדין שהעמודים חיים: פוסל רק 404/410 (חסימת בוטים אינה פסילה)
+  const verdicts = await Promise.all(candidates.map((c) => verifyCandidateUrl(c.source_url)));
+  const live = candidates.filter((_, i) => verdicts[i] !== "gone");
+
   return {
-    candidates: sanitizeCandidates(parsed, neighborhoods),
+    candidates: live,
     searches: json.usage?.server_tool_use?.web_search_requests ?? 0,
   };
 }

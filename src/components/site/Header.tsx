@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { Menu, X, Phone, LogOut, User } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import logoAsset from "@/assets/sun-city-logo-real.png.asset.json";
+import logo from "@/assets/sun-city-logo-icon.svg";
 import { useLive } from "@/lib/site-live";
 import { useAuth } from "@/hooks/useAuth";
 import { useLang } from "@/lib/i18n";
 import { LangSwitcher } from "@/components/site/LangSwitcher";
-
-const logo = logoAsset.url;
+import { SocialLinks } from "@/components/site/icons/SocialIcons";
 
 const scrollTo = (id: string) => {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -57,6 +56,8 @@ export function Header() {
             </a>
           ))}
 
+          <SocialLinks size="size-6" />
+
           <LangSwitcher />
 
           <a
@@ -87,7 +88,8 @@ export function Header() {
                 </Link>
                 {(user.isAdmin || user.isAgent) && (
                   <Link
-                    to="/admin"
+                    to="/account"
+                    search={{ tab: "listings" }}
                     className="text-sm font-semibold text-foreground transition-colors hover:text-sun"
                   >
                     {t.nav.adminSite}
@@ -146,6 +148,9 @@ export function Header() {
             <li className="border-b border-border/70 py-3">
               <LangSwitcher big />
             </li>
+            <li className="border-b border-border/70 py-3">
+              <SocialLinks size="size-8" />
+            </li>
             {t.nav.links.map((l) => (
               <li key={l.id}>
                 <a
@@ -187,7 +192,8 @@ export function Header() {
                 {(user.isAdmin || user.isAgent) && (
                   <li>
                     <Link
-                      to="/admin"
+                      to="/account"
+                      search={{ tab: "listings" }}
                       onClick={() => setOpen(false)}
                       className="block border-b border-border/70 py-3 text-base font-semibold text-foreground"
                     >

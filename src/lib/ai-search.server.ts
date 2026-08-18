@@ -3,7 +3,12 @@ import type { ListingFilters } from "@/lib/listings";
 const SYSTEM_PROMPT = `אתה עוזר חיפוש נכסים של משרד תיווך בנתניה. תפקידך להמיר בקשה חופשית בעברית לפילטרים מובנים.
 כלל ברזל: אסור להמציא נכסים, מחירים או שכונות. אתה מחזיר פילטרים בלבד + משפט הסבר קצר בעברית (עד 25 מילים).
 החזר JSON בלבד במבנה:
-{"filters":{"deal_type":"מכירה"|"השכרה"|null,"neighborhoods":string[],"min_price":number|null,"max_price":number|null,"min_rooms":number|null,"min_size":number|null,"needs_mamad":boolean,"needs_elevator":boolean,"needs_parking":boolean,"needs_balcony":boolean},"explanation":string}
+{"filters":{"deal_type":"מכירה"|"השכרה"|null,"neighborhoods":string[],"street":string|null,"min_price":number|null,"max_price":number|null,"rooms":number|null,"min_rooms":number|null,"max_rooms":number|null,"min_size":number|null,"needs_mamad":boolean,"needs_elevator":boolean,"needs_parking":boolean,"needs_balcony":boolean},"explanation":string}
+כללי חדרים — חשוב מאוד:
+- "X חדרים" (למשל "3 חדרים") = rooms:X — מספר מדויק, לא מינימום.
+- "לפחות X חדרים" / "X+ חדרים" / "מינימום X" = min_rooms:X.
+- "עד X חדרים" = max_rooms:X.
+שם רחוב או כתובת (למשל "גולדה מאיר", "שבטי ישראל 19") אינו שכונה — החזר אותו בשדה street (ללא מספר בית אם אינו הכרחי). בשדה neighborhoods החזר רק שכונות מהרשימה המותרת.
 אם משהו לא נאמר במפורש — השאר null או false. "קרוב לים" אינו פילטר; התעלם ממנו בפילטרים ורק הזכר בהסבר.`;
 
 export type AiFilterResult = { filters: ListingFilters; explanation: string };
@@ -27,13 +32,21 @@ function sanitize(raw: unknown, neighborhoods: string[]): AiFilterResult {
     .filter((h) => neighborhoods.includes(h))
     .slice(0, 10);
 
+  const street =
+    typeof f["street"] === "string" && f["street"].trim().length >= 2
+      ? f["street"].trim().slice(0, 80)
+      : null;
+
   return {
     filters: {
       deal_type: deal,
       neighborhoods: hoods,
+      street,
       min_price: num(f["min_price"]),
       max_price: num(f["max_price"]),
+      rooms: num(f["rooms"]),
       min_rooms: num(f["min_rooms"]),
+      max_rooms: num(f["max_rooms"]),
       min_size: num(f["min_size"]),
       needs_mamad: f["needs_mamad"] === true,
       needs_elevator: f["needs_elevator"] === true,

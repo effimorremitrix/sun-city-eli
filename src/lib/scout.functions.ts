@@ -41,7 +41,7 @@ const str = (v: unknown, max = 200): string | null => {
   return s ? s.slice(0, max) : null;
 };
 
-const SOURCES = ["yad2", "madlan", "homeless", "komo", "winwin"];
+const SOURCES = ["yad2", "madlan", "homeless", "komo", "winwin", "facebook", "instagram"];
 
 export type ScoutProfileInput = {
   id?: string | null;
@@ -99,8 +99,8 @@ function parseProfileInput(input: unknown): ScoutProfileInput {
 export const adminListScoutProfiles = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<ScoutProfileRow[]> => {
-    const { assertAdmin } = await import("@/lib/admin.server");
-    await assertAdmin(context);
+    const { assertSuperAdmin } = await import("@/lib/admin.server");
+    await assertSuperAdmin(context);
     const { data, error } = await context.supabase
       .from("scout_profiles")
       .select(PROFILE_COLUMNS)
@@ -114,8 +114,8 @@ export const adminSaveScoutProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => parseProfileInput(input))
   .handler(async ({ data, context }) => {
-    const { assertAdmin } = await import("@/lib/admin.server");
-    await assertAdmin(context);
+    const { assertSuperAdmin } = await import("@/lib/admin.server");
+    await assertSuperAdmin(context);
     const { id, ...fields } = data;
     if (id) {
       const { error } = await context.supabase.from("scout_profiles").update(fields).eq("id", id);
@@ -136,8 +136,8 @@ export const adminDeleteScoutProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string }) => ({ id: String(input?.id ?? "") }))
   .handler(async ({ data, context }) => {
-    const { assertAdmin } = await import("@/lib/admin.server");
-    await assertAdmin(context);
+    const { assertSuperAdmin } = await import("@/lib/admin.server");
+    await assertSuperAdmin(context);
     const { error } = await context.supabase.from("scout_profiles").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -151,8 +151,8 @@ export const adminListScoutCandidates = createServerFn({ method: "POST" })
     return { status: s === "approved" || s === "rejected" || s === "new" ? s : "new" };
   })
   .handler(async ({ data, context }): Promise<ScoutCandidateRow[]> => {
-    const { assertAdmin } = await import("@/lib/admin.server");
-    await assertAdmin(context);
+    const { assertSuperAdmin } = await import("@/lib/admin.server");
+    await assertSuperAdmin(context);
     const { data: rows, error } = await context.supabase
       .from("scout_candidates")
       .select(CANDIDATE_COLUMNS)
@@ -168,8 +168,8 @@ export const adminListScoutCandidates = createServerFn({ method: "POST" })
 export const adminScoutNewCount = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { assertAdmin } = await import("@/lib/admin.server");
-    await assertAdmin(context);
+    const { assertSuperAdmin } = await import("@/lib/admin.server");
+    await assertSuperAdmin(context);
     const { count, error } = await context.supabase
       .from("scout_candidates")
       .select("id", { count: "exact", head: true })
@@ -185,8 +185,8 @@ export const adminRunScout = createServerFn({ method: "POST" })
     profileId: str(input?.profileId, 60),
   }))
   .handler(async ({ data, context }) => {
-    const { assertAdmin } = await import("@/lib/admin.server");
-    await assertAdmin(context);
+    const { assertSuperAdmin } = await import("@/lib/admin.server");
+    await assertSuperAdmin(context);
 
     let q = context.supabase.from("scout_profiles").select(PROFILE_COLUMNS).eq("is_active", true);
     if (data.profileId) q = q.eq("id", data.profileId);
@@ -217,8 +217,8 @@ export const adminSetCandidateStatus = createServerFn({ method: "POST" })
     return { id: String(input?.id ?? ""), status };
   })
   .handler(async ({ data, context }) => {
-    const { assertAdmin } = await import("@/lib/admin.server");
-    await assertAdmin(context);
+    const { assertSuperAdmin } = await import("@/lib/admin.server");
+    await assertSuperAdmin(context);
     const { error } = await context.supabase
       .from("scout_candidates")
       .update({ status: data.status, seen_at: new Date().toISOString() })
@@ -227,13 +227,27 @@ export const adminSetCandidateStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** אישור מועמד — יוצר טיוטת נכס לא מפורסמת לעריכה */
+/** אישור מועמד — יוצר טיוטת נכס לא מפורסמת לעריכה, משויכת ל-site שנבחר */
 export const adminApproveCandidate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { id: string }) => ({ id: String(input?.id ?? "") }))
+  .inputValidator((input: { id: string; siteId?: string | null }) => ({
+    id: String(input?.id ?? ""),
+    siteId: str(input?.siteId, 60),
+  }))
   .handler(async ({ data, context }) => {
-    const { assertAdmin } = await import("@/lib/admin.server");
-    await assertAdmin(context);
+    const { assertSuperAdmin, assertSiteAccess, getManagerAccess } =
+      await import("@/lib/admin.server");
+    await assertSuperAdmin(context);
+
+    // שיוך הטיוטה ל-site: המבוקש, אחרת האתר הראשי (בלי site_id הנכס נעשה "יתום")
+    let siteId = data.siteId;
+    if (siteId) {
+      await assertSiteAccess(context, siteId);
+    } else {
+      const access = await getManagerAccess(context);
+      siteId =
+        (access.sites.filter((s) => s.slug === "sun-city")[0] ?? access.sites[0])?.id ?? null;
+    }
 
     const { data: c, error } = await context.supabase
       .from("scout_candidates")
@@ -249,6 +263,7 @@ export const adminApproveCandidate = createServerFn({ method: "POST" })
     const { data: listing, error: insErr } = await context.supabase
       .from("listings")
       .insert({
+        site_id: siteId,
         title: cand.title,
         deal_type: cand.deal_type ?? "מכירה",
         description,

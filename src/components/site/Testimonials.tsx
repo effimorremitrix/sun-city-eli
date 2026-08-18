@@ -1,22 +1,53 @@
 import { DataSource } from "@/components/site/DataSource";
 import { useState } from "react";
-import { ChevronRight, ChevronLeft, Quote, Plus, Minus } from "lucide-react";
+import { ChevronRight, ChevronLeft, Quote, Plus, Minus, PlayCircle } from "lucide-react";
 import { useLang } from "@/lib/i18n";
+import { useLive } from "@/lib/site-live";
+
+/** חילוץ מזהה סרטון YouTube מקישור (watch / youtu.be / shorts / embed) */
+const youTubeId = (url: string): string | null => {
+  try {
+    const u = new URL(url);
+    if (u.hostname === "youtu.be") return u.pathname.slice(1) || null;
+    if (/(^|\.)youtube\.com$/.test(u.hostname)) {
+      if (u.pathname === "/watch") return u.searchParams.get("v");
+      const m = u.pathname.match(/^\/(embed|shorts)\/([\w-]{6,})/);
+      if (m) return m[2] ?? null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
 
 export function Testimonials() {
   const { dir, t } = useLang();
+  const live = useLive();
   const [i, setI] = useState(0);
-  const items = t.testimonials.items;
-  const item = items[i]!;
+  const [playing, setPlaying] = useState(false);
+  // תוכן שנשמר באזור הניהול מנצח; אחרת התוכן הקבוע מהמילון
+  const items = live.testimonials?.length ? live.testimonials : t.testimonials.items;
+  const item = items[Math.min(i, items.length - 1)]!;
+  // בתוכן הסטטי מהמילון אין videoUrl — קיים רק בממליצים שנשמרו במסד
+  const videoUrl = (item as { videoUrl?: string }).videoUrl ?? "";
+  const videoId = videoUrl ? youTubeId(videoUrl) : null;
 
-  const prev = () => setI((v) => (v - 1 + items.length) % items.length);
-  const next = () => setI((v) => (v + 1) % items.length);
+  const go = (fn: (v: number) => number) => {
+    setPlaying(false);
+    setI((v) => fn(v));
+  };
+  const prev = () => go((v) => (v - 1 + items.length) % items.length);
+  const next = () => go((v) => (v + 1) % items.length);
 
   return (
     <section className="mx-auto max-w-3xl px-4 py-14 md:py-20">
       <p className="text-sm font-bold text-sun">{t.testimonials.kicker}</p>
       <h2 className="mt-2 text-3xl md:text-4xl">{t.testimonials.title}</h2>
-      <DataSource source="office" updatedAt={null} className="mt-2" />
+      <DataSource
+        source={live.testimonials?.length ? "db" : "office"}
+        updatedAt={live.testimonials?.length ? live.updatedAt : null}
+        className="mt-2"
+      />
 
       <div className="soft-card mt-6 p-6">
         <Quote className="size-7 text-sun" aria-hidden="true" />
@@ -26,6 +57,38 @@ export function Testimonials() {
         <p className="mt-4 font-bold text-primary">
           {item.name} <span className="font-normal text-muted-foreground">· {item.type}</span>
         </p>
+
+        {/* סרטון המלצה — הטמעת YouTube או קישור חיצוני */}
+        {videoUrl &&
+          (playing && videoId ? (
+            <div className="mt-4 overflow-hidden rounded-xl border border-border">
+              <iframe
+                title={`${t.testimonials.title} — ${item.name}`}
+                src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+                className="aspect-video w-full"
+              />
+            </div>
+          ) : (
+            <a
+              href={videoId ? undefined : videoUrl}
+              target={videoId ? undefined : "_blank"}
+              rel={videoId ? undefined : "noopener noreferrer"}
+              onClick={
+                videoId
+                  ? (e) => {
+                      e.preventDefault();
+                      setPlaying(true);
+                    }
+                  : undefined
+              }
+              className="mt-4 inline-flex cursor-pointer items-center gap-2 text-sm font-bold text-primary underline"
+            >
+              <PlayCircle className="size-5 text-sun" aria-hidden="true" />
+              {t.testimonials.watchVideo}
+            </a>
+          ))}
 
         <div className="mt-5 flex items-center justify-between">
           <div className="flex gap-2">
@@ -48,7 +111,7 @@ export function Testimonials() {
             </button>
           </div>
           <p className="text-sm text-muted-foreground">
-            {t.testimonials.counter(i + 1, items.length)}
+            {t.testimonials.counter(Math.min(i, items.length - 1) + 1, items.length)}
           </p>
         </div>
       </div>
@@ -58,7 +121,9 @@ export function Testimonials() {
 
 export function Faq() {
   const { t } = useLang();
+  const live = useLive();
   const [open, setOpen] = useState<number | null>(0);
+  const items = live.faq?.length ? live.faq : t.faq.items;
 
   return (
     <section id="faq" className="mx-auto max-w-3xl px-4 pb-14 md:pb-20">
@@ -66,7 +131,7 @@ export function Faq() {
       <h2 className="mt-2 text-3xl md:text-4xl">{t.faq.title}</h2>
 
       <ul className="mt-6 space-y-3">
-        {t.faq.items.map((f, i) => {
+        {items.map((f, i) => {
           const isOpen = open === i;
           return (
             <li key={f.q} className="soft-card overflow-hidden">

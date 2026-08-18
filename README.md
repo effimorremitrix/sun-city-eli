@@ -52,3 +52,17 @@ This project was built with [Lovable](https://lovable.dev). Continue developing 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.
 - **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+
+## משתני סביבה להתראות וואטסאפ (Green API)
+
+התראות הוואטסאפ ללקוחות, לסוכנים ולמנהל הראשי נשלחות דרך ספק חיצוני. ללא הגדרה —
+המערכת ממשיכה לעבוד רגיל (התראות באתר ובמייל בלבד):
+
+```
+WHATSAPP_PROVIDER=greenapi
+GREEN_API_ID=<instance id>
+GREEN_API_TOKEN=<api token>
+```
+
+ההקמה חד-פעמית: פותחים חשבון ב-green-api.com, סורקים QR עם מספר הוואטסאפ של
+המשרד, ומעתיקים את פרטי ה-instance למשתני הסביבה.

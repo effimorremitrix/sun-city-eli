@@ -64,8 +64,8 @@ export const adminAiUsage = createServerFn({ method: "GET" })
     return { range };
   })
   .handler(async ({ data, context }): Promise<UsageReport> => {
-    const { assertAdmin } = await import("@/lib/admin.server");
-    await assertAdmin(context);
+    const { assertSuperAdmin } = await import("@/lib/admin.server");
+    await assertSuperAdmin(context);
 
     const from = rangeStart(data.range);
     const to = new Date();

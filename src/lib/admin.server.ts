@@ -1,5 +1,5 @@
 import type { ListingInput } from "@/lib/listing-schema";
-import { sendPendingListingEmails } from "@/lib/notify.server";
+import { sendPendingListingNotifications, notifyAgentOfMatches } from "@/lib/notify.server";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- קליינט Supabase של המשתמש מה-middleware
 type Ctx = { supabase: any; userId: string };
@@ -17,19 +17,34 @@ export async function assertAdmin(context: Ctx) {
 }
 
 /**
+ * מאמת שהמשתמש הוא המנהל הראשי (super admin — אלי).
+ * שער אפליקטיבי בלבד: מדיניות ה-RLS ממשיכה להסתמך על 'admin'.
+ */
+export async function assertSuperAdmin(context: Ctx) {
+  const { data, error } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "super_admin",
+  });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Forbidden");
+}
+
+/**
  * ההרשאות של המשתמש באזור הניהול: אדמין רואה את כל האתרים,
  * סוכן רואה רק את האתרים שבבעלותו (RLS על sites כבר אוכף את זה).
  */
 export async function getManagerAccess(context: Ctx): Promise<{
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   isAgent: boolean;
   sites: ManagedSite[];
 }> {
-  const { data: isAdmin, error } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId,
-    _role: "admin",
-  });
+  const [{ data: isAdmin, error }, { data: isSuperAdmin, error: superError }] = await Promise.all([
+    context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
+    context.supabase.rpc("has_role", { _user_id: context.userId, _role: "super_admin" }),
+  ]);
   if (error) throw new Error(error.message);
+  if (superError) throw new Error(superError.message);
 
   const { data: sites, error: sitesError } = await context.supabase
     .from("sites")
@@ -45,7 +60,12 @@ export async function getManagerAccess(context: Ctx): Promise<{
     rows = await ensureDefaultSite(context.userId);
   }
 
-  return { isAdmin: Boolean(isAdmin), isAgent: !isAdmin && rows.length > 0, sites: rows };
+  return {
+    isAdmin: Boolean(isAdmin),
+    isSuperAdmin: Boolean(isSuperAdmin),
+    isAgent: !isAdmin && rows.length > 0,
+    sites: rows,
+  };
 }
 
 /** יוצר את אתר ברירת המחדל (sun-city) בבעלות האדמין הנתון ומחזיר את הרשימה */
@@ -95,10 +115,15 @@ export async function assertSiteAccess(context: Ctx, siteId: string): Promise<Ma
   return site;
 }
 
-/** שומר נכס, ואם הוא מפורסם — מייצר התראות ושולח מיילים ללקוחות תואמים */
+/**
+ * שומר נכס, ואם הוא מפורסם — מייצר התראות ללקוחות תואמים (מייל + וואטסאפ),
+ * מודיע לסוכן המפרסם ולמנהל הראשי, ומפרסם אוטומטית לעמוד הפייסבוק של הדף
+ * כשנכס חדש נוצר ויש חיבור פייסבוק פעיל.
+ */
 export async function saveListingAndNotify(context: Ctx, input: ListingInput, siteUrl: string) {
   const { id, ...fields } = input;
 
+  const isNew = !id;
   let listingId = id ?? null;
 
   if (listingId) {
@@ -117,6 +142,8 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
   let matched = 0;
   let emailsSent = 0;
   let emailsPending = 0;
+  let waSent = 0;
+  let facebookPosted = false;
 
   if (fields.is_published && listingId) {
     const { data: count, error: matchError } = await context.supabase.rpc(
@@ -128,21 +155,77 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
     if (matchError) throw new Error(matchError.message);
     matched = Number(count ?? 0);
 
-    const result = await sendPendingListingEmails(
-      {
-        id: listingId,
-        title: fields.title,
-        neighborhood: fields.neighborhood,
-        price: fields.price,
-        rooms: fields.rooms,
-        size_sqm: fields.size_sqm,
-        description: fields.description,
-      },
-      `${siteUrl}/#properties`,
-    );
+    const minimal = {
+      id: listingId,
+      title: fields.title,
+      neighborhood: fields.neighborhood,
+      price: fields.price,
+      rooms: fields.rooms,
+      size_sqm: fields.size_sqm,
+      description: fields.description,
+    };
+
+    // הסוכן המפרסם — לצירוף לינק יצירת קשר בהודעות ללקוחות
+    let agent: { name: string; phoneTel: string | null } | null = null;
+    const siteId = fields.site_id ?? null;
+    if (siteId) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: content } = await supabaseAdmin
+          .from("site_content")
+          .select("business")
+          .eq("site_id", siteId)
+          .maybeSingle();
+        const business = (content?.business ?? {}) as {
+          agentName?: string;
+          name?: string;
+          phoneTel?: string;
+        };
+        agent = {
+          name: business.agentName || business.name || "הסוכן",
+          phoneTel: business.phoneTel ?? null,
+        };
+      } catch {
+        agent = null;
+      }
+    }
+
+    const result = await sendPendingListingNotifications(minimal, `${siteUrl}/#properties`, agent);
     emailsSent = result.sent;
     emailsPending = result.pending;
+    waSent = result.waSent;
+
+    // התראה לסוכן ולמנהל הראשי — כשל כאן לא מפיל את השמירה
+    try {
+      await notifyAgentOfMatches(minimal, siteId, result.recipients, `${siteUrl}/#properties`);
+    } catch (e) {
+      console.error("notifyAgentOfMatches failed", e instanceof Error ? e.message : e);
+    }
+
+    // פרסום אוטומטי לפייסבוק — רק לנכס חדש, כשיש חיבור עמוד פעיל לדף.
+    // (אינסטגרם/טיקטוק: אין API ציבורי לפרסום אוטומטי — הפרסום שם נשאר ידני בטאב הפרסום)
+    if (isNew && siteId) {
+      try {
+        const { getConnectionStatus, publishListingToPage } = await import("@/lib/facebook.server");
+        const status = await getConnectionStatus(siteId);
+        if (status.connected) {
+          const details = [
+            `שכונה: ${fields.neighborhood ?? "נתניה"}`,
+            fields.rooms != null ? `${fields.rooms} חדרים` : null,
+            fields.size_sqm != null ? `${fields.size_sqm} מ"ר` : null,
+            fields.price != null ? `מחיר: ${fields.price.toLocaleString("he-IL")} ₪` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ");
+          const message = `🏠 חדש אצלנו! ${fields.title}\n${details}\n${fields.description ?? ""}\n\nלפרטים באתר: ${siteUrl}/#properties`;
+          await publishListingToPage(listingId, message, context.userId, siteUrl);
+          facebookPosted = true;
+        }
+      } catch (e) {
+        console.error("facebook auto-post failed", e instanceof Error ? e.message : e);
+      }
+    }
   }
 
-  return { ok: true, id: listingId, matched, emailsSent, emailsPending };
+  return { ok: true, id: listingId, matched, emailsSent, emailsPending, waSent, facebookPosted };
 }
