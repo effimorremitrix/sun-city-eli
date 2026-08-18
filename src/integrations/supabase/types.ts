@@ -303,11 +303,13 @@ export type Database = {
           has_elevator: boolean
           has_mamad: boolean
           has_parking: boolean
+          has_storage: boolean
           id: string
           image_key: string | null
           image_url: string | null
           is_published: boolean
           neighborhood: string | null
+          parking_count: number | null
           post_copy: Json | null
           price: number | null
           published_at: string
@@ -315,6 +317,7 @@ export type Database = {
           site_id: string | null
           size_sqm: number | null
           sort_order: number
+          storage_count: number | null
           tag: string | null
           title: string
           translations: Json
@@ -331,11 +334,13 @@ export type Database = {
           has_elevator?: boolean
           has_mamad?: boolean
           has_parking?: boolean
+          has_storage?: boolean
           id?: string
           image_key?: string | null
           image_url?: string | null
           is_published?: boolean
           neighborhood?: string | null
+          parking_count?: number | null
           post_copy?: Json | null
           price?: number | null
           published_at?: string
@@ -343,6 +348,7 @@ export type Database = {
           site_id?: string | null
           size_sqm?: number | null
           sort_order?: number
+          storage_count?: number | null
           tag?: string | null
           title: string
           translations?: Json
@@ -359,11 +365,13 @@ export type Database = {
           has_elevator?: boolean
           has_mamad?: boolean
           has_parking?: boolean
+          has_storage?: boolean
           id?: string
           image_key?: string | null
           image_url?: string | null
           is_published?: boolean
           neighborhood?: string | null
+          parking_count?: number | null
           post_copy?: Json | null
           price?: number | null
           published_at?: string
@@ -371,6 +379,7 @@ export type Database = {
           site_id?: string | null
           size_sqm?: number | null
           sort_order?: number
+          storage_count?: number | null
           tag?: string | null
           title?: string
           translations?: Json
