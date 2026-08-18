@@ -1,5 +1,5 @@
 import { Phone, MessageCircle, Mail } from "lucide-react";
-import { waProps, business as staticBusiness } from "@/lib/site-data";
+import { waProps, business as staticBusiness, teamBySlug } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
 import { useLang } from "@/lib/i18n";
 import { SocialLinks } from "@/components/site/icons/SocialIcons";
@@ -17,17 +17,19 @@ const initials = (name: string) =>
  * לפני קרוסלת "עוד סוכנים": תמונה גדולה, תפקיד, אודות, יצירת קשר ורשתות.
  */
 export function AgentProfile() {
-  const { business } = useLive();
+  const { business, slug } = useLive();
   const { t } = useLang();
   const name = business.agentName || business.name;
+  // כשלא הועלתה תמונה בניהול — התמונה מהרוסטר של המשרד, כדי שהדף לא יישאר בלי פרצוף
+  const photoUrl = business.photoUrl || (slug ? teamBySlug.get(slug)?.image : null) || "";
 
   return (
     <section className="mx-auto max-w-6xl px-4 pb-4">
       <Reveal>
         <article className="soft-card flex flex-col items-center gap-6 p-6 text-center md:flex-row md:text-start">
-          {business.photoUrl ? (
+          {photoUrl ? (
             <img
-              src={business.photoUrl}
+              src={photoUrl}
               alt={t.team.photoAlt(name, business.roleTitle ?? "")}
               width={180}
               height={180}
