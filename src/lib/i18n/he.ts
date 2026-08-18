@@ -91,6 +91,9 @@ export const he = {
       subtitle: "מודעות אמיתיות שנמצאו ברחבי הרשת לפי החיפוש שלכם, עם קישור למקור.",
       remaining: (n: number) => ` נותרו ${n} סריקות להיום.`,
       match: "התאמה:",
+      colSource: "מקור",
+      colTitle: "מודעה",
+      colPrice: "מחיר",
       source: "למודעה המקורית",
       talk: "דברו איתי על הנכס",
       talkMsg: (agent: string, title: string, url: string) =>
@@ -128,6 +131,14 @@ export const he = {
     allAreas: "כל האזורים",
     priceRanges: ["עד 1,500,000 ₪", "1,500,000 – 2,000,000 ₪", "2,000,000 ₪ ומעלה"],
     found: (n: number) => `נמצאו ${n} נכסים`,
+    sortLabel: "מיון לפי",
+    sortOptions: {
+      newest: "תאריך הוספה (חדש קודם)",
+      priceAsc: "מחיר: מהנמוך לגבוה",
+      priceDesc: "מחיר: מהגבוה לנמוך",
+      rooms: "מספר חדרים",
+      size: "שטח (מ״ר)",
+    },
     personalAgent: "סוכן אישי: התראות על נכסים חדשים",
     noResultsTitle: "לא נמצאו נכסים בסינון הזה",
     noResultsText: "ספרו לנו מה אתם מחפשים ונאתר עבורכם נכס מתאים.",
@@ -158,7 +169,13 @@ export const he = {
     specRooms: "חדרים",
     specSize: "שטח",
     specFloor: "קומה",
-    features: { mamad: "ממ״ד", elevator: "מעלית", parking: "חניה", balcony: "מרפסת" },
+    features: {
+      mamad: "ממ״ד",
+      elevator: "מעלית",
+      parking: "חניה",
+      balcony: "מרפסת",
+      storage: "מחסן",
+    },
     yes: "יש",
     no: "אין",
     mapTitle: (hood: string, city: string) => `מפת האזור: ${hood}, ${city}`,
@@ -280,9 +297,14 @@ export const he = {
     successFeeNote: "תשלום על בסיס הצלחה בלבד, משלמים רק כשסוגרים עסקה.",
   },
 
+  agentProfile: {
+    kicker: "הסוכן/ת של הדף",
+  },
+
   testimonials: {
     kicker: "לקוחות מספרים",
     title: "עדויות לקוחות",
+    watchVideo: "צפו בסרטון ההמלצה",
     items: [
       {
         quote:
@@ -488,10 +510,13 @@ export const he = {
       "רמת פולג": "רמת פולג",
       "עיר ימים": "עיר ימים",
       "נאות הרצל": "נאות הרצל",
+      "נאות שקד": "נאות שקד",
+      "נאות גנים": "נאות גנים",
       אגמים: "אגמים",
       "פרדס הגדוד": "פרדס הגדוד",
       "מרכז העיר": "מרכז העיר",
       "צפון מערב מרכז העיר": "צפון מערב מרכז העיר",
+      "צפון העיר": "צפון העיר",
       "נוף הטיילת": "נוף הטיילת",
       "עין התכלת": "עין התכלת",
       "גבעת האירוסים": "גבעת האירוסים",

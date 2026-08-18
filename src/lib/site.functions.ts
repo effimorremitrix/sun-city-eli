@@ -35,6 +35,7 @@ export const getAdminSite = createServerFn({ method: "GET" })
     if (!access.isAdmin && !access.isAgent) {
       return {
         isAdmin: false,
+        isSuperAdmin: false,
         isAgent: false,
         sites: [],
         site: null,
@@ -49,22 +50,26 @@ export const getAdminSite = createServerFn({ method: "GET" })
       access.sites[0] ??
       null;
 
-    let content: { business: unknown; texts: unknown; translations: unknown } | null = null;
+    type AdminContent = {
+      business: unknown;
+      texts: unknown;
+      translations: unknown;
+      testimonials: unknown;
+      faq: unknown;
+    };
+    let content: AdminContent | null = null;
     if (site) {
       const { data } = await context.supabase
         .from("site_content")
-        .select("business, texts, translations")
+        .select("business, texts, translations, testimonials, faq")
         .eq("site_id", site.id)
         .maybeSingle();
-      content = (data ?? null) as {
-        business: unknown;
-        texts: unknown;
-        translations: unknown;
-      } | null;
+      content = (data ?? null) as AdminContent | null;
     }
 
     return {
       isAdmin: access.isAdmin,
+      isSuperAdmin: access.isSuperAdmin,
       isAgent: access.isAgent,
       sites: access.sites,
       site,
@@ -77,9 +82,11 @@ export const saveSiteContent = createServerFn({ method: "POST" })
   .inputValidator(
     (input: {
       siteId?: string | null;
-      business: Record<string, unknown>;
-      texts: Record<string, unknown>;
+      business?: Record<string, unknown>;
+      texts?: Record<string, unknown>;
       translations?: Record<string, unknown>;
+      testimonials?: unknown[] | null;
+      faq?: unknown[] | null;
     }) => input,
   )
   .handler(async ({ data, context }) => {
@@ -96,12 +103,29 @@ export const saveSiteContent = createServerFn({ method: "POST" })
       siteId = fallback.id;
     }
 
+    // ממליצים ושאלות נפוצות עוברים ולידציה; undefined = לא לגעת בערך הקיים
+    let testimonials: unknown;
+    let faq: unknown;
+    if (data.testimonials !== undefined) {
+      const { testimonialSchema } = await import("@/lib/listing-schema");
+      testimonials =
+        data.testimonials === null
+          ? null
+          : data.testimonials.slice(0, 30).map((t) => testimonialSchema.parse(t));
+    }
+    if (data.faq !== undefined) {
+      const { faqItemSchema } = await import("@/lib/listing-schema");
+      faq = data.faq === null ? null : data.faq.slice(0, 30).map((f) => faqItemSchema.parse(f));
+    }
+
     const { error } = await context.supabase.from("site_content").upsert(
       {
         site_id: siteId,
-        business: data.business as never,
-        texts: data.texts as never,
+        ...(data.business !== undefined ? { business: data.business as never } : {}),
+        ...(data.texts !== undefined ? { texts: data.texts as never } : {}),
         ...(data.translations ? { translations: data.translations as never } : {}),
+        ...(data.testimonials !== undefined ? { testimonials: testimonials as never } : {}),
+        ...(data.faq !== undefined ? { faq: faq as never } : {}),
       },
       { onConflict: "site_id" },
     );
@@ -126,5 +150,12 @@ export const claimAdminRole = createServerFn({ method: "POST" })
       .from("user_roles")
       .insert({ user_id: context.userId, role: "admin" });
     if (error) throw new Error(error.message);
+
+    // המנהל הראשון הוא גם המנהל הראשי (super admin)
+    const { error: superError } = await supabaseAdmin
+      .from("user_roles")
+      .upsert({ user_id: context.userId, role: "super_admin" }, { onConflict: "user_id,role" });
+    if (superError) throw new Error(superError.message);
+
     return { ok: true };
   });

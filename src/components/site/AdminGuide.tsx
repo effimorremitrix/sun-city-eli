@@ -19,7 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-type GuideSection = {
+export type GuideSection = {
   id: string;
   icon: LucideIcon;
   title: string;
@@ -226,6 +226,101 @@ const guideSections: GuideSection[] = [
   },
 ];
 
+/**
+ * המדריך מפוזר פר־טאב: לכל טאב באזור הניהול הסקשנים הרלוונטיים אליו.
+ * סקשנים רוחביים (הרשאות, שפות, דגשים) הוצמדו לטאב הקרוב ביותר בתוכנו.
+ */
+export const GUIDE_TAB_MAP: Record<string, string[]> = {
+  overview: ["tips"],
+  listings: ["listings", "languages"],
+  sold: ["sold"],
+  scout: ["scout", "ai-search"],
+  content: ["content"],
+  publish: ["publish"],
+  users: ["users", "roles", "agent-sites"],
+  usage: ["usage"],
+};
+
+/** בלוק "מדריך לטאב הזה" — אקורדיון מכווץ בראש כל טאב באזור הניהול */
+export function TabHelp({ tab, isAdmin = true }: { tab: string; isAdmin?: boolean }) {
+  const ids = GUIDE_TAB_MAP[tab] ?? [];
+  const sections = guideSections.filter((s) => ids.includes(s.id) && (isAdmin || !s.adminOnly));
+  const [open, setOpen] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  if (!sections.length) return null;
+
+  return (
+    <div className="mt-4 rounded-xl border border-border bg-secondary/40">
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-center justify-between gap-3 p-3 text-right text-sm font-bold text-primary"
+      >
+        <span className="flex items-center gap-2">
+          <BookOpen className="size-4 shrink-0 text-sun" aria-hidden="true" />
+          מדריך לטאב הזה
+        </span>
+        {expanded ? (
+          <Minus className="size-4 shrink-0 text-sun" aria-hidden="true" />
+        ) : (
+          <Plus className="size-4 shrink-0 text-sun" aria-hidden="true" />
+        )}
+      </button>
+      {expanded && (
+        <ul className="space-y-2 border-t border-border p-3">
+          {sections.map((s) => {
+            const isOpen = open === s.id || sections.length === 1;
+            const Icon = s.icon;
+            return (
+              <li key={s.id} className="rounded-xl bg-background">
+                <h4>
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    onClick={() => setOpen(isOpen ? null : s.id)}
+                    className="flex w-full items-center justify-between gap-3 p-3 text-right text-sm font-bold text-primary"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Icon className="size-4 shrink-0 text-sun" aria-hidden="true" />
+                      {s.title}
+                    </span>
+                    {isOpen ? (
+                      <Minus className="size-4 shrink-0 text-sun" aria-hidden="true" />
+                    ) : (
+                      <Plus className="size-4 shrink-0 text-sun" aria-hidden="true" />
+                    )}
+                  </button>
+                </h4>
+                {isOpen && (
+                  <div className="border-t border-border p-3">
+                    <p className="text-sm leading-relaxed text-muted-foreground">{s.intro}</p>
+                    <ol className="mt-2 list-decimal space-y-1 pe-6 text-sm leading-relaxed text-foreground">
+                      {s.steps.map((step) => (
+                        <li key={step}>{step}</li>
+                      ))}
+                    </ol>
+                    {s.tips && s.tips.length > 0 && (
+                      <div className="mt-2 rounded-xl bg-secondary p-3">
+                        <p className="text-xs font-bold text-primary">שימו לב</p>
+                        <ul className="mt-1 list-disc space-y-1 pe-5 text-xs leading-relaxed text-muted-foreground">
+                          {s.tips.map((tip) => (
+                            <li key={tip}>{tip}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function AdminGuide({ isAdmin = true }: { isAdmin?: boolean }) {
   const sections = guideSections.filter((s) => isAdmin || !s.adminOnly);
   const [open, setOpen] = useState<string | null>(sections[0]?.id ?? null);
@@ -243,7 +338,7 @@ export default function AdminGuide({ isAdmin = true }: { isAdmin?: boolean }) {
             : "כל מה שצריך לדעת כדי לנהל את הדף האישי שלכם: נכסים, מדור הנמכרים, תוכן הדף ופרסום לפייסבוק. פתחו כל נושא לקריאת ההסבר המלא."}
         </p>
         <Link
-          to="/admin"
+          to="/account"
           className="mt-4 inline-flex rounded-xl bg-sun px-5 py-3 text-sm font-bold text-sun-foreground"
         >
           מעבר לאזור הניהול

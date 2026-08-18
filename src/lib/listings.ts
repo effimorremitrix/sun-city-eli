@@ -8,13 +8,14 @@ import prop7 from "@/assets/prop-7.jpg";
 import prop8 from "@/assets/prop-8.jpg";
 import { DICTS, formatPrice, type Locale } from "@/lib/i18n";
 
-/** תמונה בגלריית הנכס */
+/** פריט מדיה בגלריית הנכס — תמונה או סרטון */
 export type ListingImage = {
   id: string;
   url: string;
   storage_path: string | null;
   external_url: string | null;
   sort_order: number;
+  kind: "image" | "video";
 };
 
 /** תרגום פר-שפה של שדות הטקסט של נכס (עמודת translations) */
@@ -51,11 +52,15 @@ export type Listing = {
   has_elevator: boolean;
   has_parking: boolean;
   has_balcony: boolean;
+  has_storage: boolean;
+  storage_count: number | null;
+  parking_count: number | null;
   tag: string | null;
   image_url: string | null;
   image_key: string | null;
   is_published: boolean;
   sort_order: number;
+  created_at: string;
   updated_at: string;
   images?: ListingImage[];
   agent?: ListingAgent | null;
@@ -65,15 +70,28 @@ export type Listing = {
 export type ListingFilters = {
   deal_type?: string | null;
   neighborhoods?: string[];
+  /** רחוב / כתובת חופשית — חיפוש חלקי בשדה הכתובת */
+  street?: string | null;
   min_price?: number | null;
   max_price?: number | null;
   min_rooms?: number | null;
+  /** מספר חדרים מדויק (±0.5) — "3 חדרים" איננו "3 ומעלה" */
+  rooms?: number | null;
+  max_rooms?: number | null;
   min_size?: number | null;
   needs_mamad?: boolean;
   needs_elevator?: boolean;
   needs_parking?: boolean;
   needs_balcony?: boolean;
 };
+
+/** נרמול טקסט להשוואת רחוב/כתובת: הסרת גרשיים ורווחים כפולים */
+const normalizeText = (s: string) =>
+  s
+    .replace(/["'׳״]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 
 const LOCAL_IMAGES: Record<string, string> = {
   "prop-1": prop1,
@@ -86,9 +104,12 @@ const LOCAL_IMAGES: Record<string, string> = {
   "prop-8": prop8,
 };
 
-/** כל תמונות הנכס: קודם הגלריה שהועלתה בניהול, אחרת כתובת/תמונה מקומית */
+/** כל תמונות הנכס (ללא סרטונים): קודם הגלריה שהועלתה בניהול, אחרת כתובת/תמונה מקומית */
 export function listingImages(l: Pick<Listing, "image_url" | "image_key" | "images">): string[] {
-  const gallery = (l.images ?? []).map((i) => i.url).filter(Boolean);
+  const gallery = (l.images ?? [])
+    .filter((i) => i.kind !== "video")
+    .map((i) => i.url)
+    .filter(Boolean);
   if (gallery.length) return gallery;
   if (l.image_url && l.image_url.trim()) return [l.image_url];
   if (l.image_key && LOCAL_IMAGES[l.image_key]) return [LOCAL_IMAGES[l.image_key]!];
@@ -114,9 +135,16 @@ export function matchesFilters(l: Listing, f: ListingFilters): boolean {
   if (f.deal_type && l.deal_type !== f.deal_type) return false;
   if (f.neighborhoods?.length && !(l.neighborhood && f.neighborhoods.includes(l.neighborhood)))
     return false;
+  if (f.street && f.street.trim()) {
+    const street = normalizeText(f.street);
+    const haystack = normalizeText(`${l.address ?? ""} ${l.title ?? ""}`);
+    if (!haystack.includes(street)) return false;
+  }
   if (f.min_price != null && l.price != null && l.price < f.min_price) return false;
   if (f.max_price != null && l.price != null && l.price > f.max_price) return false;
   if (f.min_rooms != null && l.rooms != null && l.rooms < f.min_rooms) return false;
+  if (f.rooms != null && l.rooms != null && Math.abs(l.rooms - f.rooms) > 0.5) return false;
+  if (f.max_rooms != null && l.rooms != null && l.rooms > f.max_rooms) return false;
   if (f.min_size != null && l.size_sqm != null && l.size_sqm < f.min_size) return false;
   if (f.needs_mamad && !l.has_mamad) return false;
   if (f.needs_elevator && !l.has_elevator) return false;
@@ -141,4 +169,46 @@ export const formatListingPrice = (n: number | null, lang: Locale = "he") =>
   n == null ? DICTS[lang].misc.noInfo : formatPrice(n, lang);
 
 export const LISTING_COLUMNS =
-  "id, site_id, deal_type, title, description, translations, city, neighborhood, address, price, rooms, size_sqm, floor, has_mamad, has_elevator, has_parking, has_balcony, tag, image_url, image_key, is_published, sort_order, updated_at";
+  "id, site_id, deal_type, title, description, translations, city, neighborhood, address, price, rooms, size_sqm, floor, has_mamad, has_elevator, has_parking, has_balcony, has_storage, storage_count, parking_count, tag, image_url, image_key, is_published, sort_order, created_at, updated_at";
+
+/* ------------------------- מיון נכסים בתצוגה ------------------------- */
+
+export type ListingSortKey = "newest" | "priceAsc" | "priceDesc" | "rooms" | "size";
+
+/** ממיין נכסים לתצוגה. ברירת המחדל: לפי תאריך הוספה (חדש ביותר קודם). */
+export function sortListings(list: Listing[], sort: ListingSortKey): Listing[] {
+  const byNum = (
+    get: (l: Listing) => number | null,
+    dir: 1 | -1 = 1,
+  ): ((a: Listing, b: Listing) => number) => {
+    // ערכים חסרים תמיד בסוף, בכל כיוון מיון
+    return (a, b) => {
+      const va = get(a);
+      const vb = get(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      return (va - vb) * dir;
+    };
+  };
+  const sorted = [...list];
+  switch (sort) {
+    case "priceAsc":
+      sorted.sort(byNum((l) => l.price, 1));
+      break;
+    case "priceDesc":
+      sorted.sort(byNum((l) => l.price, -1));
+      break;
+    case "rooms":
+      sorted.sort(byNum((l) => l.rooms, -1));
+      break;
+    case "size":
+      sorted.sort(byNum((l) => l.size_sqm, -1));
+      break;
+    case "newest":
+    default:
+      sorted.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+      break;
+  }
+  return sorted;
+}

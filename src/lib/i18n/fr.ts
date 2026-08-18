@@ -96,6 +96,9 @@ export const fr: Dict = {
         "De vraies annonces trouvées sur le web selon votre recherche, avec un lien vers la source.",
       remaining: (n: number) => ` ${n} analyses restantes aujourd'hui.`,
       match: "Correspondance :",
+      colSource: "Source",
+      colTitle: "Annonce",
+      colPrice: "Prix",
       source: "Annonce originale",
       talk: "Parlez-moi de ce bien",
       talkMsg: (agent: string, title: string, url: string) =>
@@ -136,6 +139,14 @@ export const fr: Dict = {
     allAreas: "Tous les quartiers",
     priceRanges: ["Jusqu'à 1 500 000 ₪", "1 500 000 – 2 000 000 ₪", "2 000 000 ₪ et plus"],
     found: (n: number) => `${n} biens trouvés`,
+    sortLabel: "Trier par",
+    sortOptions: {
+      newest: "Date d'ajout (plus récent d'abord)",
+      priceAsc: "Prix : croissant",
+      priceDesc: "Prix : décroissant",
+      rooms: "Nombre de pièces",
+      size: "Surface (m²)",
+    },
     personalAgent: "Agent personnel : alertes pour les nouveaux biens",
     noResultsTitle: "Aucun bien ne correspond à ces filtres",
     noResultsText: "Dites-nous ce que vous cherchez et nous trouverons le bien qui vous convient.",
@@ -171,6 +182,7 @@ export const fr: Dict = {
       elevator: "Ascenseur",
       parking: "Parking",
       balcony: "Balcon",
+      storage: "Débarras",
     },
     yes: "Oui",
     no: "Non",
@@ -300,9 +312,14 @@ export const fr: Dict = {
       "Honoraires au succès uniquement — vous ne payez que lorsque la transaction est conclue.",
   },
 
+  agentProfile: {
+    kicker: "L'agent de cette page",
+  },
+
   testimonials: {
     kicker: "Nos clients témoignent",
     title: "Témoignages clients",
+    watchVideo: "Voir la vidéo de recommandation",
     items: [
       {
         quote:
@@ -508,10 +525,13 @@ export const fr: Dict = {
       "רמת פולג": "Ramat Poleg",
       "עיר ימים": "Ir Yamim",
       "נאות הרצל": "Neot Herzl",
+      "נאות שקד": "Neot Shaked",
+      "נאות גנים": "Neot Ganim",
       אגמים: "Agamim",
       "פרדס הגדוד": "Pardes HaGdud",
       "מרכז העיר": "Centre-ville",
       "צפון מערב מרכז העיר": "Nord-ouest du centre-ville",
+      "צפון העיר": "Nord de la ville",
       "נוף הטיילת": "Nof HaTayelet",
       "עין התכלת": "Ein HaTchelet",
       "גבעת האירוסים": "Givat HaIrusim",

@@ -22,6 +22,9 @@ export const listingInputSchema = z.object({
   has_elevator: z.boolean().default(false),
   has_parking: z.boolean().default(false),
   has_balcony: z.boolean().default(false),
+  has_storage: z.boolean().default(false),
+  storage_count: optionalNumber.default(null),
+  parking_count: optionalNumber.default(null),
   tag: z.string().trim().max(20).nullable().default(null),
   image_url: z.string().trim().max(500).nullable().default(null),
   image_key: z.string().trim().max(60).nullable().default(null),
@@ -46,9 +49,12 @@ export const searchProfileSchema = z.object({
   deal_type: z.string().trim().max(20).default("מכירה"),
   city: z.string().trim().max(60).default("נתניה"),
   neighborhoods: z.array(z.string().trim().max(80)).max(20).default([]),
+  street: z.string().trim().max(80).nullable().default(null),
   min_price: optionalNumber.default(null),
   max_price: optionalNumber.default(null),
   min_rooms: optionalNumber.default(null),
+  rooms: optionalNumber.default(null),
+  max_rooms: optionalNumber.default(null),
   min_size: optionalNumber.default(null),
   needs_mamad: z.boolean().default(false),
   needs_elevator: z.boolean().default(false),
@@ -56,7 +62,33 @@ export const searchProfileSchema = z.object({
   needs_balcony: z.boolean().default(false),
   notes: z.string().trim().max(500).nullable().default(null),
   notify_email: z.boolean().default(true),
+  notify_whatsapp: z.boolean().default(false),
+  whatsapp_phone: z.string().trim().max(20).nullable().default(null),
   is_active: z.boolean().default(true),
 });
 
 export type SearchProfileInput = z.infer<typeof searchProfileSchema>;
+
+/* --------- ממליצים ושאלות נפוצות (נשמרים ב-site_content) --------- */
+
+export const testimonialSchema = z.object({
+  id: z.string().trim().min(1).max(60),
+  name: z.string().trim().min(1, "נדרש שם ממליץ").max(80),
+  type: z.string().trim().max(60).default(""),
+  quote: z.string().trim().min(2, "נדרש תוכן ההמלצה").max(600),
+  videoUrl: z
+    .string()
+    .trim()
+    .max(300)
+    .refine((v) => v === "" || v.startsWith("https://"), "קישור סרטון חייב להתחיל ב-https://")
+    .default(""),
+});
+
+export const faqItemSchema = z.object({
+  id: z.string().trim().min(1).max(60),
+  q: z.string().trim().min(2, "נדרשת שאלה").max(200),
+  a: z.string().trim().min(2, "נדרשת תשובה").max(1000),
+});
+
+export type TestimonialInput = z.infer<typeof testimonialSchema>;
+export type FaqItemInput = z.infer<typeof faqItemSchema>;

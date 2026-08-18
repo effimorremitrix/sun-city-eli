@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 400">
+  <defs>
+    <linearGradient id="sunGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFD84D"/>
+      <stop offset="1" stop-color="#EF9F26"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#sunGrad)">
+    <polygon points="404.7,280.4 466.3,255.3 399.8,257.4"/>
+    <polygon points="386.6,226.1 434.2,179.8 373.4,206.6"/>
+    <polygon points="349.4,182.6 376.2,121.8 329.9,169.4"/>
+    <polygon points="298.6,156.2 300.7,89.7 275.6,151.3"/>
+    <polygon points="236.4,151.3 211.3,89.7 213.4,156.2"/>
+    <polygon points="182.1,169.4 135.8,121.8 162.6,182.6"/>
+    <polygon points="138.6,206.6 77.8,179.8 125.4,226.1"/>
+    <polygon points="112.2,257.4 45.7,255.3 107.3,280.4"/>
+  </g>
+  <path d="M 126 300 A 130 130 0 0 1 386 300 Z" fill="url(#sunGrad)"/>
+  <rect x="26" y="300" width="460" height="16" rx="8" fill="url(#sunGrad)"/>
+  <!-- צללית גג הבית בתוך השמש -->
+  <path d="M 176 282 L 250 200 L 282 234 L 282 216 L 308 216 L 308 262 L 336 292 L 302 292 L 250 236 L 204 288 Z" fill="#0B0B0C"/>
+</svg>

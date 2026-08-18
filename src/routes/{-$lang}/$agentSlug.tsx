@@ -2,6 +2,7 @@ import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { Header } from "@/components/site/Header";
 import { Hero } from "@/components/site/Hero";
 import { Team } from "@/components/site/Team";
+import { AgentProfile } from "@/components/site/AgentProfile";
 import { PropertySection } from "@/components/site/PropertySection";
 import { SellerSection } from "@/components/site/SellerSection";
 import { BuyerSection } from "@/components/site/BuyerSection";
@@ -11,7 +12,6 @@ import { ContactSection, Footer } from "@/components/site/ContactSection";
 import { ItemsSection } from "@/components/site/ItemsSection";
 import { MobileBar } from "@/components/site/MobileBar";
 import { FloatingWhatsApp } from "@/components/site/FloatingWhatsApp";
-import { AccessibilityWidget } from "@/components/site/AccessibilityWidget";
 import { SoldSection } from "@/components/site/SoldSection";
 import { SiteLiveProvider, localizeLive, type LiveSite } from "@/lib/site-live";
 import { getPublicSite } from "@/lib/site.functions";
@@ -115,6 +115,8 @@ function AgentPageContent() {
         <Header />
         <main>
           <Hero />
+          {/* הפרופיל של סוכן הדף מוצג כראשי; יתר הסוכנים בקרוסלה מתחתיו */}
+          <AgentProfile />
           <Team agents={agents} variant="secondary" />
           <PropertySection listings={localizedListings} updatedAt={listingsUpdatedAt} />
           <ItemsSection />
@@ -130,7 +132,6 @@ function AgentPageContent() {
         <Footer />
         <MobileBar />
         <FloatingWhatsApp />
-        <AccessibilityWidget />
       </div>
     </SiteLiveProvider>
   );

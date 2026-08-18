@@ -19,14 +19,19 @@ import {
   ChevronRight,
   UserRound,
   Globe,
+  Warehouse,
+  ArrowUpDown,
+  PlayCircle,
 } from "lucide-react";
 import { neighborhoods, priceRanges, waProps, openWa, business } from "@/lib/site-data";
 import {
   formatListingPrice,
   listingImages,
   matchesFilters,
+  sortListings,
   type Listing,
   type ListingFilters,
+  type ListingSortKey,
 } from "@/lib/listings";
 
 import { aiSearchListings, type AiSearchResult } from "@/lib/ai-search.functions";
@@ -40,7 +45,10 @@ const featureIcons = {
   has_elevator: { key: "elevator", Icon: MoveVertical },
   has_parking: { key: "parking", Icon: Car },
   has_balcony: { key: "balcony", Icon: Trees },
+  has_storage: { key: "storage", Icon: Warehouse },
 } as const;
+
+const SORT_KEYS: ListingSortKey[] = ["newest", "priceAsc", "priceDesc", "rooms", "size"];
 
 type Props = { listings: Listing[]; updatedAt: string | null };
 
@@ -51,6 +59,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
   const [rooms, setRooms] = useState("all");
   const [range, setRange] = useState("all");
   const [area, setArea] = useState("all");
+  const [sort, setSort] = useState<ListingSortKey>("newest");
   const [selected, setSelected] = useState<Listing | null>(null);
 
   const [query, setQuery] = useState("");
@@ -76,8 +85,8 @@ export function PropertySection({ listings, updatedAt }: Props) {
   }, [listings, deal, rooms, range, area]);
 
   const filtered = useMemo(
-    () => (ai ? manual.filter((l) => ai.ids.includes(l.id)) : manual),
-    [manual, ai],
+    () => sortListings(ai ? manual.filter((l) => ai.ids.includes(l.id)) : manual, sort),
+    [manual, ai, sort],
   );
 
   const runAiSearch = async (e: React.FormEvent) => {
@@ -230,19 +239,41 @@ export function PropertySection({ listings, updatedAt }: Props) {
         <p className="text-sm text-muted-foreground" aria-live="polite">
           {t.properties.found(filtered.length)}
         </p>
-        <Link
-          to="/account"
-          className="inline-flex items-center gap-1.5 rounded-xl border border-sun px-4 py-2 text-sm font-bold text-primary"
-        >
-          <BellPlus className="size-4 text-sun" aria-hidden="true" />
-          {t.properties.personalAgent}
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* מיון התצוגה — ברירת המחדל: לפי תאריך הוספה */}
+          <label className="flex items-center gap-1.5 text-sm">
+            <ArrowUpDown className="size-4 text-sun" aria-hidden="true" />
+            <span className="text-xs font-bold text-muted-foreground">
+              {t.properties.sortLabel}
+            </span>
+            <select
+              className="field w-auto py-1.5"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as ListingSortKey)}
+              aria-label={t.properties.sortLabel}
+            >
+              {SORT_KEYS.map((key) => (
+                <option key={key} value={key}>
+                  {t.properties.sortOptions[key]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Link
+            to="/account"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-sun px-4 py-2 text-sm font-bold text-primary"
+          >
+            <BellPlus className="size-4 text-sun" aria-hidden="true" />
+            {t.properties.personalAgent}
+          </Link>
+        </div>
       </div>
 
+      {/* גובה אחיד לכל הכרטיסים: ה-Reveal והכרטיס נמתחים לגובה השורה */}
       <ul className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((p, i) => (
-          <li key={p.id}>
-            <Reveal delay={i * 60}>
+          <li key={p.id} className="h-full">
+            <Reveal delay={i * 60} className="h-full">
               <PropertyCard property={p} onOpen={() => setSelected(p)} />
             </Reveal>
           </li>
@@ -319,7 +350,7 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
 
       <div className="flex flex-1 flex-col p-4">
         <p className="font-display text-xl font-extrabold text-primary">{price}</p>
-        <h3 className="mt-1 text-base">{p.title}</h3>
+        <h3 className="mt-1 line-clamp-2 min-h-12 text-base">{p.title}</h3>
         <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
           <MapPin className="size-4 shrink-0 text-sun" aria-hidden="true" />
           {hood ?? noInfo}, {city}
@@ -364,7 +395,7 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
           </p>
         )}
 
-        <div className="mt-4 flex gap-2 pt-1">
+        <div className="mt-auto flex gap-2 pt-4">
           <button
             type="button"
             onClick={onOpen}
@@ -397,7 +428,14 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
   const { lang, dir, t } = useLang();
   const [form, setForm] = useState({ name: "", phone: "" });
   const [err, setErr] = useState<string | null>(null);
-  const gallery = listingImages(p);
+  // מדיה: תמונות וסרטונים שהועלו; אחרת נפילה לתמונה חיצונית/מקומית
+  const gallery = useMemo(() => {
+    const uploaded = (p.images ?? []).filter((m) => m.url);
+    if (uploaded.length) {
+      return uploaded.map((m) => ({ url: m.url, kind: m.kind === "video" ? "video" : "image" }));
+    }
+    return listingImages(p).map((url) => ({ url, kind: "image" as string }));
+  }, [p]);
   const [index, setIndex] = useState(0);
 
   const noInfo = t.misc.noInfo;
@@ -449,14 +487,29 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
           {gallery.length > 0 && (
             <div>
               <div className="relative">
-                <img
-                  src={gallery[index]!}
-                  alt={t.properties.galleryImgAlt(p.title, hood ?? city, index + 1, gallery.length)}
-                  width={1200}
-                  height={800}
-                  loading="lazy"
-                  className="aspect-[3/2] w-full rounded-xl object-cover"
-                />
+                {gallery[index]!.kind === "video" ? (
+                  <video
+                    key={gallery[index]!.url}
+                    src={gallery[index]!.url}
+                    controls
+                    preload="metadata"
+                    className="aspect-[3/2] w-full rounded-xl bg-primary object-contain"
+                  />
+                ) : (
+                  <img
+                    src={gallery[index]!.url}
+                    alt={t.properties.galleryImgAlt(
+                      p.title,
+                      hood ?? city,
+                      index + 1,
+                      gallery.length,
+                    )}
+                    width={1200}
+                    height={800}
+                    loading="lazy"
+                    className="aspect-[3/2] w-full rounded-xl object-cover"
+                  />
+                )}
                 {gallery.length > 1 && (
                   <>
                     {/* החיצים פיזיים: החץ השמאלי תמיד מציג את השכן משמאל, בהתאם לכיוון השפה */}
@@ -489,16 +542,22 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
 
               {gallery.length > 1 && (
                 <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-                  {gallery.map((src, i) => (
+                  {gallery.map((m, i) => (
                     <button
-                      key={src}
+                      key={m.url}
                       type="button"
                       onClick={() => setIndex(i)}
                       aria-label={t.properties.showImgAria(i + 1)}
                       aria-current={i === index}
                       className={`shrink-0 overflow-hidden rounded-lg border-2 ${i === index ? "border-sun" : "border-transparent"}`}
                     >
-                      <img src={src} alt="" className="h-16 w-24 object-cover" loading="lazy" />
+                      {m.kind === "video" ? (
+                        <span className="flex h-16 w-24 items-center justify-center bg-primary text-primary-foreground">
+                          <PlayCircle className="size-6" aria-hidden="true" />
+                        </span>
+                      ) : (
+                        <img src={m.url} alt="" className="h-16 w-24 object-cover" loading="lazy" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -526,8 +585,23 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
                   t.properties.features.elevator,
                   p.has_elevator ? t.properties.yes : t.properties.no,
                 ],
-                [t.properties.features.parking, p.has_parking ? t.properties.yes : t.properties.no],
+                [
+                  t.properties.features.parking,
+                  p.has_parking
+                    ? p.parking_count && p.parking_count > 1
+                      ? `${t.properties.yes} (${p.parking_count})`
+                      : t.properties.yes
+                    : t.properties.no,
+                ],
                 [t.properties.features.balcony, p.has_balcony ? t.properties.yes : t.properties.no],
+                [
+                  t.properties.features.storage,
+                  p.has_storage
+                    ? p.storage_count && p.storage_count > 1
+                      ? `${t.properties.yes} (${p.storage_count})`
+                      : t.properties.yes
+                    : t.properties.no,
+                ],
               ].map(([k, v]) => (
                 <tr key={k}>
                   <th scope="row" className="py-2 text-start font-semibold text-muted-foreground">
@@ -539,11 +613,23 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
             </tbody>
           </table>
 
-          {p.neighborhood && (
+          {(p.address || p.neighborhood) && (
             <div className="mt-4 overflow-hidden rounded-xl border border-border">
+              {/* המפה משתמשת בכתובת המלאה של הנכס (המדויקת ביותר), עם שכונה ועיר כהשלמה */}
               <iframe
-                title={t.properties.mapTitle(hood ?? p.neighborhood, city)}
-                src={`https://www.google.com/maps?q=${encodeURIComponent(`${p.neighborhood}, ${p.city}`)}&output=embed`}
+                title={t.properties.mapTitle(hood ?? p.neighborhood ?? p.address ?? "", city)}
+                src={`https://www.google.com/maps?q=${encodeURIComponent(
+                  [
+                    p.address,
+                    // אם הכתובת כבר כוללת את השכונה/העיר — לא מכפילים אותן
+                    p.neighborhood && !(p.address ?? "").includes(p.neighborhood)
+                      ? p.neighborhood
+                      : null,
+                    !(p.address ?? "").includes(p.city) ? p.city : null,
+                  ]
+                    .filter(Boolean)
+                    .join(", "),
+                )}&output=embed`}
                 loading="lazy"
                 className="h-56 w-full"
               />
@@ -653,53 +739,81 @@ function WebCandidates({
         {w.subtitle}
         {web.remaining != null && w.remaining(web.remaining)}
       </p>
-      <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {web.candidates.map((c) => (
-          <li key={c.source_url} className="soft-card flex h-full flex-col p-4">
-            <div className="flex items-center justify-between gap-2">
-              <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-secondary-foreground">
-                {c.source_site}
-              </span>
-              <span className="text-xs font-bold text-sun">
-                {w.match} {c.match_score}%
-              </span>
-            </div>
-            <h4 className="mt-2 text-base font-bold text-primary">{c.title}</h4>
-            <p className="mt-1 text-sm text-muted-foreground">
+      {/* תצוגה טבלאית של המודעות מהרשת */}
+      <div className="soft-card mt-4 overflow-x-auto">
+        <table className="w-full min-w-[40rem] text-sm">
+          <thead>
+            <tr className="border-b border-border text-start">
               {[
-                c.neighborhood,
-                c.rooms != null ? `${c.rooms} ${t.properties.roomsUnit}` : null,
-                c.size_sqm != null ? `${c.size_sqm} ${t.properties.sqm}` : null,
-                c.price != null ? formatListingPrice(c.price) : null,
-              ]
-                .filter(Boolean)
-                .join(" · ") || t.misc.noInfo}
-            </p>
-            {c.match_reason && (
-              <p className="mt-2 flex-1 text-xs leading-relaxed text-muted-foreground">
-                {c.match_reason}
-              </p>
-            )}
-            <div className="mt-3 flex gap-2">
-              <a
-                href={c.source_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center rounded-xl border border-primary/30 py-2 text-xs font-bold text-primary"
-              >
-                {w.source}
-              </a>
-              <a
-                {...waProps(w.talkMsg(agentName, c.title, c.source_url), agentPhone)}
-                className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-whatsapp py-2 text-xs font-bold text-whatsapp-foreground"
-              >
-                <MessageCircle className="size-3.5" aria-hidden="true" />
-                {w.talk}
-              </a>
-            </div>
-          </li>
-        ))}
-      </ul>
+                w.colSource,
+                w.colTitle,
+                w.colPrice,
+                t.properties.filterRooms,
+                t.properties.sqm,
+                w.match,
+                "",
+              ].map((h, i) => (
+                <th
+                  key={i}
+                  scope="col"
+                  className="px-3 py-2.5 text-start text-xs font-bold text-muted-foreground"
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {web.candidates.map((c) => (
+              <tr key={c.source_url} className="align-top">
+                <td className="px-3 py-2.5">
+                  <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-secondary-foreground">
+                    {c.source_site}
+                  </span>
+                </td>
+                <td className="px-3 py-2.5">
+                  <p className="font-bold text-primary">{c.title}</p>
+                  {c.neighborhood && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">{c.neighborhood}</p>
+                  )}
+                  {c.match_reason && (
+                    <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
+                      {c.match_reason}
+                    </p>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-3 py-2.5">
+                  {c.price != null ? formatListingPrice(c.price) : t.misc.noInfo}
+                </td>
+                <td className="whitespace-nowrap px-3 py-2.5">{c.rooms ?? t.misc.noInfo}</td>
+                <td className="whitespace-nowrap px-3 py-2.5">{c.size_sqm ?? t.misc.noInfo}</td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-xs font-bold text-sun">
+                  {c.match_score}%
+                </td>
+                <td className="px-3 py-2.5">
+                  <div className="flex gap-2">
+                    <a
+                      href={c.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="whitespace-nowrap rounded-xl border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary"
+                    >
+                      {w.source}
+                    </a>
+                    <a
+                      {...waProps(w.talkMsg(agentName, c.title, c.source_url), agentPhone)}
+                      className="flex items-center gap-1 whitespace-nowrap rounded-xl bg-whatsapp px-3 py-1.5 text-xs font-bold text-whatsapp-foreground"
+                    >
+                      <MessageCircle className="size-3.5" aria-hidden="true" />
+                      {w.talk}
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

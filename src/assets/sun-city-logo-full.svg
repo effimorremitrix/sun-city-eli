@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 560">
+  <defs>
+    <linearGradient id="sunGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFD84D"/>
+      <stop offset="1" stop-color="#EF9F26"/>
+    </linearGradient>
+    <linearGradient id="silverGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C7CCD4"/>
+      <stop offset="0.5" stop-color="#8E97A3"/>
+      <stop offset="1" stop-color="#5C6572"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#sunGrad)">
+    <polygon points="404.7,280.4 466.3,255.3 399.8,257.4"/>
+    <polygon points="386.6,226.1 434.2,179.8 373.4,206.6"/>
+    <polygon points="349.4,182.6 376.2,121.8 329.9,169.4"/>
+    <polygon points="298.6,156.2 300.7,89.7 275.6,151.3"/>
+    <polygon points="236.4,151.3 211.3,89.7 213.4,156.2"/>
+    <polygon points="182.1,169.4 135.8,121.8 162.6,182.6"/>
+    <polygon points="138.6,206.6 77.8,179.8 125.4,226.1"/>
+    <polygon points="112.2,257.4 45.7,255.3 107.3,280.4"/>
+  </g>
+  <path d="M 126 300 A 130 130 0 0 1 386 300 Z" fill="url(#sunGrad)"/>
+  <rect x="26" y="300" width="460" height="14" rx="7" fill="url(#sunGrad)"/>
+  <path d="M 176 282 L 250 200 L 282 234 L 282 216 L 308 216 L 308 262 L 336 292 L 302 292 L 250 236 L 204 288 Z" fill="#0B0B0C"/>
+  <text x="256" y="418" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-weight="700" font-size="118" letter-spacing="6" fill="url(#silverGrad)">CITY</text>
+  <rect x="116" y="496" width="280" height="14" rx="7" fill="#F5C518" transform="rotate(-1 256 503)"/>
+  <text x="256" y="478" text-anchor="middle" direction="rtl" font-family="'Heebo', 'Assistant', Arial, sans-serif" font-weight="800" font-size="32" letter-spacing="3" fill="#1B2A41">מחברים בין אנשים לנכסים</text>
+</svg>

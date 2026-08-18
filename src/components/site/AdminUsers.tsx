@@ -7,6 +7,7 @@ import {
   adminSetUserRole,
   adminDeleteUser,
   adminCreateAgentSite,
+  adminInviteAgent,
   type AdminUserRow,
 } from "@/lib/users.functions";
 
@@ -39,14 +40,22 @@ export function AdminUsers() {
   const [deleteTarget, setDeleteTarget] = useState<AdminUserRow | null>(null);
   const [confirmEmail, setConfirmEmail] = useState("");
   const createAgent = useServerFn(adminCreateAgentSite);
-  const [agentTarget, setAgentTarget] = useState<AdminUserRow | null>(null);
-  const [agentForm, setAgentForm] = useState({
+  const inviteAgent = useServerFn(adminInviteAgent);
+  // מצב המודל: קידום משתמש קיים לסוכן, או הזמנת סוכן חדש מאפס (במייל)
+  const [agentModal, setAgentModal] = useState<
+    { mode: "promote"; user: AdminUserRow } | { mode: "invite" } | null
+  >(null);
+  const emptyAgentForm = {
     slug: "",
     agentName: "",
     roleTitle: "",
     phone: "",
     email: "",
-  });
+    facebook: "",
+    instagram: "",
+    tiktok: "",
+  };
+  const [agentForm, setAgentForm] = useState(emptyAgentForm);
 
   const detail = useQuery({
     queryKey: ["admin-user-detail", openId],
@@ -84,7 +93,19 @@ export function AdminUsers() {
 
   return (
     <section className="soft-card mt-6 p-5">
-      <h2 className="text-lg font-extrabold text-primary">משתמשים רשומים</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-extrabold text-primary">משתמשים רשומים</h2>
+        <button
+          type="button"
+          className="rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground"
+          onClick={() => {
+            setAgentModal({ mode: "invite" });
+            setAgentForm(emptyAgentForm);
+          }}
+        >
+          + הוספת סוכן חדש
+        </button>
+      </div>
       <p className="mt-1 text-xs text-muted-foreground">
         מקור המידע: מסד הנתונים של האתר. שדה ללא נתון מוצג כ״{NONE}״.
       </p>
@@ -128,10 +149,16 @@ export function AdminUsers() {
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2 font-bold text-primary">
                     {val(u.full_name)}
-                    {u.is_admin && (
-                      <span className="rounded-full bg-sun/20 px-2 py-0.5 text-xs font-bold text-primary">
-                        מנהל
+                    {u.is_super_admin ? (
+                      <span className="rounded-full bg-sun px-2 py-0.5 text-xs font-bold text-sun-foreground">
+                        מנהל ראשי
                       </span>
+                    ) : (
+                      u.is_admin && (
+                        <span className="rounded-full bg-sun/20 px-2 py-0.5 text-xs font-bold text-primary">
+                          מנהל
+                        </span>
+                      )
                     )}
                     {u.is_agent && (
                       <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-primary">
@@ -174,12 +201,10 @@ export function AdminUsers() {
                           className="underline"
                           disabled={busy}
                           onClick={() => {
-                            setAgentTarget(u);
+                            setAgentModal({ mode: "promote", user: u });
                             setAgentForm({
-                              slug: "",
+                              ...emptyAgentForm,
                               agentName: u.full_name ?? "",
-                              roleTitle: "",
-                              phone: "",
                               email: u.email ?? "",
                             });
                           }}
@@ -230,6 +255,9 @@ export function AdminUsers() {
                             טווח מחיר: {money(p.min_price)} – {money(p.max_price)}
                           </div>
                           <div>מינימום חדרים: {val(p.min_rooms)}</div>
+                          <div>חדרים (מדויק): {val(p.rooms)}</div>
+                          <div>מקסימום חדרים: {val(p.max_rooms)}</div>
+                          <div>רחוב: {val(p.street)}</div>
                           <div>מינימום מ״ר: {val(p.min_size)}</div>
                           <div>
                             דרישות:{" "}
@@ -243,6 +271,10 @@ export function AdminUsers() {
                               .join(", ") || NONE}
                           </div>
                           <div>התראות במייל: {p.notify_email ? "כן" : "לא"}</div>
+                          <div>
+                            התראות בוואטסאפ:{" "}
+                            {p.notify_whatsapp ? `כן (${val(p.whatsapp_phone)})` : "לא"}
+                          </div>
                           <div className="sm:col-span-2">הערות: {val(p.notes)}</div>
                           <div className="sm:col-span-2">נוצר ב־{fmtDate(p.created_at)}</div>
                         </dl>
@@ -256,14 +288,17 @@ export function AdminUsers() {
         })}
       </ul>
 
-      {/* הקמת סוכן עם דף אישי */}
-      {agentTarget && (
+      {/* הקמת סוכן עם דף אישי (קידום משתמש קיים או הזמנה של סוכן חדש במייל) */}
+      {agentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/50 p-4">
-          <div className="soft-card w-full max-w-md bg-background p-5">
-            <h3 className="text-base font-extrabold text-primary">הקמת דף אישי לסוכן</h3>
+          <div className="soft-card max-h-[90vh] w-full max-w-md overflow-y-auto bg-background p-5">
+            <h3 className="text-base font-extrabold text-primary">
+              {agentModal.mode === "invite" ? "הוספת סוכן חדש" : "הקמת דף אישי לסוכן"}
+            </h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              {val(agentTarget.full_name)} יקבל תפקיד סוכן ודף אישי בכתובת /‏slug באותו עיצוב של
-              האתר. הנכסים שיעלה ישויכו אליו והפניות עליהם ינותבו אליו.
+              {agentModal.mode === "invite"
+                ? "אם המייל לא רשום עדיין — ייווצר חשבון והסוכן יקבל מייל הזמנה להגדרת סיסמה. בכל מקרה יוקם לו דף אישי בכתובת /‏slug באותו עיצוב של האתר."
+                : `${val(agentModal.user.full_name)} יקבל תפקיד סוכן ודף אישי בכתובת /‏slug באותו עיצוב של האתר. הנכסים שיעלה ישויכו אליו והפניות עליהם ינותבו אליו.`}
             </p>
             <div className="mt-3 grid gap-3">
               <label className="block">
@@ -312,37 +347,98 @@ export function AdminUsers() {
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                  מייל להצגה בדף
+                  {agentModal.mode === "invite"
+                    ? "מייל הסוכן (אליו תישלח ההזמנה)"
+                    : "מייל להצגה בדף"}
                 </span>
                 <input
                   className="field"
                   dir="ltr"
                   value={agentForm.email}
                   onChange={(e) => setAgentForm({ ...agentForm, email: e.target.value })}
+                  placeholder="agent@example.com"
                 />
               </label>
+              <fieldset className="rounded-xl border border-border p-3">
+                <legend className="px-1 text-xs font-bold text-muted-foreground">
+                  רשתות חברתיות של הסוכן (יוצגו בראש הדף האישי שלו)
+                </legend>
+                <div className="grid gap-2">
+                  {(
+                    [
+                      ["facebook", "קישור פייסבוק"],
+                      ["instagram", "קישור אינסטגרם"],
+                      ["tiktok", "קישור טיקטוק"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <label key={key} className="block">
+                      <span className="mb-1 block text-xs text-muted-foreground">{label}</span>
+                      <input
+                        className="field"
+                        dir="ltr"
+                        value={agentForm[key]}
+                        onChange={(e) => setAgentForm({ ...agentForm, [key]: e.target.value })}
+                        placeholder={`https://www.${key}.com/...`}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
             </div>
             <div className="mt-4 flex gap-3">
               <button
                 type="button"
-                disabled={busy || !agentForm.slug.trim() || !agentForm.agentName.trim()}
+                disabled={
+                  busy ||
+                  !agentForm.slug.trim() ||
+                  !agentForm.agentName.trim() ||
+                  (agentModal.mode === "invite" && !agentForm.email.trim())
+                }
                 className="flex-1 rounded-xl bg-sun py-3 text-sm font-bold text-sun-foreground disabled:opacity-60"
                 onClick={async () => {
-                  const t = agentTarget;
+                  const modal = agentModal;
                   const f = agentForm;
-                  setAgentTarget(null);
-                  await run(
-                    () => createAgent({ data: { userId: t.id, ...f } }),
-                    `הדף האישי הוקם בכתובת /${f.slug}`,
-                  );
+                  const social = { facebook: f.facebook, instagram: f.instagram, tiktok: f.tiktok };
+                  setAgentModal(null);
+                  if (modal.mode === "invite") {
+                    await run(async () => {
+                      const res = await inviteAgent({
+                        data: {
+                          email: f.email,
+                          slug: f.slug,
+                          agentName: f.agentName,
+                          roleTitle: f.roleTitle,
+                          phone: f.phone,
+                          social,
+                        },
+                      });
+                      if (res.inviteNote) setMsg(res.inviteNote);
+                    }, `הסוכן נוסף והדף האישי הוקם בכתובת /${f.slug}`);
+                  } else {
+                    await run(
+                      () =>
+                        createAgent({
+                          data: {
+                            userId: modal.user.id,
+                            slug: f.slug,
+                            agentName: f.agentName,
+                            roleTitle: f.roleTitle,
+                            phone: f.phone,
+                            email: f.email,
+                            social,
+                          },
+                        }),
+                      `הדף האישי הוקם בכתובת /${f.slug}`,
+                    );
+                  }
                 }}
               >
-                הקמת הדף
+                {agentModal.mode === "invite" ? "הוספת הסוכן" : "הקמת הדף"}
               </button>
               <button
                 type="button"
                 className="rounded-xl border border-primary/30 px-5 py-3 text-sm font-bold text-primary"
-                onClick={() => setAgentTarget(null)}
+                onClick={() => setAgentModal(null)}
               >
                 ביטול
               </button>

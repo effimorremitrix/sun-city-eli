@@ -1,7 +1,5 @@
 import heroImg from "@/assets/hero-apartment.jpg";
-import logoAsset from "@/assets/sun-city-logo-real.png.asset.json";
-
-const logo = logoAsset.url;
+import logo from "@/assets/sun-city-logo-full.svg";
 import { SITE_CONFIG } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
 import { useLang } from "@/lib/i18n";
@@ -22,8 +20,8 @@ export function Hero() {
           src={logo}
           alt={t.hero.logoAlt}
           width={160}
-          height={160}
-          className="size-24 md:size-32"
+          height={175}
+          className="h-28 w-auto md:h-40"
         />
         <p className="mt-3 font-display text-3xl font-extrabold tracking-tight text-primary md:text-5xl">
           {business.agentName} <span className="text-sun">·</span> {business.name}

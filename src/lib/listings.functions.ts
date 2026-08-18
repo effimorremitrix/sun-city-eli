@@ -130,7 +130,11 @@ export const adminAddListingImages = createServerFn({ method: "POST" })
   .inputValidator(
     (input: {
       listing_id: string;
-      items: Array<{ storage_path?: string | null; external_url?: string | null }>;
+      items: Array<{
+        storage_path?: string | null;
+        external_url?: string | null;
+        kind?: "image" | "video";
+      }>;
     }) => input,
   )
   .handler(async ({ data, context }) => {
@@ -149,12 +153,13 @@ export const adminAddListingImages = createServerFn({ method: "POST" })
     if (countError) throw new Error(countError.message);
 
     const start = (existing ?? []).length;
-    if (start + data.items.length > 10) throw new Error("אפשר עד 10 תמונות לנכס");
+    if (start + data.items.length > 12) throw new Error("אפשר עד 12 פריטי מדיה לנכס");
 
     const rows = data.items.map((item, index) => ({
       listing_id: data.listing_id,
       storage_path: item.storage_path ?? null,
       external_url: item.external_url ?? null,
+      kind: item.kind === "video" ? "video" : "image",
       sort_order: start + index,
     }));
 

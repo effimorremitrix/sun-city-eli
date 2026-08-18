@@ -1,9 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { BellRing, Sparkles, LogOut, User } from "lucide-react";
-import AdminGuide from "@/components/site/AdminGuide";
 import {
   getMyAccount,
   saveMySearchProfile,
@@ -12,17 +11,37 @@ import {
   updateMyProfile,
   type SearchProfileRow,
 } from "@/lib/account.functions";
+import { claimAdminRole } from "@/lib/site.functions";
+import { adminScoutNewCount } from "@/lib/scout.functions";
 import { formatListingPrice } from "@/lib/listings";
 import { neighborhoods } from "@/lib/site-data";
 import { formatUpdated } from "@/lib/site-live";
 import { useAuth } from "@/hooks/useAuth";
 import AccountSettings from "@/components/site/AccountSettings";
+import { AdminPanel, type AdminTabKey } from "@/components/site/AdminPanel";
 
 const title = 'האזור האישי | סאן סיטי נדל"ן';
 const description =
   "האזור האישי שלכם: הגדרת סוכן אישי, פרופיל חיפוש דירה בנתניה והתראות על נכסים חדשים.";
 
+type TabKey = "overview" | AdminTabKey;
+
+const TAB_KEYS: TabKey[] = [
+  "overview",
+  "listings",
+  "sold",
+  "scout",
+  "content",
+  "publish",
+  "users",
+  "usage",
+];
+
 export const Route = createFileRoute("/_authenticated/account")({
+  validateSearch: (search: Record<string, unknown>): { tab?: TabKey } => {
+    const tab = search["tab"];
+    return TAB_KEYS.includes(tab as TabKey) ? { tab: tab as TabKey } : {};
+  },
   head: () => ({
     meta: [
       { title },
@@ -43,9 +62,12 @@ type ProfileForm = {
   deal_type: string;
   city: string;
   neighborhoods: string[];
+  street: string;
   min_price: string;
   max_price: string;
   min_rooms: string;
+  rooms: string;
+  max_rooms: string;
   min_size: string;
   needs_mamad: boolean;
   needs_elevator: boolean;
@@ -53,6 +75,8 @@ type ProfileForm = {
   needs_balcony: boolean;
   notes: string;
   notify_email: boolean;
+  notify_whatsapp: boolean;
+  whatsapp_phone: string;
   is_active: boolean;
 };
 
@@ -61,9 +85,12 @@ const emptyProfile: ProfileForm = {
   deal_type: "מכירה",
   city: "נתניה",
   neighborhoods: [],
+  street: "",
   min_price: "",
   max_price: "",
   min_rooms: "",
+  rooms: "",
+  max_rooms: "",
   min_size: "",
   needs_mamad: false,
   needs_elevator: false,
@@ -71,6 +98,8 @@ const emptyProfile: ProfileForm = {
   needs_balcony: false,
   notes: "",
   notify_email: true,
+  notify_whatsapp: false,
+  whatsapp_phone: "",
   is_active: true,
 };
 
@@ -80,9 +109,12 @@ const toForm = (p: SearchProfileRow): ProfileForm => ({
   deal_type: p.deal_type,
   city: p.city,
   neighborhoods: p.neighborhoods ?? [],
+  street: p.street ?? "",
   min_price: p.min_price == null ? "" : String(p.min_price),
   max_price: p.max_price == null ? "" : String(p.max_price),
   min_rooms: p.min_rooms == null ? "" : String(p.min_rooms),
+  rooms: p.rooms == null ? "" : String(p.rooms),
+  max_rooms: p.max_rooms == null ? "" : String(p.max_rooms),
   min_size: p.min_size == null ? "" : String(p.min_size),
   needs_mamad: p.needs_mamad,
   needs_elevator: p.needs_elevator,
@@ -90,20 +122,24 @@ const toForm = (p: SearchProfileRow): ProfileForm => ({
   needs_balcony: p.needs_balcony,
   notes: p.notes ?? "",
   notify_email: p.notify_email,
+  notify_whatsapp: p.notify_whatsapp ?? false,
+  whatsapp_phone: p.whatsapp_phone ?? "",
   is_active: p.is_active,
 });
 
 const num = (v: string) => (v.trim() === "" ? null : Number(v));
 
-type AccountTabKey = "overview" | "guide";
-
 function AccountPage() {
   const { user, logout, refresh } = useAuth();
+  const navigate = useNavigate();
+  const search = Route.useSearch();
   const fetchAccount = useServerFn(getMyAccount);
   const saveProfile = useServerFn(saveMySearchProfile);
   const removeProfile = useServerFn(deleteMySearchProfile);
   const markRead = useServerFn(markNotificationRead);
   const updateProfile = useServerFn(updateMyProfile);
+  const claim = useServerFn(claimAdminRole);
+  const fetchScoutCount = useServerFn(adminScoutNewCount);
 
   const account = useQuery({ queryKey: ["my-account"], queryFn: () => fetchAccount() });
   const [form, setForm] = useState<ProfileForm>(emptyProfile);
@@ -112,7 +148,25 @@ function AccountPage() {
   const [err, setErr] = useState<string | null>(null);
   const [nameInput, setNameInput] = useState("");
   const [editingName, setEditingName] = useState(false);
-  const [tab, setTab] = useState<AccountTabKey>("overview");
+
+  const isAdmin = account.data?.isAdmin === true;
+  const isSuperAdmin = account.data?.isSuperAdmin === true;
+  const isManager = isAdmin || account.data?.isAgent === true;
+
+  const tab: TabKey = isManager ? (search.tab ?? "overview") : "overview";
+  const setTab = (next: TabKey) =>
+    void navigate({
+      to: "/account",
+      search: next === "overview" ? {} : { tab: next },
+      replace: true,
+    });
+
+  const scoutCount = useQuery({
+    queryKey: ["scout-new-count"],
+    queryFn: () => fetchScoutCount(),
+    enabled: isSuperAdmin,
+  });
+  const newCount = scoutCount.data?.count ?? 0;
 
   const run = async (fn: () => Promise<unknown>, okMsg: string) => {
     setBusy(true);
@@ -146,9 +200,12 @@ function AccountPage() {
           deal_type: form.deal_type,
           city: form.city || "נתניה",
           neighborhoods: form.neighborhoods,
+          street: form.street.trim() === "" ? null : form.street.trim(),
           min_price: num(form.min_price),
           max_price: num(form.max_price),
           min_rooms: num(form.min_rooms),
+          rooms: num(form.rooms),
+          max_rooms: num(form.max_rooms),
           min_size: num(form.min_size),
           needs_mamad: form.needs_mamad,
           needs_elevator: form.needs_elevator,
@@ -156,6 +213,8 @@ function AccountPage() {
           needs_balcony: form.needs_balcony,
           notes: form.notes.trim() === "" ? null : form.notes.trim(),
           notify_email: form.notify_email,
+          notify_whatsapp: form.notify_whatsapp,
+          whatsapp_phone: form.whatsapp_phone.trim() === "" ? null : form.whatsapp_phone.trim(),
           is_active: form.is_active,
         },
       });
@@ -166,11 +225,15 @@ function AccountPage() {
   const unread = notifications.filter((n) => !n.read_at).length;
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
+    <main className="mx-auto max-w-4xl px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold text-primary">
-            {user?.fullName ? `שלום, ${user.fullName}` : "האזור האישי שלי"}
+            {isManager
+              ? "האזור האישי ואזור הניהול"
+              : user?.fullName
+                ? `שלום, ${user.fullName}`
+                : "האזור האישי שלי"}
           </h1>
           {user?.email && <p className="text-xs text-muted-foreground">{user.email}</p>}
         </div>
@@ -178,11 +241,6 @@ function AccountPage() {
           <Link to="/" className="underline">
             לאתר
           </Link>
-          {(account.data?.isAdmin || account.data?.isAgent) && (
-            <Link to="/admin" className="underline">
-              אזור ניהול
-            </Link>
-          )}
           <button
             type="button"
             onClick={logout}
@@ -206,14 +264,28 @@ function AccountPage() {
         </p>
       )}
 
-      {/* טאבים — מוצגים למנהל ולסוכנים */}
-      {(account.data?.isAdmin || account.data?.isAgent) && (
+      {/* טאבים מאוחדים — האזור האישי + כל טאבי הניהול (למנהל ולסוכנים) */}
+      {isManager && (
         <div className="mt-6 flex flex-wrap gap-2" role="tablist">
           {(
             [
               ["overview", "החשבון שלי"],
-              ["guide", account.data?.isAdmin ? "מדריך למנהל" : "מדריך לסוכן"],
-            ] as Array<[AccountTabKey, string]>
+              ["listings", "נכסים"],
+              ["sold", "נמכרו"],
+              ...(isSuperAdmin
+                ? ([["scout", newCount > 0 ? `סוכן סריקה (${newCount})` : "סוכן סריקה"]] as Array<
+                    [TabKey, string]
+                  >)
+                : []),
+              ["content", "תוכן העסק"],
+              ["publish", "פרסום"],
+              ...(isSuperAdmin
+                ? ([
+                    ["users", "משתמשים רשומים"],
+                    ["usage", "שימוש (Usage)"],
+                  ] as Array<[TabKey, string]>)
+                : []),
+            ] as Array<[TabKey, string]>
           ).map(([key, label]) => (
             <button
               key={key}
@@ -233,11 +305,10 @@ function AccountPage() {
         </div>
       )}
 
-      {(account.data?.isAdmin || account.data?.isAgent) && tab === "guide" && (
-        <AdminGuide isAdmin={account.data?.isAdmin ?? false} />
-      )}
+      {/* טאבי הניהול — הלוח המלא */}
+      {isManager && tab !== "overview" && <AdminPanel tab={tab} />}
 
-      {((!account.data?.isAdmin && !account.data?.isAgent) || tab === "overview") && (
+      {tab === "overview" && (
         <>
           {/* פרטי פרופיל */}
           <section className="soft-card mt-6 p-5">
@@ -303,26 +374,27 @@ function AccountPage() {
             )}
           </section>
 
-          {account.data?.isAdmin && (
+          {isSuperAdmin && (
             <section className="soft-card mt-6 p-5">
               <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
                 <Sparkles className="size-5 text-sun" aria-hidden="true" />
-                הסוכן שלך נמצא באזור הניהול
+                הסוכן שלך נמצא בטאב "סוכן סריקה"
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 הסוכן האישי וההתראות באזור זה נבנו עבור לקוחות המשרד. הסוכן שלך סורק את האינטרנט
-                ומציע נכסים להעלאה לאתר — הוא נמצא בטאב "סוכן סריקה" באזור הניהול.
+                ומציע נכסים להעלאה לאתר — הוא נמצא בטאב "סוכן סריקה" למעלה.
               </p>
-              <Link
-                to="/admin"
+              <button
+                type="button"
+                onClick={() => setTab("scout")}
                 className="mt-4 inline-flex rounded-xl bg-sun px-5 py-3 text-sm font-bold text-sun-foreground"
               >
                 מעבר לסוכן הסריקה
-              </Link>
+              </button>
             </section>
           )}
 
-          {!account.data?.isAdmin && (
+          {!isAdmin && (
             <>
               {/* התראות */}
               <section className="soft-card mt-6 p-5">
@@ -380,8 +452,8 @@ function AccountPage() {
                   הסוכן האישי שלי
                 </h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  הגדירו את פרופיל הנכס שאתם מחפשים. בכל פעם שהמשרד יפרסם נכס תואם — תקבלו התראה כאן
-                  ובמייל.
+                  הגדירו את פרופיל הנכס שאתם מחפשים. בכל פעם שהמשרד יפרסם נכס תואם — תקבלו התראה
+                  כאן, במייל ואם תבחרו גם בוואטסאפ.
                 </p>
 
                 <ul className="mt-4 grid gap-3">
@@ -401,7 +473,13 @@ function AccountPage() {
                             {p.max_price
                               ? `עד ${p.max_price.toLocaleString("he-IL")} ₪`
                               : "בלי הגבלת מחיר"}{" "}
-                            · {p.min_rooms ? `${p.min_rooms}+ חדרים` : "כל מספר חדרים"}
+                            ·{" "}
+                            {p.rooms
+                              ? `${p.rooms} חדרים`
+                              : p.min_rooms
+                                ? `${p.min_rooms}+ חדרים`
+                                : "כל מספר חדרים"}
+                            {p.street ? ` · רחוב ${p.street}` : ""}
                           </p>
                         </div>
                         <div className="flex gap-2 text-sm">
@@ -467,6 +545,31 @@ function AccountPage() {
                   </label>
                   <label className="block">
                     <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                      רחוב (אופציונלי)
+                    </span>
+                    <input
+                      className="field"
+                      value={form.street}
+                      maxLength={80}
+                      placeholder="למשל: גולדה מאיר"
+                      onChange={(e) => setForm({ ...form, street: e.target.value })}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                      חדרים (מדויק, ±חצי חדר)
+                    </span>
+                    <input
+                      className="field"
+                      type="number"
+                      step="0.5"
+                      dir="ltr"
+                      value={form.rooms}
+                      onChange={(e) => setForm({ ...form, rooms: e.target.value })}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
                       מחיר מינימלי (₪)
                     </span>
                     <input
@@ -500,6 +603,19 @@ function AccountPage() {
                       dir="ltr"
                       value={form.min_rooms}
                       onChange={(e) => setForm({ ...form, min_rooms: e.target.value })}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                      חדרים (מקסימום)
+                    </span>
+                    <input
+                      className="field"
+                      type="number"
+                      step="0.5"
+                      dir="ltr"
+                      value={form.max_rooms}
+                      onChange={(e) => setForm({ ...form, max_rooms: e.target.value })}
                     />
                   </label>
                   <label className="block">
@@ -558,6 +674,7 @@ function AccountPage() {
                       ["needs_parking", "חניה"],
                       ["needs_balcony", "מרפסת"],
                       ["notify_email", "לקבל התראות במייל"],
+                      ["notify_whatsapp", "לקבל התראות בוואטסאפ"],
                       ["is_active", "פרופיל פעיל"],
                     ] as Array<[keyof ProfileForm, string]>
                   ).map(([key, label]) => (
@@ -571,6 +688,22 @@ function AccountPage() {
                     </label>
                   ))}
                 </div>
+
+                {form.notify_whatsapp && (
+                  <label className="mt-3 block max-w-xs">
+                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                      מספר וואטסאפ להתראות
+                    </span>
+                    <input
+                      className="field"
+                      dir="ltr"
+                      value={form.whatsapp_phone}
+                      maxLength={20}
+                      placeholder="050-1234567"
+                      onChange={(e) => setForm({ ...form, whatsapp_phone: e.target.value })}
+                    />
+                  </label>
+                )}
 
                 <div className="mt-5 flex gap-3">
                   <button
@@ -596,6 +729,18 @@ function AccountPage() {
           )}
 
           <AccountSettings />
+
+          {/* הקמה ראשונה של המערכת: כשאין עדיין אף מנהל */}
+          {!account.isLoading && !isManager && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => run(() => claim(), "קיבלת הרשאת ניהול")}
+              className="mt-6 block w-full text-center text-xs text-muted-foreground underline"
+            >
+              הגדרת החשבון הזה כמנהל הראשון של המערכת
+            </button>
+          )}
         </>
       )}
     </main>

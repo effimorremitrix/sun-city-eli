@@ -64,10 +64,26 @@ export type LiveItem = {
   translations?: Partial<Record<string, LiveItemTranslation>> | null;
 };
 
+/** ממליץ/עדות לקוח — נערך באזור הניהול; videoUrl אופציונלי לסרטון המלצה */
+export type LiveTestimonial = {
+  id: string;
+  name: string;
+  type: string;
+  quote: string;
+  videoUrl?: string;
+};
+
+/** שאלה נפוצה — נערכת באזור הניהול */
+export type LiveFaqItem = { id: string; q: string; a: string };
+
 export type LiveSite = {
   business: LiveBusiness;
   texts: LiveTexts;
   items: LiveItem[];
+  /** ממליצים מהמסד — null = להשתמש בתוכן הסטטי מהמילונים */
+  testimonials: LiveTestimonial[] | null;
+  /** שאלות נפוצות מהמסד — null = להשתמש בתוכן הסטטי מהמילונים */
+  faq: LiveFaqItem[] | null;
   /** תרגומי התוכן שנשמרו במסד הנתונים, לפי קוד שפה */
   translations?: LiveTranslations;
   /** תאריך העדכון האחרון של התוכן במסד הנתונים (ISO) — null כשאין רשומה */
@@ -106,6 +122,8 @@ export const DEFAULT_LIVE: LiveSite = {
   business: DEFAULT_BUSINESS,
   texts: DEFAULT_TEXTS,
   items: [],
+  testimonials: null,
+  faq: null,
   updatedAt: null,
   siteId: null,
   slug: null,
@@ -120,6 +138,8 @@ export function mergeLive(raw: unknown): LiveSite {
     business?: Partial<LiveBusiness>;
     texts?: Partial<LiveTexts>;
     items?: LiveItem[];
+    testimonials?: LiveTestimonial[] | null;
+    faq?: LiveFaqItem[] | null;
     translations?: LiveTranslations;
     updated_at?: string | null;
   };
@@ -132,6 +152,9 @@ export function mergeLive(raw: unknown): LiveSite {
     business,
     texts: { ...DEFAULT_TEXTS, ...(data.texts ?? {}) },
     items: Array.isArray(data.items) ? data.items : [],
+    testimonials:
+      Array.isArray(data.testimonials) && data.testimonials.length > 0 ? data.testimonials : null,
+    faq: Array.isArray(data.faq) && data.faq.length > 0 ? data.faq : null,
     translations:
       data.translations && typeof data.translations === "object" ? data.translations : {},
     updatedAt: data.updated_at ?? null,
