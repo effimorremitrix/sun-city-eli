@@ -635,30 +635,36 @@ export type Database = {
       site_content: {
         Row: {
           business: Json
+          faq: Json | null
           hours: Json
           images: Json
           settings: Json
           site_id: string
+          testimonials: Json | null
           texts: Json
           translations: Json
           updated_at: string
         }
         Insert: {
           business?: Json
+          faq?: Json | null
           hours?: Json
           images?: Json
           settings?: Json
           site_id: string
+          testimonials?: Json | null
           texts?: Json
           translations?: Json
           updated_at?: string
         }
         Update: {
           business?: Json
+          faq?: Json | null
           hours?: Json
           images?: Json
           settings?: Json
           site_id?: string
+          testimonials?: Json | null
           texts?: Json
           translations?: Json
           updated_at?: string
