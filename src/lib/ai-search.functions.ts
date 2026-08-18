@@ -92,7 +92,8 @@ export const aiSearchListings = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<AiSearchResult> => {
     const { publicDb } = await import("@/lib/public-db.server");
     const { extractFilters } = await import("@/lib/ai-search.server");
-    const { LISTING_COLUMNS, matchesFilters } = await import("@/lib/listings");
+    const { LISTING_COLUMNS, matchesFilters, streetVocabulary, matchQueryStreet } =
+      await import("@/lib/listings");
     const { neighborhoods } = await import("@/lib/site-data");
     const { getOptionalUserId } = await import("@/lib/optional-auth.server");
 
@@ -100,7 +101,6 @@ export const aiSearchListings = createServerFn({ method: "POST" })
     if (!db) throw new Error("החיפוש אינו זמין כרגע");
 
     const userId = await getOptionalUserId();
-    const { filters, explanation } = await extractFilters(data.query, [...neighborhoods], userId);
 
     const { data: rows, error } = await db
       .from("listings")
@@ -108,6 +108,41 @@ export const aiSearchListings = createServerFn({ method: "POST" })
       .eq("is_published", true)
       .order("sort_order", { ascending: true });
     if (error) throw new Error("טעינת הנכסים נכשלה");
+
+    // אוצר הרחובות מהנכסים המפורסמים נשלח למודל כדי שיזהה שם רחוב בודד (למשל "זוארץ")
+    const streets = streetVocabulary(
+      (rows ?? []) as Array<{ address: string | null; title: string }>,
+      [...neighborhoods],
+    );
+    let { filters, explanation } = await extractFilters(
+      data.query,
+      [...neighborhoods],
+      userId,
+      streets,
+    );
+
+    // רשת ביטחון דטרמיניסטית: אם המודל לא חילץ אף פילטר אבל הבקשה מכילה רחוב מוכר
+    const hasAnyFilter =
+      filters.deal_type != null ||
+      (filters.neighborhoods?.length ?? 0) > 0 ||
+      filters.street != null ||
+      filters.min_price != null ||
+      filters.max_price != null ||
+      filters.rooms != null ||
+      filters.min_rooms != null ||
+      filters.max_rooms != null ||
+      filters.min_size != null ||
+      Boolean(filters.needs_mamad) ||
+      Boolean(filters.needs_elevator) ||
+      Boolean(filters.needs_parking) ||
+      Boolean(filters.needs_balcony);
+    if (!hasAnyFilter) {
+      const street = matchQueryStreet(data.query, streets);
+      if (street) {
+        filters = { ...filters, street };
+        explanation = `מציג נכסים ברחוב ${street} בנתניה`;
+      }
+    }
 
     const matched = (rows ?? []).filter((l) => matchesFilters(l as never, filters));
 

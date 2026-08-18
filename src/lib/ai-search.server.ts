@@ -8,7 +8,7 @@ const SYSTEM_PROMPT = `אתה עוזר חיפוש נכסים של משרד תי�
 - "X חדרים" (למשל "3 חדרים") = rooms:X — מספר מדויק, לא מינימום.
 - "לפחות X חדרים" / "X+ חדרים" / "מינימום X" = min_rooms:X.
 - "עד X חדרים" = max_rooms:X.
-שם רחוב או כתובת (למשל "גולדה מאיר", "שבטי ישראל 19") אינו שכונה — החזר אותו בשדה street (ללא מספר בית אם אינו הכרחי). בשדה neighborhoods החזר רק שכונות מהרשימה המותרת.
+שם רחוב או כתובת (למשל "גולדה מאיר", "שבטי ישראל 19") אינו שכונה — החזר אותו בשדה street (ללא מספר בית אם אינו הכרחי). בשדה neighborhoods החזר רק שכונות מהרשימה המותרת. אם הבקשה כולה היא שם רחוב בלבד — זו בקשה תקינה: החזר street והסבר קצר, אל תציין שלא הבנת.
 אם משהו לא נאמר במפורש — השאר null או false. "קרוב לים" אינו פילטר; התעלם ממנו בפילטרים ורק הזכר בהסבר.`;
 
 export type AiFilterResult = { filters: ListingFilters; explanation: string };
@@ -62,6 +62,7 @@ export async function extractFilters(
   query: string,
   neighborhoods: string[],
   userId: string | null = null,
+  streets: string[] = [],
 ): Promise<AiFilterResult> {
   const { AI_MODEL, logAiUsage } = await import("@/lib/ai-usage.server");
   const apiKey = process.env["ANTHROPIC_API_KEY"];
@@ -87,7 +88,11 @@ export async function extractFilters(
       body: JSON.stringify({
         model: AI_MODEL,
         max_tokens: 600,
-        system: `${SYSTEM_PROMPT}\nשכונות מותרות: ${neighborhoods.join(", ")}`,
+        system: `${SYSTEM_PROMPT}\nשכונות מותרות: ${neighborhoods.join(", ")}${
+          streets.length
+            ? `\nרחובות מוכרים בנכסי המשרד: ${streets.join(", ")}\nאם מילה בבקשה תואמת רחוב מהרשימה (גם עם תחילית "ב", וגם כשהבקשה היא שם הרחוב בלבד) — החזר אותה בשדה street.`
+            : ""
+        }`,
         messages: [{ role: "user", content: query }],
       }),
     });
