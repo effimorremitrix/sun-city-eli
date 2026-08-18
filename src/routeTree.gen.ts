@@ -9,8 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AgentSlugRouteImport } from './routes/$agentSlug'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AccessibilityRouteImport } from './routes/accessibility'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -18,25 +16,11 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as EnIndexRouteImport } from './routes/en/index'
-import { Route as EnAgentSlugRouteImport } from './routes/en/$agentSlug'
-import { Route as FrIndexRouteImport } from './routes/fr/index'
-import { Route as FrAgentSlugRouteImport } from './routes/fr/$agentSlug'
-import { Route as RuIndexRouteImport } from './routes/ru/index'
-import { Route as RuAgentSlugRouteImport } from './routes/ru/$agentSlug'
+import { Route as Char123LangChar125IndexRouteImport } from './routes/{-$lang}/index'
+import { Route as Char123LangChar125AgentSlugRouteImport } from './routes/{-$lang}/$agentSlug'
 import { Route as ApiFacebookCallbackRouteImport } from './routes/api/facebook/callback'
 import { Route as ApiPublicScoutCronRouteImport } from './routes/api/public/scout-cron'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgentSlugRoute = AgentSlugRouteImport.update({
-  id: '/$agentSlug',
-  path: '/$agentSlug',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -71,36 +55,17 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const EnIndexRoute = EnIndexRouteImport.update({
-  id: '/en/',
-  path: '/en/',
+const Char123LangChar125IndexRoute = Char123LangChar125IndexRouteImport.update({
+  id: '/{-$lang}/',
+  path: '/{-$lang}/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EnAgentSlugRoute = EnAgentSlugRouteImport.update({
-  id: '/en/$agentSlug',
-  path: '/en/$agentSlug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FrIndexRoute = FrIndexRouteImport.update({
-  id: '/fr/',
-  path: '/fr/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FrAgentSlugRoute = FrAgentSlugRouteImport.update({
-  id: '/fr/$agentSlug',
-  path: '/fr/$agentSlug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RuIndexRoute = RuIndexRouteImport.update({
-  id: '/ru/',
-  path: '/ru/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RuAgentSlugRoute = RuAgentSlugRouteImport.update({
-  id: '/ru/$agentSlug',
-  path: '/ru/$agentSlug',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const Char123LangChar125AgentSlugRoute =
+  Char123LangChar125AgentSlugRouteImport.update({
+    id: '/{-$lang}/$agentSlug',
+    path: '/{-$lang}/$agentSlug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiFacebookCallbackRoute = ApiFacebookCallbackRouteImport.update({
   id: '/api/facebook/callback',
   path: '/api/facebook/callback',
@@ -113,58 +78,42 @@ const ApiPublicScoutCronRoute = ApiPublicScoutCronRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/$agentSlug': typeof AgentSlugRoute
+  '/': typeof AuthenticatedRouteRouteWithChildren
   '/accessibility': typeof AccessibilityRoute
   '/auth': typeof AuthRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/en/$agentSlug': typeof EnAgentSlugRoute
-  '/fr/$agentSlug': typeof FrAgentSlugRoute
-  '/ru/$agentSlug': typeof RuAgentSlugRoute
-  '/en/': typeof EnIndexRoute
-  '/fr/': typeof FrIndexRoute
-  '/ru/': typeof RuIndexRoute
+  '/{-$lang}/$agentSlug': typeof Char123LangChar125AgentSlugRoute
+  '/{-$lang}/': typeof Char123LangChar125IndexRoute
   '/api/facebook/callback': typeof ApiFacebookCallbackRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/$agentSlug': typeof AgentSlugRoute
+  '/': typeof AuthenticatedRouteRouteWithChildren
   '/accessibility': typeof AccessibilityRoute
   '/auth': typeof AuthRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/en/$agentSlug': typeof EnAgentSlugRoute
-  '/fr/$agentSlug': typeof FrAgentSlugRoute
-  '/ru/$agentSlug': typeof RuAgentSlugRoute
-  '/en': typeof EnIndexRoute
-  '/fr': typeof FrIndexRoute
-  '/ru': typeof RuIndexRoute
+  '/{-$lang}/$agentSlug': typeof Char123LangChar125AgentSlugRoute
+  '/{-$lang}': typeof Char123LangChar125IndexRoute
   '/api/facebook/callback': typeof ApiFacebookCallbackRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/$agentSlug': typeof AgentSlugRoute
   '/accessibility': typeof AccessibilityRoute
   '/auth': typeof AuthRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
-  '/en/$agentSlug': typeof EnAgentSlugRoute
-  '/fr/$agentSlug': typeof FrAgentSlugRoute
-  '/ru/$agentSlug': typeof RuAgentSlugRoute
-  '/en/': typeof EnIndexRoute
-  '/fr/': typeof FrIndexRoute
-  '/ru/': typeof RuIndexRoute
+  '/{-$lang}/$agentSlug': typeof Char123LangChar125AgentSlugRoute
+  '/{-$lang}/': typeof Char123LangChar125IndexRoute
   '/api/facebook/callback': typeof ApiFacebookCallbackRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
 }
@@ -172,94 +121,58 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/$agentSlug'
     | '/accessibility'
     | '/auth'
     | '/privacy'
     | '/reset-password'
     | '/account'
     | '/admin'
-    | '/en/$agentSlug'
-    | '/fr/$agentSlug'
-    | '/ru/$agentSlug'
-    | '/en/'
-    | '/fr/'
-    | '/ru/'
+    | '/{-$lang}/$agentSlug'
+    | '/{-$lang}/'
     | '/api/facebook/callback'
     | '/api/public/scout-cron'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/$agentSlug'
     | '/accessibility'
     | '/auth'
     | '/privacy'
     | '/reset-password'
     | '/account'
     | '/admin'
-    | '/en/$agentSlug'
-    | '/fr/$agentSlug'
-    | '/ru/$agentSlug'
-    | '/en'
-    | '/fr'
-    | '/ru'
+    | '/{-$lang}/$agentSlug'
+    | '/{-$lang}'
     | '/api/facebook/callback'
     | '/api/public/scout-cron'
   id:
     | '__root__'
-    | '/'
     | '/_authenticated'
-    | '/$agentSlug'
     | '/accessibility'
     | '/auth'
     | '/privacy'
     | '/reset-password'
     | '/_authenticated/account'
     | '/_authenticated/admin'
-    | '/en/$agentSlug'
-    | '/fr/$agentSlug'
-    | '/ru/$agentSlug'
-    | '/en/'
-    | '/fr/'
-    | '/ru/'
+    | '/{-$lang}/$agentSlug'
+    | '/{-$lang}/'
     | '/api/facebook/callback'
     | '/api/public/scout-cron'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AgentSlugRoute: typeof AgentSlugRoute
   AccessibilityRoute: typeof AccessibilityRoute
   AuthRoute: typeof AuthRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  EnAgentSlugRoute: typeof EnAgentSlugRoute
-  FrAgentSlugRoute: typeof FrAgentSlugRoute
-  RuAgentSlugRoute: typeof RuAgentSlugRoute
-  EnIndexRoute: typeof EnIndexRoute
-  FrIndexRoute: typeof FrIndexRoute
-  RuIndexRoute: typeof RuIndexRoute
+  Char123LangChar125AgentSlugRoute: typeof Char123LangChar125AgentSlugRoute
+  Char123LangChar125IndexRoute: typeof Char123LangChar125IndexRoute
   ApiFacebookCallbackRoute: typeof ApiFacebookCallbackRoute
   ApiPublicScoutCronRoute: typeof ApiPublicScoutCronRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/$agentSlug': {
-      id: '/$agentSlug'
-      path: '/$agentSlug'
-      fullPath: '/$agentSlug'
-      preLoaderRoute: typeof AgentSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -309,46 +222,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/en/': {
-      id: '/en/'
-      path: '/en'
-      fullPath: '/en/'
-      preLoaderRoute: typeof EnIndexRouteImport
+    '/{-$lang}/': {
+      id: '/{-$lang}/'
+      path: '/{-$lang}'
+      fullPath: '/{-$lang}/'
+      preLoaderRoute: typeof Char123LangChar125IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/en/$agentSlug': {
-      id: '/en/$agentSlug'
-      path: '/en/$agentSlug'
-      fullPath: '/en/$agentSlug'
-      preLoaderRoute: typeof EnAgentSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/fr/': {
-      id: '/fr/'
-      path: '/fr'
-      fullPath: '/fr/'
-      preLoaderRoute: typeof FrIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/fr/$agentSlug': {
-      id: '/fr/$agentSlug'
-      path: '/fr/$agentSlug'
-      fullPath: '/fr/$agentSlug'
-      preLoaderRoute: typeof FrAgentSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ru/': {
-      id: '/ru/'
-      path: '/ru'
-      fullPath: '/ru/'
-      preLoaderRoute: typeof RuIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ru/$agentSlug': {
-      id: '/ru/$agentSlug'
-      path: '/ru/$agentSlug'
-      fullPath: '/ru/$agentSlug'
-      preLoaderRoute: typeof RuAgentSlugRouteImport
+    '/{-$lang}/$agentSlug': {
+      id: '/{-$lang}/$agentSlug'
+      path: '/{-$lang}/$agentSlug'
+      fullPath: '/{-$lang}/$agentSlug'
+      preLoaderRoute: typeof Char123LangChar125AgentSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/facebook/callback': {
@@ -382,19 +267,13 @@ const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AgentSlugRoute: AgentSlugRoute,
   AccessibilityRoute: AccessibilityRoute,
   AuthRoute: AuthRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  EnAgentSlugRoute: EnAgentSlugRoute,
-  FrAgentSlugRoute: FrAgentSlugRoute,
-  RuAgentSlugRoute: RuAgentSlugRoute,
-  EnIndexRoute: EnIndexRoute,
-  FrIndexRoute: FrIndexRoute,
-  RuIndexRoute: RuIndexRoute,
+  Char123LangChar125AgentSlugRoute: Char123LangChar125AgentSlugRoute,
+  Char123LangChar125IndexRoute: Char123LangChar125IndexRoute,
   ApiFacebookCallbackRoute: ApiFacebookCallbackRoute,
   ApiPublicScoutCronRoute: ApiPublicScoutCronRoute,
 }

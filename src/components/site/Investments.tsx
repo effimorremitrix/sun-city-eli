@@ -1,22 +1,20 @@
 import { BadgeCheck, Calculator, Handshake, Scale, ShieldCheck, Eye, Award } from "lucide-react";
 import { business, waProps } from "@/lib/site-data";
-import { useLive } from "@/lib/site-live";
-import { useT } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n";
 import { Reveal } from "./Reveal";
 
 const svcIcons = [BadgeCheck, Calculator, Handshake, Scale];
 const valIcons = [Award, Eye, ShieldCheck];
 
 export function Services() {
-  const { business: live } = useLive();
-  const t = useT();
-  const services = t.content.services;
+  const { t } = useLang();
+
   return (
     <section id="services" className="mx-auto max-w-6xl px-4 py-14 md:py-20">
-      <p className="text-sm font-bold text-sun">{t.sections.servicesLabel}</p>
-      <h2 className="mt-2 text-3xl md:text-4xl">{t.sections.servicesTitle}</h2>
+      <p className="text-sm font-bold text-sun">{t.services.kicker}</p>
+      <h2 className="mt-2 text-3xl md:text-4xl">{t.services.title}</h2>
       <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {services.map((s, i) => {
+        {t.services.items.map((s, i) => {
           const Icon = svcIcons[i] ?? BadgeCheck;
           return (
             <li key={s.title}>
@@ -28,13 +26,10 @@ export function Services() {
                     {s.text}
                   </p>
                   <a
-                    {...waProps(
-                      `שלום ${live.agentName}, אשמח לפרטים בנושא: ${s.title}. שם: `,
-                      live.phoneTel,
-                    )}
+                    {...waProps(t.services.waMsg(business.name, s.title))}
                     className="mt-4 rounded-xl bg-primary py-2.5 text-center text-sm font-bold text-primary-foreground"
                   >
-                    {t.sections.waDetails}
+                    {t.services.waBtn}
                   </a>
                 </article>
               </Reveal>
@@ -47,20 +42,18 @@ export function Services() {
 }
 
 export function WhyUs() {
-  const { business: live } = useLive();
-  const t = useT();
-  const values = t.content.values;
+  const { t } = useLang();
+
   return (
     <section id="why" className="bg-secondary py-14 md:py-20">
       <div className="mx-auto max-w-6xl px-4">
-        <p className="text-sm font-bold text-sun">{t.sections.whyLabel}</p>
-        <h2 className="mt-2 text-3xl md:text-4xl">{t.sections.whyTitle}</h2>
-        {live.bio && <p className="mt-4 max-w-3xl leading-relaxed text-foreground">{live.bio}</p>}
-        <p className="mt-4 max-w-3xl leading-relaxed text-foreground">{t.content.about}</p>
-        <p className="mt-3 max-w-3xl leading-relaxed text-muted-foreground">{t.content.story}</p>
+        <p className="text-sm font-bold text-sun">{t.whyUs.kicker}</p>
+        <h2 className="mt-2 text-3xl md:text-4xl">{t.whyUs.title}</h2>
+        <p className="mt-4 max-w-3xl leading-relaxed text-foreground">{t.whyUs.about}</p>
+        <p className="mt-3 max-w-3xl leading-relaxed text-muted-foreground">{t.whyUs.story}</p>
 
         <ul className="mt-8 grid gap-4 md:grid-cols-3">
-          {values.map((v, i) => {
+          {t.whyUs.values.map((v, i) => {
             const Icon = valIcons[i] ?? Award;
             return (
               <li key={v.title}>
@@ -77,7 +70,7 @@ export function WhyUs() {
         </ul>
 
         <ul className="mt-6 flex flex-wrap gap-2">
-          {business.badges.slice(1).map((b) => (
+          {t.whyUs.badges.map((b) => (
             <li
               key={b}
               className="rounded-full bg-card px-4 py-2 text-sm font-bold text-primary shadow-soft"
@@ -94,7 +87,7 @@ export function WhyUs() {
           className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-navy px-5 py-4 text-sm font-bold text-navy-foreground shadow-soft"
         >
           <Award className="size-5 text-sun" aria-hidden="true" />
-          {business.badge}
+          {t.whyUs.badge}
         </a>
       </div>
     </section>

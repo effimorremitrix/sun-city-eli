@@ -21,11 +21,34 @@ export type AiSearchResult = {
   };
 };
 
-/** כמה סריקות אינטרנט המשתמש כבר הריץ היום (לפי יומן השימוש) */
-async function usedWebSearchesToday(userId: string): Promise<number> {
+/**
+ * שריון מכסה אטומי-אופטימי: קודם נרשם אירוע שריון, ואז נספרים כל השריונים
+ * של היום — אם חצינו את המכסה, השריון שלנו נמחק והבקשה נדחית. כך גם בקשות
+ * מקבילות לא יכולות לעבור יחד את המכסה (כל אחת רואה את השריונים של האחרות).
+ */
+async function reserveWebSearch(
+  userId: string,
+): Promise<{ ok: true; reservationId: string; used: number } | { ok: false }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { AI_MODEL } = await import("@/lib/ai-usage.server");
   const startOfDay = new Date();
   startOfDay.setUTCHours(0, 0, 0, 0);
+
+  const { data: reservation, error: insertError } = await supabaseAdmin
+    .from("ai_usage_events")
+    .insert({
+      feature: WEB_FEATURE,
+      model: AI_MODEL,
+      input_tokens: 0,
+      output_tokens: 0,
+      cost_usd: 0,
+      status: "success",
+      user_id: userId,
+    })
+    .select("id")
+    .single();
+  if (insertError) throw new Error(insertError.message);
+
   const { count, error } = await supabaseAdmin
     .from("ai_usage_events")
     .select("id", { count: "exact", head: true })
@@ -34,7 +57,22 @@ async function usedWebSearchesToday(userId: string): Promise<number> {
     .eq("status", "success")
     .gte("created_at", startOfDay.toISOString());
   if (error) throw new Error(error.message);
-  return count ?? 0;
+
+  if ((count ?? 0) > DAILY_WEB_SEARCH_LIMIT) {
+    await supabaseAdmin.from("ai_usage_events").delete().eq("id", reservation.id);
+    return { ok: false };
+  }
+  return { ok: true, reservationId: reservation.id as string, used: count ?? 0 };
+}
+
+/** ביטול שריון כשהסריקה עצמה נכשלה — כישלון לא שורף מכסה */
+async function releaseWebSearch(reservationId: string): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("ai_usage_events").delete().eq("id", reservationId);
+  } catch (err) {
+    console.error("releaseWebSearch failed", err);
+  }
 }
 
 /**
@@ -76,11 +114,14 @@ export const aiSearchListings = createServerFn({ method: "POST" })
     // סריקת אינטרנט — למשתמשים מחוברים בלבד, עם מכסה יומית
     let web: AiSearchResult["web"] = { status: "login_required", candidates: [], remaining: null };
     if (data.includeWeb && userId) {
+      let reservationId: string | null = null;
       try {
-        const used = await usedWebSearchesToday(userId);
-        if (used >= DAILY_WEB_SEARCH_LIMIT) {
+        const reserved = await reserveWebSearch(userId);
+        if (!reserved.ok) {
           web = { status: "quota_exceeded", candidates: [], remaining: 0 };
         } else {
+          reservationId = reserved.reservationId;
+          const used = reserved.used;
           const { runWebPropertySearch } = await import("@/lib/scout.server");
           const { candidates } = await runWebPropertySearch(
             {
@@ -104,16 +145,17 @@ export const aiSearchListings = createServerFn({ method: "POST" })
             },
             [...neighborhoods],
             userId,
-            WEB_FEATURE,
+            `${WEB_FEATURE}_api`,
           );
           web = {
             status: "ok",
             candidates,
-            remaining: Math.max(0, DAILY_WEB_SEARCH_LIMIT - used - 1),
+            remaining: Math.max(0, DAILY_WEB_SEARCH_LIMIT - used),
           };
         }
       } catch (err) {
         console.error("client web search failed", err);
+        if (reservationId) await releaseWebSearch(reservationId);
         web = { status: "unavailable", candidates: [], remaining: null };
       }
     }

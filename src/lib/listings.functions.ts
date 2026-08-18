@@ -12,10 +12,7 @@ import { listingInputSchema } from "@/lib/listing-schema";
  * כדי שכל פנייה תנותב אליו.
  */
 export const listPublicListings = createServerFn({ method: "GET" })
-  .inputValidator((input?: { slug?: string | null; lang?: string | null }) => ({
-    slug: input?.slug ?? null,
-    lang: input?.lang ?? "he",
-  }))
+  .inputValidator((input?: { slug?: string | null }) => ({ slug: input?.slug ?? null }))
   .handler(async ({ data }): Promise<Listing[]> => {
     const { publicDb } = await import("@/lib/public-db.server");
     const db = publicDb();
@@ -45,10 +42,8 @@ export const listPublicListings = createServerFn({ method: "GET" })
     }
     const { attachListingImages } = await import("@/lib/listing-images.server");
     const { attachListingAgents } = await import("@/lib/agents.server");
-    const { attachListingTranslations } = await import("@/lib/translate.server");
     const withImages = await attachListingImages((rows ?? []) as unknown as Listing[]);
-    const withAgents = await attachListingAgents(withImages);
-    return attachListingTranslations(withAgents, data.lang);
+    return attachListingAgents(withImages);
   });
 
 /** רשימת הסוכנים הפעילים להצגה ציבורית (כרטיסי צוות + קישור לדף האישי) */
@@ -114,23 +109,6 @@ export const adminSaveListing = createServerFn({ method: "POST" })
 
     const origin = new URL(getRequest().url).origin;
     return saveListingAndNotify(context, { ...data, site_id: siteId }, origin);
-  });
-
-/** תרגום מחדש של נכס ל-en/fr/ru (כפתור ידני בניהול) */
-export const adminRetranslateListing = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { id: string }) => input)
-  .handler(async ({ data, context }) => {
-    const { assertManager } = await import("@/lib/admin.server");
-    await assertManager(context);
-    const { data: canManage } = await context.supabase.rpc("owns_listing", {
-      _listing_id: data.id,
-    });
-    if (!canManage) throw new Error("Forbidden");
-    const { translateListing } = await import("@/lib/translate.server");
-    const ok = await translateListing(data.id, true);
-    if (!ok) throw new Error("התרגום נכשל. נסו שוב בעוד רגע");
-    return { ok: true };
   });
 
 export const adminDeleteListing = createServerFn({ method: "POST" })

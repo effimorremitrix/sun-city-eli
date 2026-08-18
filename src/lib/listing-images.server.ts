@@ -12,7 +12,9 @@ type RawImage = {
 };
 
 /** מחזיר את התמונות של הנכסים, עם כתובות חתומות לקבצים שבאחסון */
-export async function fetchListingImages(listingIds: string[]): Promise<Map<string, ListingImage[]>> {
+export async function fetchListingImages(
+  listingIds: string[],
+): Promise<Map<string, ListingImage[]>> {
   const map = new Map<string, ListingImage[]>();
   if (!listingIds.length) return map;
 

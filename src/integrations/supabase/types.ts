@@ -317,6 +317,7 @@ export type Database = {
           sort_order: number
           tag: string | null
           title: string
+          translations: Json
           updated_at: string
         }
         Insert: {
@@ -344,6 +345,7 @@ export type Database = {
           sort_order?: number
           tag?: string | null
           title: string
+          translations?: Json
           updated_at?: string
         }
         Update: {
@@ -371,6 +373,7 @@ export type Database = {
           sort_order?: number
           tag?: string | null
           title?: string
+          translations?: Json
           updated_at?: string
         }
         Relationships: [
@@ -625,6 +628,7 @@ export type Database = {
           settings: Json
           site_id: string
           texts: Json
+          translations: Json
           updated_at: string
         }
         Insert: {
@@ -634,6 +638,7 @@ export type Database = {
           settings?: Json
           site_id: string
           texts?: Json
+          translations?: Json
           updated_at?: string
         }
         Update: {
@@ -643,6 +648,7 @@ export type Database = {
           settings?: Json
           site_id?: string
           texts?: Json
+          translations?: Json
           updated_at?: string
         }
         Relationships: [
@@ -668,6 +674,7 @@ export type Database = {
           site_id: string
           sort_order: number
           title: string
+          translations: Json
           updated_at: string
         }
         Insert: {
@@ -682,6 +689,7 @@ export type Database = {
           site_id: string
           sort_order?: number
           title: string
+          translations?: Json
           updated_at?: string
         }
         Update: {
@@ -696,6 +704,7 @@ export type Database = {
           site_id?: string
           sort_order?: number
           title?: string
+          translations?: Json
           updated_at?: string
         }
         Relationships: [

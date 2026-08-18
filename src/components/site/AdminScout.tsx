@@ -88,7 +88,8 @@ const num = (v: string) => (v.trim() === "" ? null : Number(v));
 const nis = (n: number | null) => (n == null ? "אין מידע" : `${n.toLocaleString("he-IL")} ₪`);
 const val = (n: number | null, suffix = "") => (n == null ? "אין מידע" : `${n}${suffix}`);
 
-const toggle = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
+const toggle = (arr: string[], v: string) =>
+  arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 
 export function AdminScout() {
   const qc = useQueryClient();
@@ -177,12 +178,20 @@ export function AdminScout() {
       <section className="soft-card p-5">
         <h2 className="text-lg font-extrabold text-primary">סוכן סריקת נכסים</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          הסוכן סורק את האינטרנט (יד2, מדלן ואתרי נדל"ן נוספים) ומציע נכסים שמתאימים לקריטריונים שלך. כל מועמד מגיע עם
-          קישור למודעת המקור — אין נתונים מומצאים, ושדה חסר מוצג כ"אין מידע". שום נכס לא מתפרסם באתר ללא אישור שלך.
+          הסוכן סורק את האינטרנט (יד2, מדלן ואתרי נדל"ן נוספים) ומציע נכסים שמתאימים לקריטריונים
+          שלך. כל מועמד מגיע עם קישור למודעת המקור — אין נתונים מומצאים, ושדה חסר מוצג כ"אין מידע".
+          שום נכס לא מתפרסם באתר ללא אישור שלך.
         </p>
-        {msg && <p className="mt-3 rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">{msg}</p>}
+        {msg && (
+          <p className="mt-3 rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">
+            {msg}
+          </p>
+        )}
         {err && (
-          <p role="alert" className="mt-3 rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive">
+          <p
+            role="alert"
+            className="mt-3 rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive"
+          >
             {err}
           </p>
         )}
@@ -198,7 +207,9 @@ export function AdminScout() {
 
       {/* קריטריונים */}
       <section className="soft-card p-5">
-        <h3 className="font-extrabold text-primary">{form.id ? "עריכת קריטריונים" : "הגדרת קריטריונים לסריקה"}</h3>
+        <h3 className="font-extrabold text-primary">
+          {form.id ? "עריכת קריטריונים" : "הגדרת קריטריונים לסריקה"}
+        </h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div>
             <label className={label} htmlFor="scout-label">
@@ -386,7 +397,8 @@ export function AdminScout() {
                   <p className="text-xs text-muted-foreground">
                     {p.deal_type} · {p.city}
                     {p.neighborhoods?.length ? ` · ${p.neighborhoods.join(", ")}` : ""} ·{" "}
-                    {p.max_price ? `עד ${p.max_price.toLocaleString("he-IL")} ₪` : "בלי תקרת מחיר"} · עדכון אחרון:{" "}
+                    {p.max_price ? `עד ${p.max_price.toLocaleString("he-IL")} ₪` : "בלי תקרת מחיר"}{" "}
+                    · עדכון אחרון:{" "}
                     {p.last_run_at ? new Date(p.last_run_at).toLocaleString("he-IL") : "אין מידע"}
                   </p>
                 </div>
@@ -449,7 +461,9 @@ export function AdminScout() {
           </div>
         </div>
 
-        {candidates.isLoading && <p className="mt-4 text-sm text-muted-foreground">טוען מועמדים…</p>}
+        {candidates.isLoading && (
+          <p className="mt-4 text-sm text-muted-foreground">טוען מועמדים…</p>
+        )}
         {candidates.data?.length === 0 && (
           <p className="mt-4 text-sm text-muted-foreground">אין מועמדים בקטגוריה הזו כרגע.</p>
         )}
@@ -471,7 +485,9 @@ export function AdminScout() {
               </div>
 
               {c.match_reason && <p className="mt-2 text-sm text-foreground">{c.match_reason}</p>}
-              {c.raw_summary && <p className="mt-1 text-xs text-muted-foreground">{c.raw_summary}</p>}
+              {c.raw_summary && (
+                <p className="mt-1 text-xs text-muted-foreground">{c.raw_summary}</p>
+              )}
 
               <div className="mt-3 flex flex-wrap gap-2">
                 <a
@@ -486,7 +502,12 @@ export function AdminScout() {
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => void run(() => approve({ data: { id: c.id } }), "נוצרה טיוטת נכס — ערכו אותה בטאב נכסים")}
+                    onClick={() =>
+                      void run(
+                        () => approve({ data: { id: c.id } }),
+                        "נוצרה טיוטת נכס — ערכו אותה בטאב נכסים",
+                      )
+                    }
                     className="rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground"
                   >
                     אישור — צור טיוטת נכס
@@ -496,7 +517,12 @@ export function AdminScout() {
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => void run(() => setStatus({ data: { id: c.id, status: "rejected" } }), "המועמד נדחה")}
+                    onClick={() =>
+                      void run(
+                        () => setStatus({ data: { id: c.id, status: "rejected" } }),
+                        "המועמד נדחה",
+                      )
+                    }
                     className="rounded-xl border border-destructive/40 px-3 py-1.5 text-xs font-bold text-destructive"
                   >
                     דחייה
@@ -506,7 +532,12 @@ export function AdminScout() {
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => void run(() => setStatus({ data: { id: c.id, status: "new" } }), "המועמד הוחזר לרשימה")}
+                    onClick={() =>
+                      void run(
+                        () => setStatus({ data: { id: c.id, status: "new" } }),
+                        "המועמד הוחזר לרשימה",
+                      )
+                    }
                     className="rounded-xl border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary"
                   >
                     החזרה לרשימה

@@ -66,10 +66,14 @@ function parseProfileInput(input: unknown): ScoutProfileInput {
   const i = (input ?? {}) as Record<string, unknown>;
   const deal = i["deal_type"] === "השכרה" ? "השכרה" : "מכירה";
   const hoods = Array.isArray(i["neighborhoods"])
-    ? (i["neighborhoods"] as unknown[]).filter((h): h is string => typeof h === "string").slice(0, 20)
+    ? (i["neighborhoods"] as unknown[])
+        .filter((h): h is string => typeof h === "string")
+        .slice(0, 20)
     : [];
   const sources = Array.isArray(i["sources"])
-    ? (i["sources"] as unknown[]).filter((s): s is string => typeof s === "string" && SOURCES.includes(s))
+    ? (i["sources"] as unknown[]).filter(
+        (s): s is string => typeof s === "string" && SOURCES.includes(s),
+      )
     : [];
   return {
     id: str(i["id"], 60),
@@ -177,7 +181,9 @@ export const adminScoutNewCount = createServerFn({ method: "GET" })
 /** הרצת סריקה עכשיו — לכל הפרופילים הפעילים או לפרופיל מסוים */
 export const adminRunScout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { profileId?: string | null }) => ({ profileId: str(input?.profileId, 60) }))
+  .inputValidator((input: { profileId?: string | null }) => ({
+    profileId: str(input?.profileId, 60),
+  }))
   .handler(async ({ data, context }) => {
     const { assertAdmin } = await import("@/lib/admin.server");
     await assertAdmin(context);
@@ -187,7 +193,12 @@ export const adminRunScout = createServerFn({ method: "POST" })
     const { data: profiles, error } = await q;
     if (error) throw new Error(error.message);
     if (!profiles || profiles.length === 0) {
-      return { scanned: 0, found: 0, inserted: 0, errors: ["אין פרופיל סריקה פעיל. הגדירו קריטריונים והפעילו אותם"] };
+      return {
+        scanned: 0,
+        found: 0,
+        inserted: 0,
+        errors: ["אין פרופיל סריקה פעיל. הגדירו קריטריונים והפעילו אותם"],
+      };
     }
 
     const { runScoutForProfiles } = await import("@/lib/scout-run.server");
@@ -255,7 +266,11 @@ export const adminApproveCandidate = createServerFn({ method: "POST" })
 
     const { error: updErr } = await context.supabase
       .from("scout_candidates")
-      .update({ status: "approved", created_listing_id: listing.id, seen_at: new Date().toISOString() })
+      .update({
+        status: "approved",
+        created_listing_id: listing.id,
+        seen_at: new Date().toISOString(),
+      })
       .eq("id", cand.id);
     if (updErr) throw new Error(updErr.message);
 

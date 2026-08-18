@@ -19,7 +19,9 @@ export async function sendPendingListingEmails(listing: MinimalListing, siteUrl:
 
   const { data: rows, error } = await supabaseAdmin
     .from("listing_notifications")
-    .select("id, user_id, search_profile_id, profiles:user_id(email), search_profiles:search_profile_id(label, notify_email)")
+    .select(
+      "id, user_id, search_profile_id, profiles:user_id(email), search_profiles:search_profile_id(label, notify_email)",
+    )
     .eq("listing_id", listing.id)
     .is("email_sent_at", null);
 

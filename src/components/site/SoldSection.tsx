@@ -1,6 +1,6 @@
 import { Home } from "lucide-react";
 import { DataSource } from "@/components/site/DataSource";
-import { useT } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n";
 import type { SoldProperty } from "@/lib/sold.functions";
 import { Reveal } from "./Reveal";
 
@@ -11,7 +11,7 @@ type Props = { items: SoldProperty[] };
  * תמונה עגולה בטבעת שמש, חותמת "נמכר" גדולה, והכתובת מתחת.
  */
 export function SoldSection({ items }: Props) {
-  const t = useT();
+  const { t } = useLang();
   if (items.length === 0) return null;
 
   const fmtDate = (iso: string) => {

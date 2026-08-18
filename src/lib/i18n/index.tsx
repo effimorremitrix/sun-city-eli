@@ -4,49 +4,80 @@ import { en } from "./en";
 import { fr } from "./fr";
 import { ru } from "./ru";
 
-export type Lang = "he" | "en" | "fr" | "ru";
+/* ============================================================
+ * ליבת השפות של האתר: עברית (ברירת מחדל, RTL), אנגלית, צרפתית
+ * ורוסית. העברית מוגשת בנתיב הראשי ("/"), שאר השפות בנתיב
+ * "/en" / "/fr" / "/ru" דרך הסגמנט האופציונלי {-$lang}.
+ * ============================================================ */
 
-export const LANGS: Lang[] = ["he", "en", "fr", "ru"];
+export const LOCALES = ["he", "en", "fr", "ru"] as const;
+export type Locale = (typeof LOCALES)[number];
 
-export const DICTS: Record<Lang, Dict> = { he, en, fr, ru };
+/** השפות שמופיעות בכתובת ה-URL (עברית קנונית בנתיב הראשי) */
+export const URL_LOCALES = ["en", "fr", "ru"] as const;
 
-/** מזהה שפה מה-pathname: /en/... → en, אחרת עברית (ללא prefix) */
-export function langFromPath(pathname: string): Lang {
-  const first = pathname.split("/").filter(Boolean)[0];
-  return first === "en" || first === "fr" || first === "ru" ? first : "he";
+export const DEFAULT_LOCALE: Locale = "he";
+
+export const LOCALE_META: Record<Locale, { name: string; path: string; intl: string; og: string }> =
+  {
+    he: { name: "עברית", path: "/", intl: "he-IL", og: "he_IL" },
+    en: { name: "English", path: "/en", intl: "en-US", og: "en_US" },
+    fr: { name: "Français", path: "/fr", intl: "fr-FR", og: "fr_FR" },
+    ru: { name: "Русский", path: "/ru", intl: "ru-RU", og: "ru_RU" },
+  };
+
+export const DICTS: Record<Locale, Dict> = { he, en, fr, ru };
+
+export const isLocale = (v: string | undefined): v is Locale =>
+  !!v && (LOCALES as readonly string[]).includes(v);
+
+export const dirFor = (lang: Locale): "rtl" | "ltr" => (lang === "he" ? "rtl" : "ltr");
+
+export type LangContextValue = {
+  lang: Locale;
+  dir: "rtl" | "ltr";
+  t: Dict;
+};
+
+const LangContext = createContext<LangContextValue>({
+  lang: DEFAULT_LOCALE,
+  dir: "rtl",
+  t: he,
+});
+
+export function LangProvider({ lang, children }: { lang: Locale; children: ReactNode }) {
+  return (
+    <LangContext.Provider value={{ lang, dir: dirFor(lang), t: DICTS[lang] }}>
+      {children}
+    </LangContext.Provider>
+  );
 }
 
-/** ה-path המקביל בשפה אחרת (עברית בשורש, שאר השפות עם prefix) */
-export function pathForLang(pathname: string, lang: Lang): string {
-  const parts = pathname.split("/").filter(Boolean);
-  const current = langFromPath(pathname);
-  const rest = current === "he" ? parts : parts.slice(1);
-  const prefix = lang === "he" ? "" : `/${lang}`;
-  const suffix = rest.length ? `/${rest.join("/")}` : "";
-  return prefix + suffix || "/";
-}
+export const useLang = () => useContext(LangContext);
 
-const I18nContext = createContext<Lang>("he");
+/* ---------------------------- עזרי תצוגה ---------------------------- */
 
-export function I18nProvider({ lang, children }: { lang: Lang; children: ReactNode }) {
-  return <I18nContext.Provider value={lang}>{children}</I18nContext.Provider>;
-}
+/** תרגום ערך קנוני מהמסד (שכונה/תגית/סוג עסקה) — נופל חזרה לערך המקורי */
+export const mapValue = (map: Record<string, string>, value: string | null | undefined) =>
+  value == null ? value : (map[value] ?? value);
 
-export const useLang = (): Lang => useContext(I18nContext);
+/** מחיר בש"ח בפורמט המקומי של השפה */
+export const formatPrice = (n: number, lang: Locale = DEFAULT_LOCALE) => {
+  const formatted = n.toLocaleString(LOCALE_META[lang].intl);
+  return lang === "he" ? `${formatted} ₪` : `₪${formatted}`;
+};
 
-/** המילון של שפת הדף הנוכחית */
-export const useT = (): Dict => DICTS[useContext(I18nContext)];
+/** תאריך "עודכן ב" בפורמט המקומי; כשאין תאריך — "אין מידע" בשפת הדף */
+export const formatUpdatedFor = (iso: string | null | undefined, lang: Locale) => {
+  const noInfo = DICTS[lang].misc.noInfo;
+  if (!iso) return noInfo;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return noInfo;
+  return date.toLocaleDateString(LOCALE_META[lang].intl, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
 
-/** תגי hreflang לכל גרסאות השפה של path נתון */
-export function hreflangLinks(pathname: string, origin = "") {
-  const canonicalPath = pathForLang(pathname, langFromPath(pathname));
-  return [
-    ...LANGS.map((lang) => ({
-      rel: "alternate",
-      hrefLang: lang,
-      href: origin + pathForLang(pathname, lang),
-    })),
-    { rel: "alternate", hrefLang: "x-default", href: origin + pathForLang(pathname, "he") },
-    { rel: "canonical", href: origin + canonicalPath },
-  ];
-}
+export type { Dict };

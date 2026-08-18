@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { RESERVED_AGENT_SLUGS } from "@/lib/reserved-slugs";
 
 export type AdminUserRow = {
   id: string;
@@ -147,8 +148,6 @@ export const adminSetUserRole = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-import { RESERVED_AGENT_SLUGS } from "@/lib/reserved-slugs";
-
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?$/;
 
 /**
@@ -259,6 +258,14 @@ export const adminDeleteUser = createServerFn({ method: "POST" })
     if (!email || email !== data.confirmEmail) {
       throw new Error("המייל שהוקלד אינו תואם למשתמש שנבחר");
     }
+
+    // סוכן עם דף אישי: הבעלות עוברת לאדמין המוחק (owner_id הוא ON DELETE RESTRICT),
+    // כך שהדף והנכסים שלו נשמרים ומחיקת החשבון לא נכשלת.
+    const { error: transferError } = await supabaseAdmin
+      .from("sites")
+      .update({ owner_id: context.userId })
+      .eq("owner_id", data.userId);
+    if (transferError) throw new Error(transferError.message);
 
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);

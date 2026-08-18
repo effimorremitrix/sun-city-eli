@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { SITE_CONFIG, team } from "@/lib/site-data";
+import { DICTS, type Dict, type Locale } from "@/lib/i18n";
 
 /** ============================================================
  * תוכן חי (Live content) — הנתונים שמנוהלים באזור הניהול.
@@ -32,6 +33,26 @@ export type LiveTexts = {
   heroSubtitle: string;
 };
 
+/** תרגום פר-שפה של שדות התוכן הניתנים לעריכה (נשמר בעמודת translations) */
+export type LiveContentTranslation = {
+  texts?: Partial<LiveTexts>;
+  business?: {
+    name?: string;
+    tagline?: string;
+    subtitle?: string;
+    address?: string;
+    hours?: LiveHour[];
+  };
+};
+
+export type LiveTranslations = Partial<Record<string, LiveContentTranslation>>;
+
+export type LiveItemTranslation = {
+  title?: string;
+  description?: string;
+  price_note?: string;
+};
+
 export type LiveItem = {
   id: string;
   kind: string;
@@ -40,12 +61,15 @@ export type LiveItem = {
   price: number | null;
   price_note: string | null;
   image_url: string | null;
+  translations?: Partial<Record<string, LiveItemTranslation>> | null;
 };
 
 export type LiveSite = {
   business: LiveBusiness;
   texts: LiveTexts;
   items: LiveItem[];
+  /** תרגומי התוכן שנשמרו במסד הנתונים, לפי קוד שפה */
+  translations?: LiveTranslations;
   /** תאריך העדכון האחרון של התוכן במסד הנתונים (ISO) — null כשאין רשומה */
   updatedAt: string | null;
   /** מזהה ה-site במסד — null כשאין חיבור למסד */
@@ -96,6 +120,7 @@ export function mergeLive(raw: unknown): LiveSite {
     business?: Partial<LiveBusiness>;
     texts?: Partial<LiveTexts>;
     items?: LiveItem[];
+    translations?: LiveTranslations;
     updated_at?: string | null;
   };
   const business = { ...DEFAULT_BUSINESS, ...(data.business ?? {}) };
@@ -107,11 +132,104 @@ export function mergeLive(raw: unknown): LiveSite {
     business,
     texts: { ...DEFAULT_TEXTS, ...(data.texts ?? {}) },
     items: Array.isArray(data.items) ? data.items : [],
+    translations:
+      data.translations && typeof data.translations === "object" ? data.translations : {},
     updatedAt: data.updated_at ?? null,
     siteId: data.id ?? null,
     slug: data.slug ?? null,
     found: raw != null,
   };
+}
+
+/* ------------------------- לוקליזציה ------------------------- */
+
+/**
+ * בחירת ערך מתורגם לשדה תוכן:
+ * 1. תרגום שנשמר במסד הנתונים (אם קיים) מנצח.
+ * 2. אם התוכן העברי עדיין זהה לברירת המחדל של האתר — ברירת המחדל המתורגמת מהמילון.
+ * 3. אחרת נופלים חזרה לתוכן העברי (דעיכה חיננית).
+ */
+const pickText = (
+  dbTranslation: string | undefined,
+  baseValue: string,
+  hebrewDefault: string,
+  dictDefault: string,
+) => dbTranslation ?? (baseValue === hebrewDefault ? dictDefault : baseValue);
+
+const localizeHours = (
+  dbHours: LiveHour[] | undefined,
+  baseHours: LiveHour[],
+  t: Dict,
+): LiveHour[] => {
+  if (Array.isArray(dbHours) && dbHours.length > 0) return dbHours;
+  // תרגום שמות הימים והערכים המוכרים; ערך לא מוכר נשאר כפי שהוא
+  return baseHours.map((h) => ({
+    day: t.maps.days[h.day] ?? h.day,
+    value: t.maps.days[h.value] ?? h.value,
+  }));
+};
+
+/** מחזיר עותק של התוכן החי בשפת העמוד, עם fallback פר-שדה לעברית */
+export function localizeLive(live: LiveSite, lang: Locale, t: Dict): LiveSite {
+  if (lang === "he") return live;
+  const tr = live.translations?.[lang] ?? {};
+
+  const business: LiveBusiness = {
+    ...live.business,
+    name: pickText(
+      tr.business?.name,
+      live.business.name,
+      DEFAULT_BUSINESS.name,
+      t.liveDefaults.name,
+    ),
+    tagline: pickText(
+      tr.business?.tagline,
+      live.business.tagline,
+      DEFAULT_BUSINESS.tagline,
+      t.liveDefaults.tagline,
+    ),
+    subtitle: pickText(
+      tr.business?.subtitle,
+      live.business.subtitle,
+      DEFAULT_BUSINESS.subtitle,
+      t.liveDefaults.subtitle,
+    ),
+    address: pickText(
+      tr.business?.address,
+      live.business.address,
+      DEFAULT_BUSINESS.address,
+      t.liveDefaults.address,
+    ),
+    hours: localizeHours(tr.business?.hours, live.business.hours, t),
+  };
+
+  const texts: LiveTexts = {
+    heroTitle: pickText(
+      tr.texts?.heroTitle,
+      live.texts.heroTitle,
+      DEFAULT_TEXTS.heroTitle,
+      t.liveDefaults.heroTitle,
+    ),
+    heroSubtitle: pickText(
+      tr.texts?.heroSubtitle,
+      live.texts.heroSubtitle,
+      DEFAULT_TEXTS.heroSubtitle,
+      t.liveDefaults.heroSubtitle,
+    ),
+  };
+
+  const items = live.items.map((item) => {
+    const itemTr = item.translations?.[lang];
+    if (!itemTr) return item;
+    return {
+      ...item,
+      title: itemTr.title ?? item.title,
+      description: itemTr.description ?? item.description,
+      price_note: itemTr.price_note ?? item.price_note,
+    };
+  });
+
+  return { ...live, business, texts, items };
 }
 
 const LiveContext = createContext<LiveSite>(DEFAULT_LIVE);
@@ -122,10 +240,10 @@ export function SiteLiveProvider({ value, children }: { value: LiveSite; childre
 
 export const useLive = () => useContext(LiveContext);
 
-/** פורמט תאריך עברי לתצוגת "עודכן ב" */
+/** פורמט תאריך עברי לתצוגת "עודכן ב" (תאימות לאחור — קומפוננטות ניהול) */
 export const formatUpdated = (iso: string | null | undefined) => {
-  if (!iso) return "אין מידע";
+  if (!iso) return DICTS.he.misc.noInfo;
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "אין מידע";
+  if (Number.isNaN(date.getTime())) return DICTS.he.misc.noInfo;
   return date.toLocaleDateString("he-IL", { day: "2-digit", month: "2-digit", year: "numeric" });
 };

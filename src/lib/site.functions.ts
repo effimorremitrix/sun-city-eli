@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { mergeLive, type LiveSite } from "@/lib/site-live";
 
-/** ה-slug של האתר הראשי — הדף האישי של אלי כליף (הבעלים) */
 const PUBLIC_SLUG = "sun-city";
 
 /* ------------------------- קריאה ציבורית ------------------------- */
@@ -11,17 +10,17 @@ export const getPublicSite = createServerFn({ method: "GET" })
   .inputValidator((input?: { slug?: string | null }) => ({
     slug: (input?.slug ?? PUBLIC_SLUG).trim(),
   }))
-  .handler(async ({ data }): Promise<LiveSite> => {
+  .handler(async ({ data: params }): Promise<LiveSite> => {
     const { publicDb } = await import("@/lib/public-db.server");
     const db = publicDb();
     if (!db) return mergeLive(null);
 
-    const { data: site, error } = await db.rpc("get_public_site", { p_slug: data.slug });
+    const { data, error } = await db.rpc("get_public_site", { p_slug: params.slug });
     if (error) {
       console.error("get_public_site failed", error.message);
       return mergeLive(null);
     }
-    return mergeLive(site);
+    return mergeLive(data);
   });
 
 /* ------------------- ניהול (אדמין או סוכן בעל אתר) ------------------- */
@@ -29,7 +28,7 @@ export const getPublicSite = createServerFn({ method: "GET" })
 export const getAdminSite = createServerFn({ method: "GET" })
   .inputValidator((input?: { siteId?: string | null }) => ({ siteId: input?.siteId ?? null }))
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data: params, context }) => {
     const { getManagerAccess } = await import("@/lib/admin.server");
     const access = await getManagerAccess(context);
 
@@ -45,19 +44,23 @@ export const getAdminSite = createServerFn({ method: "GET" })
 
     // בחירת ה-site הפעיל: המבוקש, אחרת הראשי (לאדמין) או הראשון של הסוכן
     const site =
-      (data.siteId ? access.sites.filter((s) => s.id === data.siteId)[0] : null) ??
+      (params.siteId ? access.sites.filter((s) => s.id === params.siteId)[0] : null) ??
       access.sites.filter((s) => s.slug === PUBLIC_SLUG)[0] ??
       access.sites[0] ??
       null;
 
-    let content: { business: unknown; texts: unknown } | null = null;
+    let content: { business: unknown; texts: unknown; translations: unknown } | null = null;
     if (site) {
-      const { data: row } = await context.supabase
+      const { data } = await context.supabase
         .from("site_content")
-        .select("business, texts")
+        .select("business, texts, translations")
         .eq("site_id", site.id)
         .maybeSingle();
-      content = (row ?? null) as { business: unknown; texts: unknown } | null;
+      content = (data ?? null) as {
+        business: unknown;
+        texts: unknown;
+        translations: unknown;
+      } | null;
     }
 
     return {
@@ -76,6 +79,7 @@ export const saveSiteContent = createServerFn({ method: "POST" })
       siteId?: string | null;
       business: Record<string, unknown>;
       texts: Record<string, unknown>;
+      translations?: Record<string, unknown>;
     }) => input,
   )
   .handler(async ({ data, context }) => {
@@ -86,9 +90,10 @@ export const saveSiteContent = createServerFn({ method: "POST" })
       await assertSiteAccess(context, siteId);
     } else {
       const access = await assertManager(context);
-      const site = access.sites.filter((s) => s.slug === PUBLIC_SLUG)[0] ?? access.sites[0] ?? null;
-      if (!site) throw new Error("לא נמצאה רשומת אתר במסד הנתונים");
-      siteId = site.id;
+      const fallback =
+        access.sites.filter((s) => s.slug === PUBLIC_SLUG)[0] ?? access.sites[0] ?? null;
+      if (!fallback) throw new Error("לא נמצאה רשומת אתר במסד הנתונים");
+      siteId = fallback.id;
     }
 
     const { error } = await context.supabase.from("site_content").upsert(
@@ -96,6 +101,7 @@ export const saveSiteContent = createServerFn({ method: "POST" })
         site_id: siteId,
         business: data.business as never,
         texts: data.texts as never,
+        ...(data.translations ? { translations: data.translations as never } : {}),
       },
       { onConflict: "site_id" },
     );

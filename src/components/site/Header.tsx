@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Menu, X, Phone, LogOut, User, Globe } from "lucide-react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Menu, X, Phone, LogOut, User } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import logoAsset from "@/assets/sun-city-logo-real.png.asset.json";
 import { useLive } from "@/lib/site-live";
 import { useAuth } from "@/hooks/useAuth";
-import { useT, useLang, pathForLang, LANGS, DICTS } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n";
+import { LangSwitcher } from "@/components/site/LangSwitcher";
 
 const logo = logoAsset.url;
 
@@ -15,19 +16,8 @@ const scrollTo = (id: string) => {
 export function Header() {
   const { business } = useLive();
   const { user, logout } = useAuth();
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
-  const t = useT();
-  const lang = useLang();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-
-  const links = [
-    { id: "properties", label: t.nav.properties },
-    { id: "sellers", label: t.nav.sellers },
-    { id: "buyers", label: t.nav.buyers },
-    { id: "services", label: t.nav.services },
-    { id: "team", label: t.nav.team },
-    { id: "contact", label: t.nav.contact },
-  ];
 
   const go = (id: string) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -35,7 +25,7 @@ export function Header() {
     scrollTo(id);
   };
 
-  const displayName = user?.fullName?.trim() || user?.email || "משתמש";
+  const displayName = user?.fullName?.trim() || user?.email || t.nav.defaultUser;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
@@ -44,19 +34,19 @@ export function Header() {
           href="#top"
           onClick={go("top")}
           className="flex items-center gap-2"
-          aria-label={`${business.name} — לראש העמוד`}
+          aria-label={t.nav.toTopAria(business.name)}
         >
-          <img src={logo} alt='לוגו סאן סיטי נדל"ן' width={40} height={40} className="size-10" />
+          <img src={logo} alt={t.nav.logoAlt} width={40} height={40} className="size-10" />
           <span className="flex flex-col leading-none">
             <span className="font-display text-base font-extrabold text-primary">
-              Sun City <span className="text-sun">נדל"ן</span>
+              Sun City <span className="text-sun">{t.nav.brandSuffix}</span>
             </span>
             <span className="mt-0.5 text-[10px] text-muted-foreground">{business.tagline}</span>
           </span>
         </a>
 
-        <nav aria-label="ניווט ראשי" className="hidden items-center gap-5 lg:flex">
-          {links.map((l) => (
+        <nav aria-label={t.nav.mainNavAria} className="hidden items-center gap-5 lg:flex">
+          {t.nav.links.map((l) => (
             <a
               key={l.id}
               href={`#${l.id}`}
@@ -66,10 +56,13 @@ export function Header() {
               {l.label}
             </a>
           ))}
+
+          <LangSwitcher />
+
           <a
             href={`tel:${business.phoneTel}`}
             className="flex items-center gap-1.5 text-sm font-bold text-primary"
-            aria-label={`התקשרות למשרד ${business.phone}`}
+            aria-label={t.nav.callAria(business.phone)}
             dir="ltr"
           >
             <Phone className="size-4 text-sun" aria-hidden="true" />
@@ -84,30 +77,30 @@ export function Header() {
                   title={user.email}
                 >
                   <User className="size-4 text-sun" aria-hidden="true" />
-                  {t.header.hello} {displayName}
+                  {t.nav.hello} {displayName}
                 </span>
                 <Link
                   to="/account"
                   className="text-sm font-semibold text-foreground transition-colors hover:text-sun"
                 >
-                  {t.header.personalArea}
+                  {t.nav.myAccount}
                 </Link>
                 {(user.isAdmin || user.isAgent) && (
                   <Link
                     to="/admin"
                     className="text-sm font-semibold text-foreground transition-colors hover:text-sun"
                   >
-                    {t.header.admin}
+                    {t.nav.adminSite}
                   </Link>
                 )}
                 <button
                   type="button"
                   onClick={logout}
                   className="flex items-center gap-1 text-sm font-bold text-destructive transition-colors hover:text-destructive/80"
-                  aria-label="התנתקות"
+                  aria-label={t.nav.logoutAria}
                 >
                   <LogOut className="size-4" aria-hidden="true" />
-                  <span className="hidden xl:inline">{t.header.logout}</span>
+                  <span className="hidden xl:inline">{t.nav.logout}</span>
                 </button>
               </>
             ) : (
@@ -116,60 +109,44 @@ export function Header() {
                   to="/auth"
                   className="text-sm font-semibold text-foreground transition-colors hover:text-sun"
                 >
-                  {t.header.authArea}
+                  {t.nav.authArea}
                 </Link>
                 <a
                   href="#sellers"
                   onClick={go("sellers")}
                   className="rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground shadow-soft transition-transform hover:-translate-y-0.5"
                 >
-                  {t.header.freeValuation}
+                  {t.nav.freeValuation}
                 </a>
               </>
             )}
           </div>
         </nav>
 
-        <nav
-          aria-label={t.langSwitcher}
-          className="hidden items-center gap-1 text-xs font-bold lg:flex"
-        >
-          <Globe className="size-3.5 text-sun" aria-hidden="true" />
-          {LANGS.map((l) => (
-            <a
-              key={l}
-              href={pathForLang(pathname, l)}
-              aria-current={l === lang}
-              className={
-                l === lang
-                  ? "rounded bg-sun px-1.5 py-0.5 text-sun-foreground"
-                  : "rounded px-1.5 py-0.5 text-muted-foreground hover:text-sun"
-              }
-            >
-              {l === "he" ? "עב" : l.toUpperCase()}
-            </a>
-          ))}
-        </nav>
-
-        <button
-          type="button"
-          aria-label={open ? "סגירת תפריט הניווט" : "פתיחת תפריט הניווט"}
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-          className="inline-flex size-10 items-center justify-center rounded-lg border border-border text-primary lg:hidden"
-        >
-          {open ? (
-            <X className="size-5" aria-hidden="true" />
-          ) : (
-            <Menu className="size-5" aria-hidden="true" />
-          )}
-        </button>
+        <div className="flex items-center gap-3 lg:hidden">
+          <button
+            type="button"
+            aria-label={open ? t.nav.closeMenu : t.nav.openMenu}
+            aria-expanded={open}
+            onClick={() => setOpen((v) => !v)}
+            className="inline-flex size-10 items-center justify-center rounded-lg border border-border text-primary"
+          >
+            {open ? (
+              <X className="size-5" aria-hidden="true" />
+            ) : (
+              <Menu className="size-5" aria-hidden="true" />
+            )}
+          </button>
+        </div>
       </div>
 
       {open && (
-        <nav aria-label="ניווט במובייל" className="border-t border-border bg-card lg:hidden">
+        <nav aria-label={t.nav.mobileNavAria} className="border-t border-border bg-card lg:hidden">
           <ul className="mx-auto max-w-6xl px-4 py-2">
-            {links.map((l) => (
+            <li className="border-b border-border/70 py-3">
+              <LangSwitcher big />
+            </li>
+            {t.nav.links.map((l) => (
               <li key={l.id}>
                 <a
                   href={`#${l.id}`}
@@ -195,7 +172,7 @@ export function Header() {
                 <li className="border-b border-border/70 py-3">
                   <span className="flex items-center gap-2 text-base font-bold text-primary">
                     <User className="size-4 text-sun" aria-hidden="true" />
-                    {t.header.hello} {displayName}
+                    {t.nav.hello} {displayName}
                   </span>
                 </li>
                 <li>
@@ -204,7 +181,7 @@ export function Header() {
                     onClick={() => setOpen(false)}
                     className="block border-b border-border/70 py-3 text-base font-semibold text-foreground"
                   >
-                    {t.header.personalArea}
+                    {t.nav.myAccount}
                   </Link>
                 </li>
                 {(user.isAdmin || user.isAgent) && (
@@ -214,7 +191,7 @@ export function Header() {
                       onClick={() => setOpen(false)}
                       className="block border-b border-border/70 py-3 text-base font-semibold text-foreground"
                     >
-                      {t.header.admin}
+                      {t.nav.adminSite}
                     </Link>
                   </li>
                 )}
@@ -228,7 +205,7 @@ export function Header() {
                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive py-3 text-base font-bold text-destructive"
                   >
                     <LogOut className="size-4" aria-hidden="true" />
-                    {t.header.logout}
+                    {t.nav.logoutFull}
                   </button>
                 </li>
               </>
@@ -240,7 +217,7 @@ export function Header() {
                     onClick={() => setOpen(false)}
                     className="block border-b border-border/70 py-3 text-base font-semibold text-foreground"
                   >
-                    {t.header.authArea}
+                    {t.nav.authArea}
                   </Link>
                 </li>
                 <li className="py-3">
@@ -249,28 +226,11 @@ export function Header() {
                     onClick={go("sellers")}
                     className="block rounded-xl bg-sun py-3 text-center text-base font-bold text-sun-foreground"
                   >
-                    {t.header.freeValuation}
+                    {t.nav.freeValuation}
                   </a>
                 </li>
               </>
             )}
-            <li className="flex items-center gap-2 py-3">
-              <Globe className="size-4 text-sun" aria-hidden="true" />
-              {LANGS.map((l) => (
-                <a
-                  key={l}
-                  href={pathForLang(pathname, l)}
-                  aria-current={l === lang}
-                  className={
-                    l === lang
-                      ? "rounded bg-sun px-2 py-1 text-sm font-bold text-sun-foreground"
-                      : "rounded px-2 py-1 text-sm font-bold text-muted-foreground"
-                  }
-                >
-                  {DICTS[l].langName}
-                </a>
-              ))}
-            </li>
           </ul>
         </nav>
       )}

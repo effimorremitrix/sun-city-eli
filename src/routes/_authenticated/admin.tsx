@@ -4,21 +4,22 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { getAdminSite, saveSiteContent, claimAdminRole } from "@/lib/site.functions";
-import {
-  adminListListings,
-  adminSaveListing,
-  adminDeleteListing,
-  adminRetranslateListing,
-} from "@/lib/listings.functions";
+import { adminListListings, adminSaveListing, adminDeleteListing } from "@/lib/listings.functions";
 import { formatListingPrice, type Listing } from "@/lib/listings";
 import { neighborhoods } from "@/lib/site-data";
-import type { LiveBusiness, LiveTexts } from "@/lib/site-live";
+import type {
+  LiveBusiness,
+  LiveContentTranslation,
+  LiveTexts,
+  LiveTranslations,
+} from "@/lib/site-live";
+import { AdminTranslateTabs, type FlatTranslations } from "@/components/site/AdminTranslateTabs";
 import { AdminUsers } from "@/components/site/AdminUsers";
+import { AdminPublish } from "@/components/site/AdminPublish";
+import { AdminSold } from "@/components/site/AdminSold";
 import AdminUsage from "@/components/site/AdminUsage";
 import AdminScout from "@/components/site/AdminScout";
 import AdminListingImages from "@/components/site/AdminListingImages";
-import { AdminPublish } from "@/components/site/AdminPublish";
-import { AdminSold } from "@/components/site/AdminSold";
 import { adminScoutNewCount } from "@/lib/scout.functions";
 
 type TabKey = "listings" | "sold" | "scout" | "content" | "publish" | "users" | "usage";
@@ -61,6 +62,7 @@ type ListingForm = {
   image_url: string;
   is_published: boolean;
   sort_order: string;
+  translations: FlatTranslations;
 };
 
 const emptyForm: ListingForm = {
@@ -82,6 +84,7 @@ const emptyForm: ListingForm = {
   image_url: "",
   is_published: true,
   sort_order: "0",
+  translations: {},
 };
 
 const toForm = (l: Listing): ListingForm => ({
@@ -104,10 +107,70 @@ const toForm = (l: Listing): ListingForm => ({
   image_url: l.image_url ?? "",
   is_published: l.is_published,
   sort_order: String(l.sort_order),
+  translations: Object.fromEntries(
+    Object.entries(l.translations ?? {}).map(([locale, tr]) => [
+      locale,
+      { title: tr?.title ?? "", description: tr?.description ?? "" },
+    ]),
+  ),
 });
 
 const num = (v: string) => (v.trim() === "" ? null : Number(v));
 const str = (v: string) => (v.trim() === "" ? null : v.trim());
+
+/* -------- המרות בין מבנה התרגומים השטוח בעורך למבנה הנשמר במסד -------- */
+
+/** תרגומי נכס: משאיר רק שדות שמולאו בפועל */
+const listingTranslations = (flat: FlatTranslations) => {
+  const out: Record<string, { title?: string; description?: string }> = {};
+  for (const [locale, f] of Object.entries(flat)) {
+    const entry: { title?: string; description?: string } = {};
+    if (f["title"]?.trim()) entry.title = f["title"].trim();
+    if (f["description"]?.trim()) entry.description = f["description"].trim();
+    if (Object.keys(entry).length) out[locale] = entry;
+  }
+  return out;
+};
+
+const CONTENT_BUSINESS_KEYS = ["name", "tagline", "subtitle", "address"] as const;
+const CONTENT_TEXT_KEYS = ["heroTitle", "heroSubtitle"] as const;
+
+/** תרגומי תוכן העסק: מהמבנה המקונן במסד למבנה שטוח לעורך */
+const flattenContentTranslations = (tr: LiveTranslations | undefined): FlatTranslations => {
+  const out: FlatTranslations = {};
+  for (const [locale, c] of Object.entries(tr ?? {})) {
+    if (!c) continue;
+    const flat: Record<string, string> = {};
+    for (const k of CONTENT_BUSINESS_KEYS) {
+      const v = c.business?.[k];
+      if (v) flat[k] = v;
+    }
+    for (const k of CONTENT_TEXT_KEYS) {
+      const v = c.texts?.[k];
+      if (v) flat[k] = v;
+    }
+    if (Object.keys(flat).length) out[locale] = flat;
+  }
+  return out;
+};
+
+/** תרגומי תוכן העסק: מהעורך השטוח חזרה למבנה הנשמר במסד */
+const nestContentTranslations = (flat: FlatTranslations): LiveTranslations => {
+  const out: LiveTranslations = {};
+  for (const [locale, f] of Object.entries(flat)) {
+    const entry: LiveContentTranslation = {};
+    for (const k of CONTENT_BUSINESS_KEYS) {
+      const v = f[k]?.trim();
+      if (v) entry.business = { ...(entry.business ?? {}), [k]: v };
+    }
+    for (const k of CONTENT_TEXT_KEYS) {
+      const v = f[k]?.trim();
+      if (v) entry.texts = { ...(entry.texts ?? {}), [k]: v };
+    }
+    if (Object.keys(entry).length) out[locale] = entry;
+  }
+  return out;
+};
 
 function AdminPage() {
   const fetchSite = useServerFn(getAdminSite);
@@ -115,7 +178,6 @@ function AdminPage() {
   const saveContent = useServerFn(saveSiteContent);
   const saveListing = useServerFn(adminSaveListing);
   const removeListing = useServerFn(adminDeleteListing);
-  const retranslate = useServerFn(adminRetranslateListing);
   const claim = useServerFn(claimAdminRole);
 
   // ה-site הנבחר: אדמין יכול לעבור בין הסוכנים; סוכן רואה רק את שלו
@@ -149,10 +211,12 @@ function AdminPage() {
 
   const [business, setBusiness] = useState<LiveBusiness | null>(null);
   const [texts, setTexts] = useState<LiveTexts | null>(null);
+  const [contentTr, setContentTr] = useState<FlatTranslations>({});
   useEffect(() => {
     if (site.data?.live) {
       setBusiness(site.data.live.business);
       setTexts(site.data.live.texts);
+      setContentTr(flattenContentTranslations(site.data.live.translations));
     }
   }, [site.data]);
 
@@ -196,6 +260,7 @@ function AdminPage() {
           image_key: null,
           is_published: form.is_published,
           sort_order: Number(form.sort_order) || 0,
+          translations: listingTranslations(form.translations),
         },
       })) as { id: string; matched: number; emailsSent: number; emailsPending: number };
       setForm((f) => ({ ...f, id: res.id }));
@@ -335,6 +400,9 @@ function AdminPage() {
         ))}
       </div>
 
+      {tab === "users" && site.data?.isAdmin && <AdminUsers />}
+      {tab === "usage" && site.data?.isAdmin && <AdminUsage />}
+      {tab === "scout" && site.data?.isAdmin && <AdminScout />}
       {tab === "sold" &&
         (selectedSiteId ? (
           <AdminSold siteId={selectedSiteId} />
@@ -348,13 +416,9 @@ function AdminPage() {
           <AdminPublish siteId={selectedSiteId} listings={listings.data ?? []} />
         ) : (
           <p className="mt-6 rounded-xl bg-secondary p-4 text-sm text-muted-foreground">
-            לא נמצאה רשומת אתר במסד הנתונים — לא ניתן לנהל את הפרסום. רעננו את העמוד; אם ההודעה
-            נשארת, פנו לתמיכה.
+            לא נמצאה רשומת אתר במסד הנתונים — לא ניתן לנהל את הפרסום.
           </p>
         ))}
-      {tab === "users" && site.data?.isAdmin && <AdminUsers />}
-      {tab === "usage" && site.data?.isAdmin && <AdminUsage />}
-      {tab === "scout" && site.data?.isAdmin && <AdminScout />}
 
       {/* ניהול נכסים */}
       {tab === "listings" && (
@@ -503,6 +567,17 @@ function AdminPage() {
             </label>
           </div>
 
+          <AdminTranslateTabs
+            title="תרגומי הנכס (כותרת ותיאור)"
+            fields={[
+              { key: "title", label: "כותרת הנכס", source: form.title },
+              { key: "description", label: "תיאור", source: form.description, multiline: true },
+            ]}
+            value={form.translations}
+            onChange={(translations) => setForm({ ...form, translations })}
+            disabled={busy}
+          />
+
           <div className="mt-3 flex flex-wrap gap-4 text-sm">
             {(
               [
@@ -572,17 +647,6 @@ function AdminPage() {
                     <button
                       type="button"
                       disabled={busy}
-                      className="underline"
-                      title="תרגום הכותרת והתיאור מחדש לאנגלית, צרפתית ורוסית"
-                      onClick={() =>
-                        run(() => retranslate({ data: { id: l.id } }), "הנכס תורגם מחדש")
-                      }
-                    >
-                      תרגם מחדש
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
                       className="text-destructive underline"
                       onClick={() => run(() => removeListing({ data: { id: l.id } }), "הנכס נמחק")}
                     >
@@ -614,10 +678,6 @@ function AdminPage() {
                 ["phoneTel", "טלפון לחיוג (ספרות)"],
                 ["email", "אימייל"],
                 ["license", "מספר רישיון"],
-                ["agentName", "שם הסוכן (הדף האישי)"],
-                ["roleTitle", "תפקיד הסוכן"],
-                ["photoUrl", "כתובת תמונת הסוכן (URL)"],
-                ["bio", "כמה מילים על הסוכן"],
               ] as Array<[keyof LiveBusiness, string]>
             ).map(([key, label]) => (
               <label className="block" key={String(key)}>
@@ -652,6 +712,26 @@ function AdminPage() {
             </label>
           </div>
 
+          <AdminTranslateTabs
+            title="תרגומי התוכן (שם, סלוגן, כתובת וכותרות)"
+            fields={[
+              { key: "name", label: "שם העסק", source: business.name },
+              { key: "tagline", label: "סלוגן", source: business.tagline },
+              { key: "subtitle", label: "תת־כותרת", source: business.subtitle },
+              { key: "address", label: "כתובת", source: business.address },
+              { key: "heroTitle", label: "כותרת ראשית", source: texts.heroTitle },
+              {
+                key: "heroSubtitle",
+                label: "כותרת משנה",
+                source: texts.heroSubtitle,
+                multiline: true,
+              },
+            ]}
+            value={contentTr}
+            onChange={setContentTr}
+            disabled={busy}
+          />
+
           <button
             type="button"
             disabled={busy}
@@ -660,9 +740,9 @@ function AdminPage() {
                 () =>
                   saveContent({
                     data: {
-                      siteId: selectedSiteId,
                       business: business as never,
                       texts: texts as never,
+                      translations: nestContentTranslations(contentTr) as never,
                     },
                   }),
                 "התוכן נשמר",

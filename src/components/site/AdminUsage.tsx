@@ -1,7 +1,16 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 import { adminAiUsage, type UsageReport } from "@/lib/ai-usage.functions";
 
 const RANGES: Array<[string, string]> = [
@@ -53,7 +62,10 @@ export function AdminUsage() {
 
       {isLoading && <p className="mt-4 text-sm text-muted-foreground">טוען נתוני שימוש…</p>}
       {error && (
-        <p role="alert" className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive">
+        <p
+          role="alert"
+          className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive"
+        >
           טעינת נתוני השימוש נכשלה
         </p>
       )}
@@ -90,8 +102,18 @@ export function AdminUsage() {
                   labelFormatter={(l) => `תאריך ${l}`}
                 />
                 <Legend />
-                <Bar dataKey="input_tokens" name="טוקנים נכנסים" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="output_tokens" name="טוקנים יוצאים" fill="var(--color-sun)" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="input_tokens"
+                  name="טוקנים נכנסים"
+                  fill="var(--color-primary)"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="output_tokens"
+                  name="טוקנים יוצאים"
+                  fill="var(--color-sun)"
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -150,7 +172,10 @@ export function AdminUsage() {
                   {data.recent.map((e) => (
                     <tr key={e.id} className="border-t border-primary/10">
                       <td className="p-2 whitespace-nowrap">
-                        {new Date(e.created_at).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}
+                        {new Date(e.created_at).toLocaleString("he-IL", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })}
                       </td>
                       <td className="p-2" dir="ltr">
                         {e.model}
@@ -165,7 +190,9 @@ export function AdminUsage() {
                         {e.status === "success" ? (
                           <span className="font-semibold text-primary">הצלחה</span>
                         ) : (
-                          <span className="font-semibold text-destructive">{e.error_message ?? "שגיאה"}</span>
+                          <span className="font-semibold text-destructive">
+                            {e.error_message ?? "שגיאה"}
+                          </span>
                         )}
                       </td>
                       <td className="p-2">{e.user_email ?? "אורח"}</td>
@@ -177,8 +204,8 @@ export function AdminUsage() {
           )}
 
           <p className="mt-5 rounded-xl bg-secondary p-3 text-xs font-semibold text-primary">
-            העלות המוצגת היא הערכה לפי תעריפי המודל בזמן החישוב. החיוב הרשמי והמדויק מופיע בקונסולת Anthropic
-            (Usage &amp; Billing) של החשבון שממן את המפתח.
+            העלות המוצגת היא הערכה לפי תעריפי המודל בזמן החישוב. החיוב הרשמי והמדויק מופיע בקונסולת
+            Anthropic (Usage &amp; Billing) של החשבון שממן את המפתח.
           </p>
         </>
       )}

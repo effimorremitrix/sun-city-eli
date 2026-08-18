@@ -31,22 +31,22 @@ import {
 
 import { aiSearchListings, type AiSearchResult } from "@/lib/ai-search.functions";
 import { useLive } from "@/lib/site-live";
-import { useT } from "@/lib/i18n";
-import { isValidIsraeliPhone, phoneError } from "@/lib/leads";
+import { isValidIsraeliPhone } from "@/lib/leads";
+import { mapValue, useLang } from "@/lib/i18n";
 import { Reveal } from "./Reveal";
 
-const featureList = [
-  { key: "has_mamad", fk: "mamad", Icon: ShieldCheck },
-  { key: "has_elevator", fk: "elevator", Icon: MoveVertical },
-  { key: "has_parking", fk: "parking", Icon: Car },
-  { key: "has_balcony", fk: "balcony", Icon: Trees },
-] as const;
+const featureIcons = {
+  has_mamad: { key: "mamad", Icon: ShieldCheck },
+  has_elevator: { key: "elevator", Icon: MoveVertical },
+  has_parking: { key: "parking", Icon: Car },
+  has_balcony: { key: "balcony", Icon: Trees },
+} as const;
 
 type Props = { listings: Listing[]; updatedAt: string | null };
 
 export function PropertySection({ listings, updatedAt }: Props) {
+  const { t } = useLang();
   const { business: live } = useLive();
-  const t = useT();
   const [deal, setDeal] = useState("all");
   const [rooms, setRooms] = useState("all");
   const [range, setRange] = useState("all");
@@ -89,7 +89,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
       setAi({ ids: res.ids, explanation: res.explanation, filters: res.filters, web: res.web });
     } catch (err) {
       setAi(null);
-      setAiErr(err instanceof Error ? err.message : "החיפוש נכשל");
+      setAiErr(err instanceof Error ? err.message : t.properties.aiFailed);
     } finally {
       setAiBusy(false);
     }
@@ -97,7 +97,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
 
   return (
     <section id="properties" className="mx-auto max-w-6xl px-4 py-14 md:py-20">
-      <p className="text-sm font-bold text-sun">{t.properties.label}</p>
+      <p className="text-sm font-bold text-sun">{t.properties.kicker}</p>
       <h2 className="mt-2 text-3xl md:text-4xl">{t.properties.title}</h2>
       <DataSource source="db" updatedAt={updatedAt} className="mt-2" />
 
@@ -114,7 +114,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
             maxLength={300}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t.properties.aiPlaceholder}
-            aria-label={t.properties.aiLabel}
+            aria-label={t.properties.aiAria}
           />
         </label>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -123,7 +123,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
             disabled={aiBusy}
             className="rounded-xl bg-sun px-5 py-2.5 text-sm font-bold text-sun-foreground disabled:opacity-60"
           >
-            {aiBusy ? t.properties.aiBusy : t.properties.aiButton}
+            {aiBusy ? t.properties.aiSearching : t.properties.aiSearch}
           </button>
           {ai && (
             <button
@@ -148,10 +148,10 @@ export function PropertySection({ listings, updatedAt }: Props) {
             className="mt-3 rounded-xl bg-secondary p-3 text-sm text-secondary-foreground"
             aria-live="polite"
           >
-            {ai.explanation || t.properties.aiDefaultExplanation}
+            {ai.explanation || t.properties.aiFallbackExplain}
           </p>
         )}
-        <p className="mt-2 text-xs text-muted-foreground">{t.properties.aiNote}</p>
+        <p className="mt-2 text-xs text-muted-foreground">{t.properties.aiDisclaimer}</p>
       </form>
 
       {/* סינון ידני */}
@@ -164,11 +164,11 @@ export function PropertySection({ listings, updatedAt }: Props) {
             className="field"
             value={deal}
             onChange={(e) => setDeal(e.target.value)}
-            aria-label={t.properties.filterDeal}
+            aria-label={t.properties.filterDealAria}
           >
-            <option value="all">{t.properties.all}</option>
-            <option value="מכירה">{t.properties.dealSale}</option>
-            <option value="השכרה">{t.properties.dealRent}</option>
+            <option value="all">{t.properties.filterAll}</option>
+            <option value="מכירה">{t.maps.deal["מכירה"]}</option>
+            <option value="השכרה">{t.maps.deal["השכרה"]}</option>
           </select>
         </label>
         <label className="block">
@@ -179,9 +179,9 @@ export function PropertySection({ listings, updatedAt }: Props) {
             className="field"
             value={rooms}
             onChange={(e) => setRooms(e.target.value)}
-            aria-label={t.properties.filterRooms}
+            aria-label={t.properties.filterRoomsAria}
           >
-            <option value="all">{t.properties.all}</option>
+            <option value="all">{t.properties.filterAll}</option>
             <option value="2">2+</option>
             <option value="3">3+</option>
             <option value="4">4+</option>
@@ -196,12 +196,12 @@ export function PropertySection({ listings, updatedAt }: Props) {
             className="field"
             value={range}
             onChange={(e) => setRange(e.target.value)}
-            aria-label={t.properties.filterPrice}
+            aria-label={t.properties.filterPriceAria}
           >
-            <option value="all">{t.properties.all}</option>
+            <option value="all">{t.properties.filterAll}</option>
             {priceRanges.map((r, i) => (
               <option key={r.label} value={String(i)}>
-                {r.label}
+                {t.properties.priceRanges[i] ?? r.label}
               </option>
             ))}
           </select>
@@ -214,12 +214,12 @@ export function PropertySection({ listings, updatedAt }: Props) {
             className="field"
             value={area}
             onChange={(e) => setArea(e.target.value)}
-            aria-label={t.properties.filterArea}
+            aria-label={t.properties.filterAreaAria}
           >
             <option value="all">{t.properties.allAreas}</option>
             {neighborhoods.map((n) => (
               <option key={n} value={n}>
-                {n}
+                {t.maps.neighborhoods[n] ?? n}
               </option>
             ))}
           </select>
@@ -235,7 +235,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
           className="inline-flex items-center gap-1.5 rounded-xl border border-sun px-4 py-2 text-sm font-bold text-primary"
         >
           <BellPlus className="size-4 text-sun" aria-hidden="true" />
-          {t.properties.alertsCta}
+          {t.properties.personalAgent}
         </Link>
       </div>
 
@@ -251,13 +251,13 @@ export function PropertySection({ listings, updatedAt }: Props) {
 
       {filtered.length === 0 && (
         <div className="soft-card mt-4 p-6 text-center">
-          <p className="font-bold text-primary">{t.properties.emptyTitle}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{t.properties.emptyText}</p>
+          <p className="font-bold text-primary">{t.properties.noResultsTitle}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t.properties.noResultsText}</p>
           <a
-            {...waProps("שלום, אני מחפש נכס בנתניה. הפרטים שלי: ", live.phoneTel)}
+            {...waProps(t.properties.waNoResultsMsg)}
             className="mt-4 inline-block rounded-xl bg-whatsapp px-5 py-3 text-sm font-bold text-whatsapp-foreground"
           >
-            {t.properties.emptyWa}
+            {t.properties.waNoResultsBtn}
           </a>
         </div>
       )}
@@ -270,7 +270,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
         rel="noopener noreferrer"
         className="mt-8 flex w-full items-center justify-center rounded-2xl bg-primary px-6 py-4 text-base font-bold text-primary-foreground shadow-soft"
       >
-        {t.properties.yad2}
+        {t.properties.yad2Btn}
       </a>
 
       {selected && <PropertyModal property={selected} onClose={() => setSelected(null)} />}
@@ -279,9 +279,13 @@ export function PropertySection({ listings, updatedAt }: Props) {
 }
 
 function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () => void }) {
-  const t = useT();
+  const { lang, t } = useLang();
   const gallery = listingImages(p);
   const img = gallery[0] ?? null;
+  const noInfo = t.misc.noInfo;
+  const hood = mapValue(t.maps.neighborhoods, p.neighborhood);
+  const city = t.maps.cities[p.city] ?? p.city;
+  const price = formatListingPrice(p.price, lang);
 
   return (
     <article className="soft-card flex h-full flex-col overflow-hidden">
@@ -289,7 +293,7 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
         {img ? (
           <img
             src={img}
-            alt={`${p.title} ב${p.neighborhood ?? "נתניה"}`}
+            alt={t.properties.cardImgAlt(p.title, hood ?? city)}
             width={800}
             height={533}
             loading="lazy"
@@ -301,12 +305,12 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
           </div>
         )}
         {p.tag && (
-          <span className="absolute top-3 right-3 rounded-full bg-sun px-3 py-1 text-xs font-bold text-sun-foreground">
-            {p.tag}
+          <span className="absolute top-3 start-3 rounded-full bg-sun px-3 py-1 text-xs font-bold text-sun-foreground">
+            {t.maps.tag[p.tag] ?? p.tag}
           </span>
         )}
         {gallery.length > 1 && (
-          <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-primary/85 px-2.5 py-1 text-xs font-bold text-primary-foreground">
+          <span className="absolute bottom-3 end-3 inline-flex items-center gap-1 rounded-full bg-primary/85 px-2.5 py-1 text-xs font-bold text-primary-foreground">
             <Images className="size-3.5" aria-hidden="true" />
             {t.properties.photosCount(gallery.length)}
           </span>
@@ -314,42 +318,43 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
       </div>
 
       <div className="flex flex-1 flex-col p-4">
-        <p className="font-display text-xl font-extrabold text-primary">
-          {formatListingPrice(p.price)}
-        </p>
+        <p className="font-display text-xl font-extrabold text-primary">{price}</p>
         <h3 className="mt-1 text-base">{p.title}</h3>
         <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
           <MapPin className="size-4 shrink-0 text-sun" aria-hidden="true" />
-          {p.neighborhood ?? t.properties.noInfo}, {p.city}
+          {hood ?? noInfo}, {city}
         </p>
 
         <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-foreground">
           <li className="flex items-center gap-1">
             <BedDouble className="size-4 text-sun" aria-hidden="true" />
-            {p.rooms ?? t.properties.noInfo} {t.properties.rooms}
+            {p.rooms ?? noInfo} {t.properties.roomsUnit}
           </li>
           <li className="flex items-center gap-1">
             <Ruler className="size-4 text-sun" aria-hidden="true" />
-            {p.size_sqm ?? t.properties.noInfo} {t.properties.sqm}
+            {p.size_sqm ?? noInfo} {t.properties.sqm}
           </li>
           <li className="flex items-center gap-1">
             <Building className="size-4 text-sun" aria-hidden="true" />
-            {t.properties.floor} {p.floor ?? t.properties.noInfo}
+            {t.properties.floorLabel(p.floor ?? noInfo)}
           </li>
         </ul>
 
         <ul className="mt-3 flex flex-wrap gap-2">
-          {featureList
-            .filter(({ key }) => p[key])
-            .map(({ key, fk, Icon }) => (
-              <li
-                key={key}
-                className="flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-secondary-foreground"
-              >
-                <Icon className="size-3.5" aria-hidden="true" />
-                {t.properties.features[fk]}
-              </li>
-            ))}
+          {(Object.keys(featureIcons) as Array<keyof typeof featureIcons>)
+            .filter((key) => p[key])
+            .map((key) => {
+              const { key: labelKey, Icon } = featureIcons[key];
+              return (
+                <li
+                  key={key}
+                  className="flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-secondary-foreground"
+                >
+                  <Icon className="size-3.5" aria-hidden="true" />
+                  {t.properties.features[labelKey]}
+                </li>
+              );
+            })}
         </ul>
 
         {p.agent && (
@@ -365,17 +370,22 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
             onClick={onOpen}
             className="flex-1 rounded-xl border border-primary/30 py-2.5 text-sm font-bold text-primary"
           >
-            {t.properties.details}
+            {t.properties.detailsBtn}
           </button>
           <a
             {...waProps(
-              `שלום${p.agent ? ` ${p.agent.name}` : ""}, הגעתי מהאתר של סאן סיטי נדל"ן.\nמעוניין בפרטים על הנכס:\n${p.title}\n${p.address ?? p.neighborhood ?? ""}\nמחיר: ${formatListingPrice(p.price)}`,
+              t.properties.waListing(
+                p.agent?.name ?? business.name,
+                p.title,
+                p.address ?? hood ?? "",
+                price,
+              ),
               p.agent?.phoneTel ?? undefined,
             )}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-whatsapp py-2.5 text-sm font-bold text-whatsapp-foreground"
           >
             <MessageCircle className="size-4" aria-hidden="true" />
-            {t.properties.waDetails}
+            {t.properties.waDetailsBtn}
           </a>
         </div>
       </div>
@@ -384,19 +394,33 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
 }
 
 function PropertyModal({ property: p, onClose }: { property: Listing; onClose: () => void }) {
-  const t = useT();
+  const { lang, dir, t } = useLang();
   const [form, setForm] = useState({ name: "", phone: "" });
   const [err, setErr] = useState<string | null>(null);
   const gallery = listingImages(p);
   const [index, setIndex] = useState(0);
 
+  const noInfo = t.misc.noInfo;
+  const hood = mapValue(t.maps.neighborhoods, p.neighborhood);
+  const city = t.maps.cities[p.city] ?? p.city;
+  const price = formatListingPrice(p.price, lang);
+
+  const next = () => setIndex((i) => (i + 1) % gallery.length);
+  const prev = () => setIndex((i) => (i - 1 + gallery.length) % gallery.length);
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) return setErr(t.seller.errName);
-    if (!isValidIsraeliPhone(form.phone)) return setErr(phoneError);
+    if (!form.name.trim()) return setErr(t.properties.errName);
+    if (!isValidIsraeliPhone(form.phone)) return setErr(t.misc.phoneError);
     setErr(null);
     openWa(
-      `שלום ${p.agent?.name ?? business.name},\nאני מעוניין בנכס: ${p.title}\nאזור: ${p.neighborhood ?? "אין מידע"}\nמחיר: ${formatListingPrice(p.price)}\nשם: ${form.name}\nטלפון: ${form.phone}`,
+      t.properties.waInterested(p.agent?.name ?? business.name, {
+        title: p.title,
+        hood: hood ?? noInfo,
+        price,
+        name: form.name,
+        phone: form.phone,
+      }),
       p.agent?.phoneTel ?? undefined,
     );
   };
@@ -405,7 +429,7 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`פרטי נכס: ${p.title}`}
+      aria-label={t.properties.modalAria(p.title)}
       className="fixed inset-0 z-50 flex items-end justify-center bg-[oklch(0.263_0.038_260/0.6)] p-0 sm:items-center sm:p-4"
     >
       <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl bg-card sm:rounded-2xl">
@@ -414,7 +438,7 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
           <button
             type="button"
             onClick={onClose}
-            aria-label="סגירת חלון פרטי הנכס"
+            aria-label={t.properties.closeModalAria}
             className="inline-flex size-9 items-center justify-center rounded-lg border border-border text-primary"
           >
             <X className="size-5" aria-hidden="true" />
@@ -427,7 +451,7 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
               <div className="relative">
                 <img
                   src={gallery[index]!}
-                  alt={`${p.title} ב${p.neighborhood ?? "נתניה"} — תמונה ${index + 1} מתוך ${gallery.length}`}
+                  alt={t.properties.galleryImgAlt(p.title, hood ?? city, index + 1, gallery.length)}
                   width={1200}
                   height={800}
                   loading="lazy"
@@ -435,18 +459,23 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
                 />
                 {gallery.length > 1 && (
                   <>
+                    {/* החיצים פיזיים: החץ השמאלי תמיד מציג את השכן משמאל, בהתאם לכיוון השפה */}
                     <button
                       type="button"
-                      onClick={() => setIndex((i) => (i + 1) % gallery.length)}
-                      aria-label="התמונה הבאה"
+                      onClick={dir === "rtl" ? next : prev}
+                      aria-label={
+                        dir === "rtl" ? t.properties.nextImgAria : t.properties.prevImgAria
+                      }
                       className="absolute top-1/2 left-2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 text-primary shadow"
                     >
                       <ChevronLeft className="size-5" aria-hidden="true" />
                     </button>
                     <button
                       type="button"
-                      onClick={() => setIndex((i) => (i - 1 + gallery.length) % gallery.length)}
-                      aria-label="התמונה הקודמת"
+                      onClick={dir === "rtl" ? prev : next}
+                      aria-label={
+                        dir === "rtl" ? t.properties.prevImgAria : t.properties.nextImgAria
+                      }
                       className="absolute top-1/2 right-2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 text-primary shadow"
                     >
                       <ChevronRight className="size-5" aria-hidden="true" />
@@ -465,7 +494,7 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
                       key={src}
                       type="button"
                       onClick={() => setIndex(i)}
-                      aria-label={`הצגת תמונה ${i + 1}`}
+                      aria-label={t.properties.showImgAria(i + 1)}
                       aria-current={i === index}
                       className={`shrink-0 overflow-hidden rounded-lg border-2 ${i === index ? "border-sun" : "border-transparent"}`}
                     >
@@ -477,48 +506,34 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
             </div>
           )}
 
-          <p className="mt-4 font-display text-2xl font-extrabold text-primary">
-            {formatListingPrice(p.price)}
-          </p>
-          <p className="mt-2 leading-relaxed text-foreground">
-            {p.description ?? t.properties.noInfo}
-          </p>
+          <p className="mt-4 font-display text-2xl font-extrabold text-primary">{price}</p>
+          <p className="mt-2 leading-relaxed text-foreground">{p.description ?? noInfo}</p>
 
-          <table className="mt-4 w-full text-right text-sm">
-            <caption className="sr-only">מפרט הנכס</caption>
+          <table className="mt-4 w-full text-start text-sm">
+            <caption className="sr-only">{t.properties.specCaption}</caption>
             <tbody className="divide-y divide-border">
               {[
-                [t.properties.modal.agent, p.agent?.name ?? t.properties.noInfo],
-                [t.properties.modal.deal, p.deal_type],
-                [t.properties.modal.address, p.address ?? t.properties.noInfo],
-                [t.properties.modal.rooms, p.rooms == null ? t.properties.noInfo : String(p.rooms)],
+                [t.properties.specDeal, t.maps.deal[p.deal_type] ?? p.deal_type],
+                [t.properties.specAddress, p.address ?? noInfo],
+                [t.properties.specRooms, p.rooms == null ? noInfo : String(p.rooms)],
                 [
-                  t.properties.modal.size,
-                  p.size_sqm == null ? t.properties.noInfo : `${p.size_sqm} ${t.properties.sqm}`,
+                  t.properties.specSize,
+                  p.size_sqm == null ? noInfo : t.properties.sqmValue(p.size_sqm),
                 ],
-                [t.properties.modal.floor, p.floor ?? t.properties.noInfo],
+                [t.properties.specFloor, p.floor ?? noInfo],
+                [t.properties.features.mamad, p.has_mamad ? t.properties.yes : t.properties.no],
                 [
-                  t.properties.modal.mamad,
-                  p.has_mamad ? t.properties.modal.yes : t.properties.modal.no,
+                  t.properties.features.elevator,
+                  p.has_elevator ? t.properties.yes : t.properties.no,
                 ],
-                [
-                  t.properties.modal.elevator,
-                  p.has_elevator ? t.properties.modal.yes : t.properties.modal.no,
-                ],
-                [
-                  t.properties.modal.parking,
-                  p.has_parking ? t.properties.modal.yes : t.properties.modal.no,
-                ],
-                [
-                  t.properties.modal.balcony,
-                  p.has_balcony ? t.properties.modal.yes : t.properties.modal.no,
-                ],
+                [t.properties.features.parking, p.has_parking ? t.properties.yes : t.properties.no],
+                [t.properties.features.balcony, p.has_balcony ? t.properties.yes : t.properties.no],
               ].map(([k, v]) => (
                 <tr key={k}>
-                  <th scope="row" className="py-2 font-semibold text-muted-foreground">
+                  <th scope="row" className="py-2 text-start font-semibold text-muted-foreground">
                     {k}
                   </th>
-                  <td className="py-2">{v}</td>
+                  <td className="py-2 text-start">{v}</td>
                 </tr>
               ))}
             </tbody>
@@ -527,7 +542,7 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
           {p.neighborhood && (
             <div className="mt-4 overflow-hidden rounded-xl border border-border">
               <iframe
-                title={`מפת האזור: ${p.neighborhood}, ${p.city}`}
+                title={t.properties.mapTitle(hood ?? p.neighborhood, city)}
                 src={`https://www.google.com/maps?q=${encodeURIComponent(`${p.neighborhood}, ${p.city}`)}&output=embed`}
                 loading="lazy"
                 className="h-56 w-full"
@@ -537,12 +552,12 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
 
           <form onSubmit={submit} className="mt-5 rounded-xl bg-secondary p-4" noValidate>
             <p className="font-display text-lg font-bold text-primary">
-              {t.properties.modal.interested}
+              {t.properties.interestedTitle}
             </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <label className="block">
                 <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                  {t.properties.modal.fullName}
+                  {t.properties.fullName}
                 </span>
                 <input
                   className="field"
@@ -554,7 +569,7 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                  {t.properties.modal.phone}
+                  {t.properties.phone}
                 </span>
                 <input
                   className="field"
@@ -576,7 +591,7 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
               type="submit"
               className="mt-3 w-full rounded-xl bg-whatsapp py-3 text-base font-bold text-whatsapp-foreground"
             >
-              {t.properties.modal.sendWa}
+              {t.properties.sendWa}
             </button>
           </form>
         </div>
@@ -595,54 +610,48 @@ function WebCandidates({
   agentPhone: string;
   agentName: string;
 }) {
-  const t = useT();
+  const { t } = useLang();
+  const w = t.properties.web;
+
   if (web.status === "login_required") {
     return (
       <div className="soft-card mt-6 p-5">
         <p className="flex items-center gap-1.5 font-bold text-primary">
           <Globe className="size-4 text-sun" aria-hidden="true" />
-          {t.properties.web.loginTitle}
+          {w.loginTitle}
         </p>
-        <p className="mt-1 text-sm text-muted-foreground">{t.properties.web.loginText}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{w.loginText}</p>
         <Link
           to="/auth"
           className="mt-3 inline-block rounded-xl bg-sun px-5 py-2.5 text-sm font-bold text-sun-foreground"
         >
-          {t.properties.web.loginCta}
+          {w.loginCta}
         </Link>
       </div>
     );
   }
 
   if (web.status === "quota_exceeded") {
-    return (
-      <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">{t.properties.web.quota}</p>
-    );
+    return <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">{w.quota}</p>;
   }
 
   if (web.status === "unavailable") {
-    return (
-      <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">
-        {t.properties.web.unavailable}
-      </p>
-    );
+    return <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">{w.unavailable}</p>;
   }
 
   if (web.candidates.length === 0) {
-    return (
-      <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">{t.properties.web.empty}</p>
-    );
+    return <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">{w.empty}</p>;
   }
 
   return (
-    <section className="mt-8" aria-label={t.properties.web.title}>
+    <section className="mt-8" aria-label={w.title}>
       <h3 className="flex items-center gap-1.5 text-xl font-extrabold text-primary">
         <Globe className="size-5 text-sun" aria-hidden="true" />
-        {t.properties.web.title}
+        {w.title}
       </h3>
       <p className="mt-1 text-sm text-muted-foreground">
-        {t.properties.web.subtitle}
-        {web.remaining != null && t.properties.web.remaining(web.remaining)}
+        {w.subtitle}
+        {web.remaining != null && w.remaining(web.remaining)}
       </p>
       <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {web.candidates.map((c) => (
@@ -652,19 +661,19 @@ function WebCandidates({
                 {c.source_site}
               </span>
               <span className="text-xs font-bold text-sun">
-                {t.properties.web.match} {c.match_score}%
+                {w.match} {c.match_score}%
               </span>
             </div>
             <h4 className="mt-2 text-base font-bold text-primary">{c.title}</h4>
             <p className="mt-1 text-sm text-muted-foreground">
               {[
                 c.neighborhood,
-                c.rooms != null ? `${c.rooms} חדרים` : null,
-                c.size_sqm != null ? `${c.size_sqm} מ״ר` : null,
+                c.rooms != null ? `${c.rooms} ${t.properties.roomsUnit}` : null,
+                c.size_sqm != null ? `${c.size_sqm} ${t.properties.sqm}` : null,
                 c.price != null ? formatListingPrice(c.price) : null,
               ]
                 .filter(Boolean)
-                .join(" · ") || "אין פרטים נוספים"}
+                .join(" · ") || t.misc.noInfo}
             </p>
             {c.match_reason && (
               <p className="mt-2 flex-1 text-xs leading-relaxed text-muted-foreground">
@@ -678,17 +687,14 @@ function WebCandidates({
                 rel="noopener noreferrer"
                 className="flex flex-1 items-center justify-center rounded-xl border border-primary/30 py-2 text-xs font-bold text-primary"
               >
-                {t.properties.web.source}
+                {w.source}
               </a>
               <a
-                {...waProps(
-                  `שלום ${agentName}, מצאתי דרך האתר מודעה שמעניינת אותי ואשמח שתבדקו אותה עבורי:\n${c.title}\n${c.source_url}`,
-                  agentPhone,
-                )}
+                {...waProps(w.talkMsg(agentName, c.title, c.source_url), agentPhone)}
                 className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-whatsapp py-2 text-xs font-bold text-whatsapp-foreground"
               >
                 <MessageCircle className="size-3.5" aria-hidden="true" />
-                {t.properties.web.talk}
+                {w.talk}
               </a>
             </div>
           </li>
