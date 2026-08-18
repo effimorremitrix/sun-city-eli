@@ -68,12 +68,20 @@ export default function AccountSettings() {
         הגדרות חשבון
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        המייל הנוכחי בחשבון: <span dir="ltr" className="font-bold text-primary">{currentEmail ?? "…"}</span>
+        המייל הנוכחי בחשבון:{" "}
+        <span dir="ltr" className="font-bold text-primary">
+          {currentEmail ?? "…"}
+        </span>
       </p>
 
-      {msg && <p className="mt-3 rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">{msg}</p>}
+      {msg && (
+        <p className="mt-3 rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">{msg}</p>
+      )}
       {err && (
-        <p role="alert" className="mt-3 rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive">
+        <p
+          role="alert"
+          className="mt-3 rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive"
+        >
           {err}
         </p>
       )}
@@ -119,7 +127,9 @@ export default function AccountSettings() {
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">אימות סיסמה חדשה</span>
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">
+              אימות סיסמה חדשה
+            </span>
             <input
               className="field"
               type="password"

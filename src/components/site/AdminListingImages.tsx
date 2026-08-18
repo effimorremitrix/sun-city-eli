@@ -153,7 +153,9 @@ export default function AdminListingImages({
   return (
     <div className="rounded-xl border border-border p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-extrabold text-primary">תמונות הנכס ({images.length}/{MAX_IMAGES})</h3>
+        <h3 className="text-sm font-extrabold text-primary">
+          תמונות הנכס ({images.length}/{MAX_IMAGES})
+        </h3>
         <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground">
           <ImagePlus className="size-4" aria-hidden="true" />
           העלאת תמונות
@@ -170,12 +172,16 @@ export default function AdminListingImages({
       </div>
 
       <p className="mt-1 text-xs text-muted-foreground">
-        עד {MAX_IMAGES} תמונות, עד 5MB לתמונה (JPG / PNG / WebP). התמונה הראשונה היא התמונה הראשית בכרטיס הנכס.
+        עד {MAX_IMAGES} תמונות, עד 5MB לתמונה (JPG / PNG / WebP). התמונה הראשונה היא התמונה הראשית
+        בכרטיס הנכס.
       </p>
 
       {busy && <p className="mt-2 text-xs font-bold text-primary">מעלה ומעדכן…</p>}
       {err && (
-        <p role="alert" className="mt-2 rounded-lg bg-destructive/10 p-2 text-xs font-semibold text-destructive">
+        <p
+          role="alert"
+          className="mt-2 rounded-lg bg-destructive/10 p-2 text-xs font-semibold text-destructive"
+        >
           {err}
         </p>
       )}
@@ -185,7 +191,11 @@ export default function AdminListingImages({
           {images.map((img, index) => (
             <li key={img.id} className="overflow-hidden rounded-xl border border-border">
               <div className="relative">
-                <img src={img.url} alt={`תמונת נכס ${index + 1}`} className="aspect-[3/2] w-full object-cover" />
+                <img
+                  src={img.url}
+                  alt={`תמונת נכס ${index + 1}`}
+                  className="aspect-[3/2] w-full object-cover"
+                />
                 {index === 0 && (
                   <span className="absolute top-2 right-2 rounded-full bg-sun px-2 py-0.5 text-[10px] font-bold text-sun-foreground">
                     ראשית

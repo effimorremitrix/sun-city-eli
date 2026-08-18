@@ -24,8 +24,18 @@ export type ListingTranslation = {
 };
 
 /** נכס כפי שהוא נשמר במסד הנתונים ומוצג באתר */
+/** הסוכן שאליו משויך הנכס — פניות על הנכס מנותבות אליו */
+export type ListingAgent = {
+  slug: string;
+  name: string;
+  phone: string | null;
+  phoneTel: string | null;
+  photoUrl: string | null;
+};
+
 export type Listing = {
   id: string;
+  site_id: string | null;
   deal_type: string;
   title: string;
   description: string | null;
@@ -48,6 +58,7 @@ export type Listing = {
   sort_order: number;
   updated_at: string;
   images?: ListingImage[];
+  agent?: ListingAgent | null;
 };
 
 /** פילטרים מובנים — משמשים גם את החיפוש הידני וגם את חיפוש ה‑AI */
@@ -130,4 +141,4 @@ export const formatListingPrice = (n: number | null, lang: Locale = "he") =>
   n == null ? DICTS[lang].misc.noInfo : formatPrice(n, lang);
 
 export const LISTING_COLUMNS =
-  "id, deal_type, title, description, translations, city, neighborhood, address, price, rooms, size_sqm, floor, has_mamad, has_elevator, has_parking, has_balcony, tag, image_url, image_key, is_published, sort_order, updated_at";
+  "id, site_id, deal_type, title, description, translations, city, neighborhood, address, price, rooms, size_sqm, floor, has_mamad, has_elevator, has_parking, has_balcony, tag, image_url, image_key, is_published, sort_order, updated_at";

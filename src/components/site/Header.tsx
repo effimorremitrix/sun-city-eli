@@ -85,7 +85,7 @@ export function Header() {
                 >
                   {t.nav.myAccount}
                 </Link>
-                {user.isAdmin && (
+                {(user.isAdmin || user.isAgent) && (
                   <Link
                     to="/admin"
                     className="text-sm font-semibold text-foreground transition-colors hover:text-sun"
@@ -184,7 +184,7 @@ export function Header() {
                     {t.nav.myAccount}
                   </Link>
                 </li>
-                {user.isAdmin && (
+                {(user.isAdmin || user.isAgent) && (
                   <li>
                     <Link
                       to="/admin"

@@ -49,6 +49,8 @@ export const fr: Dict = {
   },
 
   team: {
+    othersTitle: "D'autres agents Sun City",
+    toPersonalPage: (name: string) => `La page personnelle de ${name}`,
     kicker: "Des personnes, pas une société",
     title: "Notre équipe",
     subtitle:
@@ -87,6 +89,28 @@ export const fr: Dict = {
   },
 
   properties: {
+    agentOfListing: "Agent du bien :",
+    web: {
+      title: "Plus d'options sur le marché",
+      subtitle:
+        "De vraies annonces trouvées sur le web selon votre recherche, avec un lien vers la source.",
+      remaining: (n: number) => ` ${n} analyses restantes aujourd'hui.`,
+      match: "Correspondance :",
+      source: "Annonce originale",
+      talk: "Parlez-moi de ce bien",
+      talkMsg: (agent: string, title: string, url: string) =>
+        `Bonjour ${agent}, j'ai trouvé via le site une annonce qui m'intéresse — pouvez-vous la vérifier pour moi ?\n${title}\n${url}`,
+      loginTitle: "Vous voulez que nous cherchions aussi sur tout le web ?",
+      loginText:
+        "Les utilisateurs connectés bénéficient aussi d'une vraie analyse du web (Yad2, Madlan et plus).",
+      loginCta: "Connexion gratuite",
+      quota:
+        "Vous avez utilisé votre quota d'analyses du jour. Les biens de l'agence restent à jour ici, et vous pourrez relancer demain.",
+      unavailable:
+        "L'analyse du web n'a pas abouti cette fois. Les biens de l'agence sont affichés ci-dessus — réessayez dans un instant.",
+      empty:
+        "Nous avons analysé le web sans trouver d'annonce supplémentaire correspondante pour le moment. Reformulez, ou laissez vos coordonnées.",
+    },
     kicker: "Biens à Netanya",
     title: "Biens à vendre et à louer",
     aiLabel: "Recherche intelligente, avec vos mots",
@@ -395,7 +419,7 @@ export const fr: Dict = {
     adminSite: "Administration",
     facebookAria: "Notre page Facebook",
     instagramAria: "Notre page Instagram",
-    license: (num: string) => `Licence d'agence : ${num}`,
+    license: (num: string) => `Licence immobilière : ${num}`,
     rights: (year: number, name: string) => `© ${year} ${name}. Tous droits réservés.`,
   },
 
@@ -427,6 +451,18 @@ export const fr: Dict = {
     db: "Source des données : la base de données de l'agence",
     office: "Source des données : informations saisies par l'agence Sun City Immobilier",
     updated: "Mis à jour :",
+  },
+
+  sold: {
+    label: "Des preuves, pas des promesses",
+    title: "Vendus par nous",
+    subtitle: (n: number) =>
+      n >= 3
+        ? `${n} appartements réels déjà vendus — comme nous vendrons le vôtre.`
+        : "Des appartements réels déjà vendus — comme nous vendrons le vôtre.",
+    stamp: "VENDU",
+    stampPrefix: "Ce bien aussi a été",
+    soldOn: (d: string) => `Vendu en ${d}`,
   },
 
   misc: {

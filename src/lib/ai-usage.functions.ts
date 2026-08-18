@@ -1,8 +1,20 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export type UsageDay = { date: string; requests: number; input_tokens: number; output_tokens: number; cost_usd: number };
-export type UsageModel = { model: string; requests: number; input_tokens: number; output_tokens: number; cost_usd: number };
+export type UsageDay = {
+  date: string;
+  requests: number;
+  input_tokens: number;
+  output_tokens: number;
+  cost_usd: number;
+};
+export type UsageModel = {
+  model: string;
+  requests: number;
+  input_tokens: number;
+  output_tokens: number;
+  cost_usd: number;
+};
 export type UsageEventRow = {
   id: string;
   created_at: string;
@@ -18,7 +30,13 @@ export type UsageEventRow = {
 export type UsageReport = {
   from: string;
   to: string;
-  totals: { requests: number; errors: number; input_tokens: number; output_tokens: number; cost_usd: number };
+  totals: {
+    requests: number;
+    errors: number;
+    input_tokens: number;
+    output_tokens: number;
+    cost_usd: number;
+  };
   days: UsageDay[];
   models: UsageModel[];
   recent: UsageEventRow[];
@@ -54,7 +72,9 @@ export const adminAiUsage = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await context.supabase
       .from("ai_usage_events")
-      .select("id, created_at, model, feature, input_tokens, output_tokens, cost_usd, status, error_message, user_id")
+      .select(
+        "id, created_at, model, feature, input_tokens, output_tokens, cost_usd, status, error_message, user_id",
+      )
       .gte("created_at", from.toISOString())
       .order("created_at", { ascending: false })
       .limit(5000);
@@ -77,7 +97,13 @@ export const adminAiUsage = createServerFn({ method: "GET" })
       totals.cost_usd += cost;
 
       const day = String(e["created_at"]).slice(0, 10);
-      const d = dayMap.get(day) ?? { date: day, requests: 0, input_tokens: 0, output_tokens: 0, cost_usd: 0 };
+      const d = dayMap.get(day) ?? {
+        date: day,
+        requests: 0,
+        input_tokens: 0,
+        output_tokens: 0,
+        cost_usd: 0,
+      };
       d.requests += 1;
       d.input_tokens += inTok;
       d.output_tokens += outTok;
@@ -85,7 +111,13 @@ export const adminAiUsage = createServerFn({ method: "GET" })
       dayMap.set(day, d);
 
       const model = String(e["model"] ?? "");
-      const m = modelMap.get(model) ?? { model, requests: 0, input_tokens: 0, output_tokens: 0, cost_usd: 0 };
+      const m = modelMap.get(model) ?? {
+        model,
+        requests: 0,
+        input_tokens: 0,
+        output_tokens: 0,
+        cost_usd: 0,
+      };
       m.requests += 1;
       m.input_tokens += inTok;
       m.output_tokens += outTok;
@@ -97,15 +129,29 @@ export const adminAiUsage = createServerFn({ method: "GET" })
     const days: UsageDay[] = [];
     for (const cursor = new Date(from); cursor <= to; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
       const key = cursor.toISOString().slice(0, 10);
-      days.push(dayMap.get(key) ?? { date: key, requests: 0, input_tokens: 0, output_tokens: 0, cost_usd: 0 });
+      days.push(
+        dayMap.get(key) ?? {
+          date: key,
+          requests: 0,
+          input_tokens: 0,
+          output_tokens: 0,
+          cost_usd: 0,
+        },
+      );
     }
 
     const recentRaw = events.slice(0, 50);
-    const userIds = [...new Set(recentRaw.map((e) => e["user_id"]).filter((v): v is string => !!v))];
+    const userIds = [
+      ...new Set(recentRaw.map((e) => e["user_id"]).filter((v): v is string => !!v)),
+    ];
     const emails = new Map<string, string | null>();
     if (userIds.length) {
-      const { data: profiles } = await context.supabase.from("profiles").select("id, email").in("id", userIds);
-      for (const p of (profiles ?? []) as Array<{ id: string; email: string | null }>) emails.set(p.id, p.email);
+      const { data: profiles } = await context.supabase
+        .from("profiles")
+        .select("id, email")
+        .in("id", userIds);
+      for (const p of (profiles ?? []) as Array<{ id: string; email: string | null }>)
+        emails.set(p.id, p.email);
     }
 
     const recent: UsageEventRow[] = recentRaw.map((e) => ({

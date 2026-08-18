@@ -17,7 +17,10 @@ function sanitize(raw: unknown, neighborhoods: string[]): AiFilterResult {
     const n = typeof v === "string" ? Number(v) : v;
     return typeof n === "number" && Number.isFinite(n) && n > 0 ? n : null;
   };
-  const deal = typeof f["deal_type"] === "string" && ALLOWED_DEALS.includes(f["deal_type"]) ? (f["deal_type"] as string) : null;
+  const deal =
+    typeof f["deal_type"] === "string" && ALLOWED_DEALS.includes(f["deal_type"])
+      ? (f["deal_type"] as string)
+      : null;
   const rawHoods = Array.isArray(f["neighborhoods"]) ? (f["neighborhoods"] as unknown[]) : [];
   const hoods = rawHoods
     .filter((h): h is string => typeof h === "string")
@@ -50,7 +53,12 @@ export async function extractFilters(
   const { AI_MODEL, logAiUsage } = await import("@/lib/ai-usage.server");
   const apiKey = process.env["ANTHROPIC_API_KEY"];
   if (!apiKey) {
-    await logAiUsage({ model: AI_MODEL, status: "error", errorMessage: "missing ANTHROPIC_API_KEY", userId });
+    await logAiUsage({
+      model: AI_MODEL,
+      status: "error",
+      errorMessage: "missing ANTHROPIC_API_KEY",
+      userId,
+    });
     throw new Error("חיפוש ה‑AI אינו זמין כרגע");
   }
 
@@ -78,7 +86,12 @@ export async function extractFilters(
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     console.error("ai search failed", res.status, body);
-    await logAiUsage({ model: AI_MODEL, status: "error", errorMessage: `HTTP ${res.status}`, userId });
+    await logAiUsage({
+      model: AI_MODEL,
+      status: "error",
+      errorMessage: `HTTP ${res.status}`,
+      userId,
+    });
     if (res.status === 429) throw new Error("יותר מדי בקשות חיפוש. נסו שוב בעוד רגע");
     if (res.status === 401 || res.status === 403) throw new Error("חיפוש ה‑AI אינו זמין כרגע");
     throw new Error("החיפוש החכם נכשל. נסו שוב או השתמשו בסינון הרגיל");
@@ -97,8 +110,14 @@ export async function extractFilters(
     userId,
   });
 
-  const raw = (json.content ?? []).map((c) => c?.text ?? "").join("").trim();
-  const cleaned = raw.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  const raw = (json.content ?? [])
+    .map((c) => c?.text ?? "")
+    .join("")
+    .trim();
+  const cleaned = raw
+    .replace(/^```(?:json)?/i, "")
+    .replace(/```$/i, "")
+    .trim();
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
   let parsed: unknown = {};
@@ -109,4 +128,3 @@ export async function extractFilters(
   }
   return sanitize(parsed, neighborhoods);
 }
-

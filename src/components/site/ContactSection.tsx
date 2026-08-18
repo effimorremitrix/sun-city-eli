@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { MapPin, Phone, Mail, Clock, MessageCircle, Facebook, Instagram } from "lucide-react";
+import { TikTokIcon } from "./icons/TikTok";
 import { SITE_CONFIG, mapsEmbedUrl, mapsUrl, wazeUrl, waProps, openWa } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
 import logoAsset from "@/assets/sun-city-logo-real.png.asset.json";
@@ -216,7 +217,7 @@ export function Footer() {
           <p className="mt-1 text-sm text-navy-foreground/75">{business.tagline}</p>
           <div className="mt-4 flex gap-2">
             <a
-              href={SITE_CONFIG.social.facebook}
+              href={business.social.facebook || SITE_CONFIG.social.facebook}
               target="_blank"
               rel="noopener noreferrer"
               aria-label={t.footer.facebookAria}
@@ -225,13 +226,22 @@ export function Footer() {
               <Facebook className="size-4" aria-hidden="true" />
             </a>
             <a
-              href={SITE_CONFIG.social.instagram}
+              href={business.social.instagram || SITE_CONFIG.social.instagram}
               target="_blank"
               rel="noopener noreferrer"
               aria-label={t.footer.instagramAria}
               className="inline-flex size-9 items-center justify-center rounded-lg bg-[oklch(1_0_0/0.1)]"
             >
               <Instagram className="size-4" aria-hidden="true" />
+            </a>
+            <a
+              href={business.social.tiktok || SITE_CONFIG.social.tiktok}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="TikTok"
+              className="inline-flex size-9 items-center justify-center rounded-lg bg-[oklch(1_0_0/0.1)]"
+            >
+              <TikTokIcon className="size-4" aria-hidden="true" />
             </a>
           </div>
         </div>

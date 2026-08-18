@@ -17,6 +17,8 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as Char123LangChar125IndexRouteImport } from './routes/{-$lang}/index'
+import { Route as Char123LangChar125AgentSlugRouteImport } from './routes/{-$lang}/$agentSlug'
+import { Route as ApiFacebookCallbackRouteImport } from './routes/api/facebook/callback'
 import { Route as ApiPublicScoutCronRouteImport } from './routes/api/public/scout-cron'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -58,6 +60,17 @@ const Char123LangChar125IndexRoute = Char123LangChar125IndexRouteImport.update({
   path: '/{-$lang}/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char123LangChar125AgentSlugRoute =
+  Char123LangChar125AgentSlugRouteImport.update({
+    id: '/{-$lang}/$agentSlug',
+    path: '/{-$lang}/$agentSlug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiFacebookCallbackRoute = ApiFacebookCallbackRouteImport.update({
+  id: '/api/facebook/callback',
+  path: '/api/facebook/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicScoutCronRoute = ApiPublicScoutCronRouteImport.update({
   id: '/api/public/scout-cron',
   path: '/api/public/scout-cron',
@@ -72,7 +85,9 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/{-$lang}/$agentSlug': typeof Char123LangChar125AgentSlugRoute
   '/{-$lang}/': typeof Char123LangChar125IndexRoute
+  '/api/facebook/callback': typeof ApiFacebookCallbackRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
 }
 export interface FileRoutesByTo {
@@ -83,7 +98,9 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/{-$lang}/$agentSlug': typeof Char123LangChar125AgentSlugRoute
   '/{-$lang}': typeof Char123LangChar125IndexRoute
+  '/api/facebook/callback': typeof ApiFacebookCallbackRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
 }
 export interface FileRoutesById {
@@ -95,7 +112,9 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/{-$lang}/$agentSlug': typeof Char123LangChar125AgentSlugRoute
   '/{-$lang}/': typeof Char123LangChar125IndexRoute
+  '/api/facebook/callback': typeof ApiFacebookCallbackRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
 }
 export interface FileRouteTypes {
@@ -108,7 +127,9 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/account'
     | '/admin'
+    | '/{-$lang}/$agentSlug'
     | '/{-$lang}/'
+    | '/api/facebook/callback'
     | '/api/public/scout-cron'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -119,7 +140,9 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/account'
     | '/admin'
+    | '/{-$lang}/$agentSlug'
     | '/{-$lang}'
+    | '/api/facebook/callback'
     | '/api/public/scout-cron'
   id:
     | '__root__'
@@ -130,7 +153,9 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/account'
     | '/_authenticated/admin'
+    | '/{-$lang}/$agentSlug'
     | '/{-$lang}/'
+    | '/api/facebook/callback'
     | '/api/public/scout-cron'
   fileRoutesById: FileRoutesById
 }
@@ -140,7 +165,9 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  Char123LangChar125AgentSlugRoute: typeof Char123LangChar125AgentSlugRoute
   Char123LangChar125IndexRoute: typeof Char123LangChar125IndexRoute
+  ApiFacebookCallbackRoute: typeof ApiFacebookCallbackRoute
   ApiPublicScoutCronRoute: typeof ApiPublicScoutCronRoute
 }
 
@@ -202,6 +229,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char123LangChar125IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/{-$lang}/$agentSlug': {
+      id: '/{-$lang}/$agentSlug'
+      path: '/{-$lang}/$agentSlug'
+      fullPath: '/{-$lang}/$agentSlug'
+      preLoaderRoute: typeof Char123LangChar125AgentSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/facebook/callback': {
+      id: '/api/facebook/callback'
+      path: '/api/facebook/callback'
+      fullPath: '/api/facebook/callback'
+      preLoaderRoute: typeof ApiFacebookCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/scout-cron': {
       id: '/api/public/scout-cron'
       path: '/api/public/scout-cron'
@@ -231,7 +272,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  Char123LangChar125AgentSlugRoute: Char123LangChar125AgentSlugRoute,
   Char123LangChar125IndexRoute: Char123LangChar125IndexRoute,
+  ApiFacebookCallbackRoute: ApiFacebookCallbackRoute,
   ApiPublicScoutCronRoute: ApiPublicScoutCronRoute,
 }
 export const routeTree = rootRouteImport

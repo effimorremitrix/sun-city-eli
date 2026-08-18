@@ -17,6 +17,8 @@ import {
   Images,
   ChevronLeft,
   ChevronRight,
+  UserRound,
+  Globe,
 } from "lucide-react";
 import { neighborhoods, priceRanges, waProps, openWa, business } from "@/lib/site-data";
 import {
@@ -27,7 +29,8 @@ import {
   type ListingFilters,
 } from "@/lib/listings";
 
-import { aiSearchListings } from "@/lib/ai-search.functions";
+import { aiSearchListings, type AiSearchResult } from "@/lib/ai-search.functions";
+import { useLive } from "@/lib/site-live";
 import { isValidIsraeliPhone } from "@/lib/leads";
 import { mapValue, useLang } from "@/lib/i18n";
 import { Reveal } from "./Reveal";
@@ -43,6 +46,7 @@ type Props = { listings: Listing[]; updatedAt: string | null };
 
 export function PropertySection({ listings, updatedAt }: Props) {
   const { t } = useLang();
+  const { business: live } = useLive();
   const [deal, setDeal] = useState("all");
   const [rooms, setRooms] = useState("all");
   const [range, setRange] = useState("all");
@@ -56,6 +60,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
     ids: string[];
     explanation: string;
     filters: ListingFilters;
+    web: AiSearchResult["web"];
   } | null>(null);
 
   const manual = useMemo(() => {
@@ -81,7 +86,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
     setAiBusy(true);
     try {
       const res = await aiSearchListings({ data: { query } });
-      setAi({ ids: res.ids, explanation: res.explanation, filters: res.filters });
+      setAi({ ids: res.ids, explanation: res.explanation, filters: res.filters, web: res.web });
     } catch (err) {
       setAi(null);
       setAiErr(err instanceof Error ? err.message : t.properties.aiFailed);
@@ -257,6 +262,8 @@ export function PropertySection({ listings, updatedAt }: Props) {
         </div>
       )}
 
+      {ai && <WebCandidates web={ai.web} agentPhone={live.phoneTel} agentName={live.agentName} />}
+
       <a
         href={business.yad2Url}
         target="_blank"
@@ -350,6 +357,13 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
             })}
         </ul>
 
+        {p.agent && (
+          <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+            <UserRound className="size-3.5 text-sun" aria-hidden="true" />
+            {t.properties.agentOfListing} {p.agent.name}
+          </p>
+        )}
+
         <div className="mt-4 flex gap-2 pt-1">
           <button
             type="button"
@@ -360,7 +374,13 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
           </button>
           <a
             {...waProps(
-              t.properties.waListing(business.name, p.title, p.address ?? hood ?? "", price),
+              t.properties.waListing(
+                p.agent?.name ?? business.name,
+                p.title,
+                p.address ?? hood ?? "",
+                price,
+              ),
+              p.agent?.phoneTel ?? undefined,
             )}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-whatsapp py-2.5 text-sm font-bold text-whatsapp-foreground"
           >
@@ -394,13 +414,14 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
     if (!isValidIsraeliPhone(form.phone)) return setErr(t.misc.phoneError);
     setErr(null);
     openWa(
-      t.properties.waInterested(business.name, {
+      t.properties.waInterested(p.agent?.name ?? business.name, {
         title: p.title,
         hood: hood ?? noInfo,
         price,
         name: form.name,
         phone: form.phone,
       }),
+      p.agent?.phoneTel ?? undefined,
     );
   };
 
@@ -576,5 +597,109 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
         </div>
       </div>
     </div>
+  );
+}
+
+/** מודעות אמיתיות מהאינטרנט שנמצאו בסריקה — עם קישור למקור וניתוב לסוכן של הדף */
+function WebCandidates({
+  web,
+  agentPhone,
+  agentName,
+}: {
+  web: AiSearchResult["web"];
+  agentPhone: string;
+  agentName: string;
+}) {
+  const { t } = useLang();
+  const w = t.properties.web;
+
+  if (web.status === "login_required") {
+    return (
+      <div className="soft-card mt-6 p-5">
+        <p className="flex items-center gap-1.5 font-bold text-primary">
+          <Globe className="size-4 text-sun" aria-hidden="true" />
+          {w.loginTitle}
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">{w.loginText}</p>
+        <Link
+          to="/auth"
+          className="mt-3 inline-block rounded-xl bg-sun px-5 py-2.5 text-sm font-bold text-sun-foreground"
+        >
+          {w.loginCta}
+        </Link>
+      </div>
+    );
+  }
+
+  if (web.status === "quota_exceeded") {
+    return <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">{w.quota}</p>;
+  }
+
+  if (web.status === "unavailable") {
+    return <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">{w.unavailable}</p>;
+  }
+
+  if (web.candidates.length === 0) {
+    return <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">{w.empty}</p>;
+  }
+
+  return (
+    <section className="mt-8" aria-label={w.title}>
+      <h3 className="flex items-center gap-1.5 text-xl font-extrabold text-primary">
+        <Globe className="size-5 text-sun" aria-hidden="true" />
+        {w.title}
+      </h3>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {w.subtitle}
+        {web.remaining != null && w.remaining(web.remaining)}
+      </p>
+      <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {web.candidates.map((c) => (
+          <li key={c.source_url} className="soft-card flex h-full flex-col p-4">
+            <div className="flex items-center justify-between gap-2">
+              <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-secondary-foreground">
+                {c.source_site}
+              </span>
+              <span className="text-xs font-bold text-sun">
+                {w.match} {c.match_score}%
+              </span>
+            </div>
+            <h4 className="mt-2 text-base font-bold text-primary">{c.title}</h4>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {[
+                c.neighborhood,
+                c.rooms != null ? `${c.rooms} ${t.properties.roomsUnit}` : null,
+                c.size_sqm != null ? `${c.size_sqm} ${t.properties.sqm}` : null,
+                c.price != null ? formatListingPrice(c.price) : null,
+              ]
+                .filter(Boolean)
+                .join(" · ") || t.misc.noInfo}
+            </p>
+            {c.match_reason && (
+              <p className="mt-2 flex-1 text-xs leading-relaxed text-muted-foreground">
+                {c.match_reason}
+              </p>
+            )}
+            <div className="mt-3 flex gap-2">
+              <a
+                href={c.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-1 items-center justify-center rounded-xl border border-primary/30 py-2 text-xs font-bold text-primary"
+              >
+                {w.source}
+              </a>
+              <a
+                {...waProps(w.talkMsg(agentName, c.title, c.source_url), agentPhone)}
+                className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-whatsapp py-2 text-xs font-bold text-whatsapp-foreground"
+              >
+                <MessageCircle className="size-3.5" aria-hidden="true" />
+                {w.talk}
+              </a>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

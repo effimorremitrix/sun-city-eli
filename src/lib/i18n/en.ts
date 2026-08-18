@@ -50,6 +50,8 @@ export const en: Dict = {
   },
 
   team: {
+    othersTitle: "More Sun City agents",
+    toPersonalPage: (name: string) => `${name}'s personal page`,
     kicker: "People, not a corporation",
     title: "Our Team",
     subtitle:
@@ -86,6 +88,27 @@ export const en: Dict = {
   },
 
   properties: {
+    agentOfListing: "Listing agent:",
+    web: {
+      title: "More options from the market",
+      subtitle: "Real listings found across the web for your search, with a link to the source.",
+      remaining: (n: number) => ` ${n} scans left today.`,
+      match: "Match:",
+      source: "Original listing",
+      talk: "Talk to me about this",
+      talkMsg: (agent: string, title: string, url: string) =>
+        `Hello ${agent}, I found a listing through the site that interests me — could you check it for me?\n${title}\n${url}`,
+      loginTitle: "Want us to search the whole web for you?",
+      loginText:
+        "Signed-in users also get a real web scan (Yad2, Madlan and more) for their search.",
+      loginCta: "Sign in for free",
+      quota:
+        "You've used today's web scan quota. The office's properties keep updating here, and you can scan again tomorrow.",
+      unavailable:
+        "The web scan didn't succeed this time. The office's properties are shown above — try again in a moment.",
+      empty:
+        "We scanned the web and found no additional matching listings right now. Try rephrasing, or leave your details and we'll find it for you.",
+    },
     kicker: "Properties in Netanya",
     title: "Properties for Sale & Rent",
     aiLabel: "Smart search, in your own words",
@@ -382,7 +405,7 @@ export const en: Dict = {
     adminSite: "Site admin",
     facebookAria: "Our Facebook page",
     instagramAria: "Our Instagram page",
-    license: (num: string) => `Office brokerage license: ${num}`,
+    license: (num: string) => `Real estate license: ${num}`,
     rights: (year: number, name: string) => `© ${year} ${name}. All rights reserved.`,
   },
 
@@ -414,6 +437,18 @@ export const en: Dict = {
     db: "Data source: the office database",
     office: "Data source: data entered by the Sun City Real Estate office",
     updated: "Updated:",
+  },
+
+  sold: {
+    label: "Proof, not promises",
+    title: "Sold by Us",
+    subtitle: (n: number) =>
+      n >= 3
+        ? `${n} real apartments we've already sold — just like we'll sell yours.`
+        : "Real apartments we've already sold — just like we'll sell yours.",
+    stamp: "SOLD",
+    stampPrefix: "This property was also",
+    soldOn: (d: string) => `Sold ${d}`,
   },
 
   misc: {

@@ -22,7 +22,12 @@ const schemaFor = (lang: Locale) => {
         url: urlFor(lang),
         inLanguage: lang,
         areaServed: t.seo.areaServed,
-        sameAs: [SITE_CONFIG.social.facebook, SITE_CONFIG.social.instagram, SITE_CONFIG.madlanUrl],
+        sameAs: [
+          SITE_CONFIG.social.facebook,
+          SITE_CONFIG.social.instagram,
+          SITE_CONFIG.social.tiktok,
+          SITE_CONFIG.madlanUrl,
+        ],
         address: {
           "@type": "PostalAddress",
           streetAddress: "שמואל הנציב 20",

@@ -37,8 +37,15 @@ export const getMyAccount = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
 
-    const [{ data: isAdmin }, { data: profile }, { data: profiles }, { data: notifications }] = await Promise.all([
+    const [
+      { data: isAdmin },
+      { data: isAgent },
+      { data: profile },
+      { data: profiles },
+      { data: notifications },
+    ] = await Promise.all([
       supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+      supabase.rpc("has_role", { _user_id: userId, _role: "agent" }),
       supabase.from("profiles").select("full_name").eq("id", userId).single(),
       supabase
         .from("search_profiles")
@@ -49,7 +56,9 @@ export const getMyAccount = createServerFn({ method: "GET" })
         .order("created_at", { ascending: true }),
       supabase
         .from("listing_notifications")
-        .select(`id, reason, read_at, email_sent_at, created_at, listing:listing_id(${LISTING_COLUMNS})`)
+        .select(
+          `id, reason, read_at, email_sent_at, created_at, listing:listing_id(${LISTING_COLUMNS})`,
+        )
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(50),
@@ -57,6 +66,7 @@ export const getMyAccount = createServerFn({ method: "GET" })
 
     return {
       isAdmin: Boolean(isAdmin),
+      isAgent: Boolean(isAgent),
       fullName: profile?.full_name ?? null,
       profiles: (profiles ?? []) as unknown as SearchProfileRow[],
       notifications: (notifications ?? []) as unknown as NotificationRow[],

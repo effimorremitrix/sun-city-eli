@@ -26,8 +26,11 @@ export function Hero() {
           className="size-24 md:size-32"
         />
         <p className="mt-3 font-display text-3xl font-extrabold tracking-tight text-primary md:text-5xl">
-          Sun City <span className="text-sun">·</span> {business.name}
+          {business.agentName} <span className="text-sun">·</span> {business.name}
         </p>
+        {business.roleTitle && (
+          <p className="mt-1 text-sm font-bold text-sun md:text-base">{business.roleTitle}</p>
+        )}
         <p className="mt-2 text-sm font-semibold text-muted-foreground md:text-base">
           {business.subtitle}
         </p>

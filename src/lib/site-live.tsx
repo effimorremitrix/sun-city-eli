@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react";
-import { SITE_CONFIG } from "@/lib/site-data";
+import { SITE_CONFIG, team } from "@/lib/site-data";
 import { DICTS, type Dict, type Locale } from "@/lib/i18n";
 
 /** ============================================================
@@ -20,6 +20,12 @@ export type LiveBusiness = {
   email: string;
   license: string;
   hours: LiveHour[];
+  /* --- פרטי הסוכן האישי של הדף (אתר אישי לכל סוכן) --- */
+  agentName: string;
+  roleTitle: string;
+  photoUrl: string;
+  bio: string;
+  social: { facebook: string; instagram: string; tiktok: string };
 };
 
 export type LiveTexts = {
@@ -66,6 +72,12 @@ export type LiveSite = {
   translations?: LiveTranslations;
   /** תאריך העדכון האחרון של התוכן במסד הנתונים (ISO) — null כשאין רשומה */
   updatedAt: string | null;
+  /** מזהה ה-site במסד — null כשאין חיבור למסד */
+  siteId: string | null;
+  /** ה-slug הציבורי של הדף ("sun-city" לדף של אלי) */
+  slug: string | null;
+  /** האם נמצאה רשומת אתר במסד (false בדף של slug לא קיים) */
+  found: boolean;
 };
 
 export const DEFAULT_TEXTS: LiveTexts = {
@@ -83,6 +95,11 @@ export const DEFAULT_BUSINESS: LiveBusiness = {
   email: SITE_CONFIG.email,
   license: SITE_CONFIG.license,
   hours: SITE_CONFIG.hours,
+  agentName: team[0]!.name,
+  roleTitle: team[0]!.role,
+  photoUrl: team[0]!.image ?? "",
+  bio: "",
+  social: { ...SITE_CONFIG.social },
 };
 
 export const DEFAULT_LIVE: LiveSite = {
@@ -90,11 +107,16 @@ export const DEFAULT_LIVE: LiveSite = {
   texts: DEFAULT_TEXTS,
   items: [],
   updatedAt: null,
+  siteId: null,
+  slug: null,
+  found: false,
 };
 
 /** ממזג נתונים חלקיים מבסיס הנתונים עם ברירות המחדל */
 export function mergeLive(raw: unknown): LiveSite {
   const data = (raw ?? {}) as {
+    id?: string | null;
+    slug?: string | null;
     business?: Partial<LiveBusiness>;
     texts?: Partial<LiveTexts>;
     items?: LiveItem[];
@@ -105,6 +127,7 @@ export function mergeLive(raw: unknown): LiveSite {
   if (!Array.isArray(business.hours) || business.hours.length === 0) {
     business.hours = DEFAULT_BUSINESS.hours;
   }
+  business.social = { ...DEFAULT_BUSINESS.social, ...(business.social ?? {}) };
   return {
     business,
     texts: { ...DEFAULT_TEXTS, ...(data.texts ?? {}) },
@@ -112,6 +135,9 @@ export function mergeLive(raw: unknown): LiveSite {
     translations:
       data.translations && typeof data.translations === "object" ? data.translations : {},
     updatedAt: data.updated_at ?? null,
+    siteId: data.id ?? null,
+    slug: data.slug ?? null,
+    found: raw != null,
   };
 }
 

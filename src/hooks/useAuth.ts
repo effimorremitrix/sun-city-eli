@@ -8,6 +8,8 @@ export interface AuthUser {
   email: string | undefined;
   fullName: string | null;
   isAdmin: boolean;
+  /** סוכן עם דף אישי — יש לו גישה לאזור הניהול של הדף שלו */
+  isAgent: boolean;
 }
 
 export function useAuth() {
@@ -31,9 +33,10 @@ export function useAuth() {
       return;
     }
 
-    const [{ data: profile }, { data: isAdmin }] = await Promise.all([
+    const [{ data: profile }, { data: isAdmin }, { data: isAgent }] = await Promise.all([
       supabase.from("profiles").select("full_name").eq("id", authUser.id).single(),
       supabase.rpc("has_role", { _user_id: authUser.id, _role: "admin" }),
+      supabase.rpc("has_role", { _user_id: authUser.id, _role: "agent" }),
     ]);
 
     setUser({
@@ -41,6 +44,7 @@ export function useAuth() {
       email: authUser.email,
       fullName: profile?.full_name ?? null,
       isAdmin: Boolean(isAdmin),
+      isAgent: Boolean(isAgent),
     });
     setLoading(false);
   }, []);

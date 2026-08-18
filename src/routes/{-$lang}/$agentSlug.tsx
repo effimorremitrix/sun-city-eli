@@ -12,76 +12,89 @@ import { ItemsSection } from "@/components/site/ItemsSection";
 import { MobileBar } from "@/components/site/MobileBar";
 import { FloatingWhatsApp } from "@/components/site/FloatingWhatsApp";
 import { AccessibilityWidget } from "@/components/site/AccessibilityWidget";
+import { SoldSection } from "@/components/site/SoldSection";
 import { SiteLiveProvider, localizeLive, type LiveSite } from "@/lib/site-live";
 import { getPublicSite } from "@/lib/site.functions";
 import { listPublicListings, listPublicAgents } from "@/lib/listings.functions";
-import { listPublicSoldProperties } from "@/lib/sold.functions";
-import { SoldSection } from "@/components/site/SoldSection";
-import type { PublicAgentRow } from "@/lib/agents.server";
-import type { SoldProperty } from "@/lib/sold.functions";
+import { listPublicSoldProperties, type SoldProperty } from "@/lib/sold.functions";
 import { localizeListing, type Listing } from "@/lib/listings";
+import { RESERVED_AGENT_SLUGS } from "@/lib/reserved-slugs";
 import { DEFAULT_LOCALE, DICTS, LangProvider, isLocale, useLang, type Locale } from "@/lib/i18n";
-import { headForLocale } from "@/lib/i18n/seo";
+import type { PublicAgentRow } from "@/lib/agents.server";
 
 /** גוזר את שפת העמוד מפרמטר הנתיב האופציונלי {-$lang} */
 const langFromParam = (param: string | undefined): Locale =>
   isLocale(param) ? param : DEFAULT_LOCALE;
 
-export const Route = createFileRoute("/{-$lang}/")({
+/**
+ * דף אישי של סוכן בכתובת /<slug> (וגם /en/<slug> וכו') — אותו עיצוב של
+ * הדף הראשי, עם הפרטים, הנכסים והמכירות של הסוכן בלבד.
+ */
+export const Route = createFileRoute("/{-$lang}/$agentSlug")({
   beforeLoad: ({ params }) => {
     const param = params.lang;
     if (param == null) return;
-    // עברית מוגשת רק בנתיב הקנוני "/"
-    if (param === "he") throw redirect({ to: "/{-$lang}", params: { lang: undefined } });
+    if (param === "he") {
+      throw redirect({
+        to: "/{-$lang}/$agentSlug",
+        params: { lang: undefined, agentSlug: params.agentSlug },
+      });
+    }
     if (!isLocale(param)) throw notFound();
   },
-  head: ({ params }) => headForLocale(langFromParam(params.lang)),
-  loader: async () => {
-    // הדף הראשי מציג את כלל הנכסים והמכירות של כל הסוכנים
+  loader: async ({ params }) => {
+    const slug = params.agentSlug.toLowerCase();
+    if (RESERVED_AGENT_SLUGS.has(slug)) throw notFound();
+
     const [live, listings, agents, sold] = await Promise.all([
-      getPublicSite(),
-      listPublicListings(),
+      getPublicSite({ data: { slug } }),
+      listPublicListings({ data: { slug } }),
       listPublicAgents(),
-      listPublicSoldProperties({ data: {} }),
+      listPublicSoldProperties({ data: { slug } }),
     ]);
+    if (!live.found) throw notFound();
     return { live, listings, agents, sold };
   },
-  component: Index,
-  errorComponent: RouteError,
+  head: ({ loaderData, params }) => {
+    const name = loaderData?.live.business.agentName || loaderData?.live.business.name || "";
+    const title = `${name} | Sun City Netanya`;
+    return {
+      meta: [
+        { title },
+        { property: "og:title", content: title },
+        { property: "og:type", content: "profile" },
+      ],
+    };
+  },
+  component: AgentPage,
   notFoundComponent: RouteNotFound,
 });
-
-function RouteError() {
-  const params = Route.useParams();
-  const t = DICTS[langFromParam(params.lang)];
-  return (
-    <main className="mx-auto max-w-lg px-4 py-16 text-center">
-      <h1 className="text-xl font-bold text-primary">{t.routeErrors.notLoaded}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{t.routeErrors.tryRefresh}</p>
-    </main>
-  );
-}
 
 function RouteNotFound() {
   return (
     <main className="mx-auto max-w-lg px-4 py-16 text-center">
       <h1 className="text-xl font-bold text-primary">{DICTS.he.routeErrors.notFound}</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        <a href="/" className="underline">
+          Sun City
+        </a>
+      </p>
     </main>
   );
 }
 
-function Index() {
+function AgentPage() {
   const params = Route.useParams();
   const lang = langFromParam(params.lang);
 
   return (
     <LangProvider lang={lang}>
-      <IndexContent />
+      <AgentPageContent />
     </LangProvider>
   );
 }
 
-function IndexContent() {
+function AgentPageContent() {
   const { lang, t } = useLang();
   const { live, listings, agents, sold } = Route.useLoaderData() as {
     live: LiveSite;
@@ -102,7 +115,7 @@ function IndexContent() {
         <Header />
         <main>
           <Hero />
-          <Team agents={agents} />
+          <Team agents={agents} variant="secondary" />
           <PropertySection listings={localizedListings} updatedAt={listingsUpdatedAt} />
           <ItemsSection />
           <SellerSection />

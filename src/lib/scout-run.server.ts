@@ -45,7 +45,10 @@ export async function runScoutForProfiles(
         if (!error) inserted += 1;
       }
 
-      await db.from("scout_profiles").update({ last_run_at: new Date().toISOString() }).eq("id", profile.id);
+      await db
+        .from("scout_profiles")
+        .update({ last_run_at: new Date().toISOString() })
+        .eq("id", profile.id);
     } catch (err) {
       errors.push(`${profile.label}: ${err instanceof Error ? err.message : String(err)}`);
     }

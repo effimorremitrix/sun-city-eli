@@ -6,6 +6,7 @@ import {
   adminGetUserDetail,
   adminSetUserRole,
   adminDeleteUser,
+  adminCreateAgentSite,
   type AdminUserRow,
 } from "@/lib/users.functions";
 
@@ -32,9 +33,20 @@ export function AdminUsers() {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  const [roleTarget, setRoleTarget] = useState<{ user: AdminUserRow; makeAdmin: boolean } | null>(null);
+  const [roleTarget, setRoleTarget] = useState<{ user: AdminUserRow; makeAdmin: boolean } | null>(
+    null,
+  );
   const [deleteTarget, setDeleteTarget] = useState<AdminUserRow | null>(null);
   const [confirmEmail, setConfirmEmail] = useState("");
+  const createAgent = useServerFn(adminCreateAgentSite);
+  const [agentTarget, setAgentTarget] = useState<AdminUserRow | null>(null);
+  const [agentForm, setAgentForm] = useState({
+    slug: "",
+    agentName: "",
+    roleTitle: "",
+    phone: "",
+    email: "",
+  });
 
   const detail = useQuery({
     queryKey: ["admin-user-detail", openId],
@@ -48,7 +60,8 @@ export function AdminUsers() {
     if (!term) return rows;
     return rows.filter(
       (u) =>
-        (u.full_name ?? "").toLowerCase().includes(term) || (u.email ?? "").toLowerCase().includes(term),
+        (u.full_name ?? "").toLowerCase().includes(term) ||
+        (u.email ?? "").toLowerCase().includes(term),
     );
   }, [q, users.data]);
 
@@ -77,13 +90,25 @@ export function AdminUsers() {
       </p>
 
       <label className="mt-4 block">
-        <span className="mb-1 block text-xs font-bold text-muted-foreground">חיפוש לפי שם או מייל</span>
-        <input className="field" value={q} onChange={(e) => setQ(e.target.value)} placeholder="הקלידו שם או מייל" />
+        <span className="mb-1 block text-xs font-bold text-muted-foreground">
+          חיפוש לפי שם או מייל
+        </span>
+        <input
+          className="field"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="הקלידו שם או מייל"
+        />
       </label>
 
-      {msg && <p className="mt-3 rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">{msg}</p>}
+      {msg && (
+        <p className="mt-3 rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">{msg}</p>
+      )}
       {err && (
-        <p role="alert" className="mt-3 rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive">
+        <p
+          role="alert"
+          className="mt-3 rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive"
+        >
           {err}
         </p>
       )}
@@ -104,19 +129,33 @@ export function AdminUsers() {
                   <p className="flex flex-wrap items-center gap-2 font-bold text-primary">
                     {val(u.full_name)}
                     {u.is_admin && (
-                      <span className="rounded-full bg-sun/20 px-2 py-0.5 text-xs font-bold text-primary">מנהל</span>
+                      <span className="rounded-full bg-sun/20 px-2 py-0.5 text-xs font-bold text-primary">
+                        מנהל
+                      </span>
                     )}
-                    {isSelf && <span className="text-xs font-normal text-muted-foreground">(אני)</span>}
+                    {u.is_agent && (
+                      <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-primary">
+                        סוכן{u.agent_slug ? ` · /${u.agent_slug}` : ""}
+                      </span>
+                    )}
+                    {isSelf && (
+                      <span className="text-xs font-normal text-muted-foreground">(אני)</span>
+                    )}
                   </p>
                   <p className="truncate text-xs text-muted-foreground" dir="ltr">
                     {val(u.email)}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    נרשם ב־{fmtDate(u.created_at)} · {u.profiles_count} פרופילי חיפוש · {u.notifications_count} התראות
+                    נרשם ב־{fmtDate(u.created_at)} · {u.profiles_count} פרופילי חיפוש ·{" "}
+                    {u.notifications_count} התראות
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-3 text-sm">
-                  <button type="button" className="underline" onClick={() => setOpenId(isOpen ? null : u.id)}>
+                  <button
+                    type="button"
+                    className="underline"
+                    onClick={() => setOpenId(isOpen ? null : u.id)}
+                  >
                     {isOpen ? "סגירה" : "פירוט"}
                   </button>
                   {!isSelf && (
@@ -129,6 +168,25 @@ export function AdminUsers() {
                       >
                         {u.is_admin ? "הסרת הרשאת מנהל" : "הפיכה למנהל"}
                       </button>
+                      {!u.is_agent && (
+                        <button
+                          type="button"
+                          className="underline"
+                          disabled={busy}
+                          onClick={() => {
+                            setAgentTarget(u);
+                            setAgentForm({
+                              slug: "",
+                              agentName: u.full_name ?? "",
+                              roleTitle: "",
+                              phone: "",
+                              email: u.email ?? "",
+                            });
+                          }}
+                        >
+                          הפיכה לסוכן עם דף אישי
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="text-destructive underline"
@@ -147,7 +205,9 @@ export function AdminUsers() {
 
               {isOpen && (
                 <div className="mt-3 border-t border-border pt-3">
-                  {detail.isLoading && <p className="text-sm text-muted-foreground">טוען פרופילי חיפוש…</p>}
+                  {detail.isLoading && (
+                    <p className="text-sm text-muted-foreground">טוען פרופילי חיפוש…</p>
+                  )}
                   {!detail.isLoading && (detail.data?.profiles ?? []).length === 0 && (
                     <p className="text-sm text-muted-foreground">למשתמש אין פרופילי חיפוש.</p>
                   )}
@@ -156,12 +216,16 @@ export function AdminUsers() {
                       <li key={p.id} className="rounded-xl bg-secondary/60 p-3 text-sm">
                         <p className="font-bold text-primary">
                           {val(p.label)}{" "}
-                          {!p.is_active && <span className="text-xs text-muted-foreground">(לא פעיל)</span>}
+                          {!p.is_active && (
+                            <span className="text-xs text-muted-foreground">(לא פעיל)</span>
+                          )}
                         </p>
                         <dl className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
                           <div>סוג עסקה: {val(p.deal_type)}</div>
                           <div>עיר: {val(p.city)}</div>
-                          <div>שכונות: {p.neighborhoods.length ? p.neighborhoods.join(", ") : NONE}</div>
+                          <div>
+                            שכונות: {p.neighborhoods.length ? p.neighborhoods.join(", ") : NONE}
+                          </div>
                           <div>
                             טווח מחיר: {money(p.min_price)} – {money(p.max_price)}
                           </div>
@@ -191,6 +255,101 @@ export function AdminUsers() {
           );
         })}
       </ul>
+
+      {/* הקמת סוכן עם דף אישי */}
+      {agentTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/50 p-4">
+          <div className="soft-card w-full max-w-md bg-background p-5">
+            <h3 className="text-base font-extrabold text-primary">הקמת דף אישי לסוכן</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {val(agentTarget.full_name)} יקבל תפקיד סוכן ודף אישי בכתובת /‏slug באותו עיצוב של
+              האתר. הנכסים שיעלה ישויכו אליו והפניות עליהם ינותבו אליו.
+            </p>
+            <div className="mt-3 grid gap-3">
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                  כתובת הדף (אותיות לטיניות, למשל: yelena)
+                </span>
+                <input
+                  className="field"
+                  dir="ltr"
+                  value={agentForm.slug}
+                  onChange={(e) => setAgentForm({ ...agentForm, slug: e.target.value })}
+                  placeholder="yelena"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                  שם הסוכן להצגה
+                </span>
+                <input
+                  className="field"
+                  value={agentForm.agentName}
+                  onChange={(e) => setAgentForm({ ...agentForm, agentName: e.target.value })}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                  תפקיד (למשל: מומחית נדל"ן, דוברת רוסית)
+                </span>
+                <input
+                  className="field"
+                  value={agentForm.roleTitle}
+                  onChange={(e) => setAgentForm({ ...agentForm, roleTitle: e.target.value })}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                  טלפון (הפניות מהדף ינותבו אליו)
+                </span>
+                <input
+                  className="field"
+                  dir="ltr"
+                  value={agentForm.phone}
+                  onChange={(e) => setAgentForm({ ...agentForm, phone: e.target.value })}
+                  placeholder="050-1234567"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                  מייל להצגה בדף
+                </span>
+                <input
+                  className="field"
+                  dir="ltr"
+                  value={agentForm.email}
+                  onChange={(e) => setAgentForm({ ...agentForm, email: e.target.value })}
+                />
+              </label>
+            </div>
+            <div className="mt-4 flex gap-3">
+              <button
+                type="button"
+                disabled={busy || !agentForm.slug.trim() || !agentForm.agentName.trim()}
+                className="flex-1 rounded-xl bg-sun py-3 text-sm font-bold text-sun-foreground disabled:opacity-60"
+                onClick={async () => {
+                  const t = agentTarget;
+                  const f = agentForm;
+                  setAgentTarget(null);
+                  await run(
+                    () => createAgent({ data: { userId: t.id, ...f } }),
+                    `הדף האישי הוקם בכתובת /${f.slug}`,
+                  );
+                }}
+              >
+                הקמת הדף
+              </button>
+              <button
+                type="button"
+                className="rounded-xl border border-primary/30 px-5 py-3 text-sm font-bold text-primary"
+                onClick={() => setAgentTarget(null)}
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* אישור שינוי הרשאה */}
       {roleTarget && (
@@ -238,7 +397,8 @@ export function AdminUsers() {
           <div className="soft-card w-full max-w-sm bg-background p-5">
             <h3 className="text-base font-extrabold text-destructive">מחיקת משתמש</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              החשבון וכל הנתונים שלו (פרופילי חיפוש והתראות) יימחקו לצמיתות. להמשך, הקלידו את המייל של המשתמש:
+              החשבון וכל הנתונים שלו (פרופילי חיפוש והתראות) יימחקו לצמיתות. להמשך, הקלידו את המייל
+              של המשתמש:
             </p>
             <p className="mt-1 text-xs font-bold text-primary" dir="ltr">
               {val(deleteTarget.email)}
@@ -253,7 +413,10 @@ export function AdminUsers() {
             <div className="mt-4 flex gap-3">
               <button
                 type="button"
-                disabled={busy || confirmEmail.trim().toLowerCase() !== (deleteTarget.email ?? "").toLowerCase()}
+                disabled={
+                  busy ||
+                  confirmEmail.trim().toLowerCase() !== (deleteTarget.email ?? "").toLowerCase()
+                }
                 className="flex-1 rounded-xl bg-destructive py-3 text-sm font-bold text-destructive-foreground disabled:opacity-60"
                 onClick={async () => {
                   const t = deleteTarget;
@@ -261,7 +424,10 @@ export function AdminUsers() {
                   setDeleteTarget(null);
                   setConfirmEmail("");
                   if (openId === t.id) setOpenId(null);
-                  await run(() => deleteUser({ data: { userId: t.id, confirmEmail: email } }), "המשתמש נמחק");
+                  await run(
+                    () => deleteUser({ data: { userId: t.id, confirmEmail: email } }),
+                    "המשתמש נמחק",
+                  );
                 }}
               >
                 מחיקה סופית
