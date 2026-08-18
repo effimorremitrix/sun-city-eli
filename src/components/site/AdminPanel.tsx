@@ -21,7 +21,8 @@ import AdminListingImages from "@/components/site/AdminListingImages";
 import { AdminContentExtras } from "@/components/site/AdminContentExtras";
 import { TabHelp } from "@/components/site/AdminGuide";
 
-export type AdminTabKey = "listings" | "sold" | "scout" | "content" | "publish" | "users" | "usage";
+export type AdminTabKey =
+  "listings" | "sold" | "scout" | "content" | "publish" | "agents" | "clients" | "usage";
 
 type ListingForm = {
   id?: string;
@@ -308,7 +309,8 @@ export function AdminPanel({ tab }: { tab: AdminTabKey }) {
       {/* המדריך הרלוונטי לטאב הנוכחי */}
       <TabHelp tab={tab} isAdmin={site.data?.isAdmin === true} />
 
-      {tab === "users" && isSuperAdmin && <AdminUsers />}
+      {tab === "agents" && isSuperAdmin && <AdminUsers audience="agents" />}
+      {tab === "clients" && isSuperAdmin && <AdminUsers audience="clients" />}
       {tab === "usage" && isSuperAdmin && <AdminUsage />}
       {tab === "scout" && isSuperAdmin && <AdminScout />}
       {tab === "sold" &&

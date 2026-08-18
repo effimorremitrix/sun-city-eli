@@ -33,7 +33,8 @@ const TAB_KEYS: TabKey[] = [
   "scout",
   "content",
   "publish",
-  "users",
+  "agents",
+  "clients",
   "usage",
 ];
 
@@ -281,7 +282,8 @@ function AccountPage() {
               ["publish", "פרסום"],
               ...(isSuperAdmin
                 ? ([
-                    ["users", "משתמשים רשומים"],
+                    ["agents", "סוכנים וצוות"],
+                    ["clients", "לקוחות רשומים"],
                     ["usage", "שימוש (Usage)"],
                   ] as Array<[TabKey, string]>)
                 : []),

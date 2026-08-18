@@ -4,7 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  useParams,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -107,10 +107,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
-  // שפת העמוד נגזרת מהסגמנט האופציונלי {-$lang}; ראוטים בלי הפרמטר
-  // (אדמין, אזור אישי, auth) נשארים בעברית RTL.
-  const params = useParams({ strict: false }) as { lang?: string };
-  const lang = isLocale(params.lang) ? params.lang : DEFAULT_LOCALE;
+  // שפת העמוד נגזרת מהסגמנט הראשון בכתובת, כדי לכסות גם את הראוטים הסטטיים
+  // (/en, /fr, /ru) וגם את הסגמנט האופציונלי {-$lang} של דפי הסוכנים.
+  // כתובות בלי קידומת שפה (אדמין, אזור אישי, auth) נשארות בעברית RTL.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const first = pathname.split("/")[1];
+  const lang = isLocale(first) ? first : DEFAULT_LOCALE;
 
   return (
     <html lang={lang} dir={dirFor(lang)}>

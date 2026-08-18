@@ -20,7 +20,33 @@ const money = (v: number | null) => (v == null ? NONE : `${v.toLocaleString("he-
 const val = (v: string | number | null | undefined) =>
   v === null || v === undefined || v === "" ? NONE : String(v);
 
-export function AdminUsers() {
+/**
+ * רשימת המשתמשים, מופרדת לשני טאבים: הצוות (סוכנים ומנהלים) והלקוחות הרשומים.
+ * שני הטאבים מציגים את אותו כרטיס משתמש — רק קהל היעד והכותרות משתנים.
+ */
+export type UsersAudience = "agents" | "clients";
+
+/** משתמש נחשב לצוות אם יש לו דף סוכן או הרשאת ניהול; כל השאר הם לקוחות */
+const isStaff = (u: AdminUserRow) => u.is_agent || u.is_admin || u.is_super_admin;
+
+const COPY: Record<UsersAudience, { title: string; hint: string; empty: string; search: string }> =
+  {
+    agents: {
+      title: "סוכנים וצוות",
+      hint: "הסוכנים ובעלי הרשאות הניהול. לכל סוכן דף אישי בכתובת /slug.",
+      empty: "לא נמצאו סוכנים.",
+      search: "חיפוש סוכן לפי שם או מייל",
+    },
+    clients: {
+      title: "לקוחות רשומים",
+      hint: "הגולשים שנרשמו לאתר: פרופילי החיפוש וההתראות שלהם. אינם סוכנים ואין להם דף אישי.",
+      empty: "לא נמצאו לקוחות.",
+      search: "חיפוש לקוח לפי שם או מייל",
+    },
+  };
+
+export function AdminUsers({ audience }: { audience: UsersAudience }) {
+  const copy = COPY[audience];
   const listUsers = useServerFn(adminListUsers);
   const getDetail = useServerFn(adminGetUserDetail);
   const setRole = useServerFn(adminSetUserRole);
@@ -65,14 +91,16 @@ export function AdminUsers() {
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    const rows = users.data?.users ?? [];
+    const rows = (users.data?.users ?? []).filter((u) =>
+      audience === "agents" ? isStaff(u) : !isStaff(u),
+    );
     if (!term) return rows;
     return rows.filter(
       (u) =>
         (u.full_name ?? "").toLowerCase().includes(term) ||
         (u.email ?? "").toLowerCase().includes(term),
     );
-  }, [q, users.data]);
+  }, [q, users.data, audience]);
 
   const run = async (fn: () => Promise<unknown>, okMsg: string) => {
     setBusy(true);
@@ -94,26 +122,26 @@ export function AdminUsers() {
   return (
     <section className="soft-card mt-6 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-extrabold text-primary">משתמשים רשומים</h2>
-        <button
-          type="button"
-          className="rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground"
-          onClick={() => {
-            setAgentModal({ mode: "invite" });
-            setAgentForm(emptyAgentForm);
-          }}
-        >
-          + הוספת סוכן חדש
-        </button>
+        <h2 className="text-lg font-extrabold text-primary">{copy.title}</h2>
+        {audience === "agents" && (
+          <button
+            type="button"
+            className="rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground"
+            onClick={() => {
+              setAgentModal({ mode: "invite" });
+              setAgentForm(emptyAgentForm);
+            }}
+          >
+            + הוספת סוכן חדש
+          </button>
+        )}
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
-        מקור המידע: מסד הנתונים של האתר. שדה ללא נתון מוצג כ״{NONE}״.
+        {copy.hint} מקור המידע: מסד הנתונים של האתר. שדה ללא נתון מוצג כ״{NONE}״.
       </p>
 
       <label className="mt-4 block">
-        <span className="mb-1 block text-xs font-bold text-muted-foreground">
-          חיפוש לפי שם או מייל
-        </span>
+        <span className="mb-1 block text-xs font-bold text-muted-foreground">{copy.search}</span>
         <input
           className="field"
           value={q}
@@ -136,7 +164,7 @@ export function AdminUsers() {
 
       {users.isLoading && <p className="mt-3 text-sm text-muted-foreground">טוען משתמשים…</p>}
       {!users.isLoading && filtered.length === 0 && (
-        <p className="mt-3 text-sm text-muted-foreground">לא נמצאו משתמשים.</p>
+        <p className="mt-3 text-sm text-muted-foreground">{copy.empty}</p>
       )}
 
       <ul className="mt-4 grid gap-3">
