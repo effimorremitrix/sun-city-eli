@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { RESERVED_AGENT_SLUGS } from "@/lib/reserved-slugs";
+import { OFFICE_SLUG } from "@/lib/site-data";
 
 export type AdminUserRow = {
   id: string;
@@ -72,7 +73,13 @@ export const adminListUsers = createServerFn({ method: "GET" })
       (roles ?? []).filter((r) => r.role === "super_admin").map((r) => r.user_id),
     );
     const agentIds = new Set((roles ?? []).filter((r) => r.role === "agent").map((r) => r.user_id));
-    const siteByOwner = new Map((sites ?? []).map((s) => [s.owner_id as string, s.slug as string]));
+    // אלי מחזיק גם בדפים של סוכנים שטרם קיבלו חשבון, ולכן האתר הראשי מנצח
+    const siteByOwner = new Map<string, string>();
+    for (const s of sites ?? []) {
+      const owner = s.owner_id as string;
+      const slug = s.slug as string;
+      if (!siteByOwner.has(owner) || slug === OFFICE_SLUG) siteByOwner.set(owner, slug);
+    }
     const countBy = (rows: Array<{ user_id: string }> | null) => {
       const map = new Map<string, number>();
       for (const r of rows ?? []) map.set(r.user_id, (map.get(r.user_id) ?? 0) + 1);
@@ -214,6 +221,38 @@ function sanitizeAgentSiteInput(input: {
   };
 }
 
+/** התוכן העסקי של דף סוכן (site_content.business); שדות נוספים נשמרים כמות שהם */
+type AgentBusiness = {
+  roleTitle?: string;
+  photoUrl?: string;
+  bio?: string;
+  social?: { facebook?: string; instagram?: string; tiktok?: string };
+  [key: string]: unknown;
+};
+
+/**
+ * פרטי הסוכן ל-site_content.business. מיזוג ולא דריסה: מה שכבר קיים בדף
+ * (תמונת פרופיל, ביוגרפיה, רשת חברתית שהוזנה) נשמר כשהערך החדש ריק.
+ */
+function agentBusiness(data: AgentSiteInput, existing: AgentBusiness = {}): AgentBusiness {
+  const prev = existing.social ?? {};
+  const phoneTel = data.phone.replace(/\D/g, "");
+  return {
+    ...existing,
+    agentName: data.agentName,
+    roleTitle: data.roleTitle || existing.roleTitle || 'יועץ/ת נדל"ן',
+    ...(data.phone ? { phone: data.phone, phoneTel } : {}),
+    ...(data.email ? { email: data.email } : {}),
+    photoUrl: existing.photoUrl ?? "",
+    bio: existing.bio ?? "",
+    social: {
+      facebook: data.social.facebook || prev.facebook || "",
+      instagram: data.social.instagram || prev.instagram || "",
+      tiktok: data.social.tiktok || prev.tiktok || "",
+    },
+  };
+}
+
 /** הליבה המשותפת: תפקיד agent + רשומת site + תוכן ראשוני (כולל socials) */
 async function createAgentSiteForUser(data: AgentSiteInput) {
   if (!SLUG_RE.test(data.slug)) {
@@ -226,46 +265,78 @@ async function createAgentSiteForUser(data: AgentSiteInput) {
 
   const { data: existing } = await supabaseAdmin
     .from("sites")
-    .select("id")
+    .select("id, owner_id")
     .eq("slug", data.slug)
     .maybeSingle();
-  if (existing) throw new Error("כבר קיים דף עם הכתובת הזו");
+
+  // דף שנזרע מראש ומוחזק בינתיים בידי אדמין — נמסר לסוכן עצמו כשהוא מקבל חשבון
+  let adopted: string | null = null;
+  if (existing) {
+    const ownerId = existing.owner_id as string;
+    if (ownerId === data.userId) {
+      adopted = existing.id as string;
+    } else {
+      const { data: ownerRoles } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", ownerId);
+      const heldByAdmin = (ownerRoles ?? []).some(
+        (r) => r.role === "admin" || r.role === "super_admin",
+      );
+      if (!heldByAdmin) throw new Error("כבר קיים דף עם הכתובת הזו");
+      adopted = existing.id as string;
+    }
+  }
 
   const { error: roleError } = await supabaseAdmin
     .from("user_roles")
     .upsert({ user_id: data.userId, role: "agent" }, { onConflict: "user_id,role" });
   if (roleError) throw new Error(roleError.message);
 
-  const { data: site, error: siteError } = await supabaseAdmin
-    .from("sites")
-    .insert({ slug: data.slug, name: data.agentName, owner_id: data.userId })
-    .select("id")
-    .single();
-  if (siteError) throw new Error(siteError.message);
+  let siteId: string;
+  let previous: AgentBusiness = {};
+  let previousTexts: Record<string, unknown> = {};
+  if (adopted) {
+    const { error: transferError } = await supabaseAdmin
+      .from("sites")
+      .update({ owner_id: data.userId, name: data.agentName })
+      .eq("id", adopted);
+    if (transferError) throw new Error(transferError.message);
+    siteId = adopted;
+
+    const { data: content } = await supabaseAdmin
+      .from("site_content")
+      .select("business, texts")
+      .eq("site_id", siteId)
+      .maybeSingle();
+    previous = (content?.business ?? {}) as AgentBusiness;
+    previousTexts = (content?.texts ?? {}) as Record<string, unknown>;
+  } else {
+    const { data: site, error: siteError } = await supabaseAdmin
+      .from("sites")
+      .insert({ slug: data.slug, name: data.agentName, owner_id: data.userId })
+      .select("id")
+      .single();
+    if (siteError) throw new Error(siteError.message);
+    siteId = site.id as string;
+  }
 
   // תוכן ראשוני כדי שהדף לא יציג את הפרטים של הסוכן הראשי
-  const phoneTel = data.phone.replace(/\D/g, "");
   const { error: contentError } = await supabaseAdmin.from("site_content").upsert(
     {
-      site_id: site.id as string,
-      business: {
-        agentName: data.agentName,
-        roleTitle: data.roleTitle || 'יועץ/ת נדל"ן',
-        ...(data.phone ? { phone: data.phone, phoneTel } : {}),
-        ...(data.email ? { email: data.email } : {}),
-        photoUrl: "",
-        bio: "",
-        social: data.social,
-      } as never,
+      site_id: siteId,
+      business: agentBusiness(data, previous) as never,
+      // בדף שנמסר לסוכן שומרים על הטקסטים שכבר הוזנו בו
       texts: {
-        heroTitle: `${data.agentName} — נדל"ן בנתניה`,
+        ...previousTexts,
+        heroTitle: previousTexts["heroTitle"] || `${data.agentName} — נדל"ן בנתניה`,
       } as never,
     },
     { onConflict: "site_id" },
   );
   if (contentError) throw new Error(contentError.message);
 
-  return { siteId: site.id as string, slug: data.slug };
+  return { siteId, slug: data.slug, adopted: adopted !== null };
 }
 
 /**

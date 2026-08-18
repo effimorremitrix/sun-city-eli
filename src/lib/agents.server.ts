@@ -1,8 +1,8 @@
 import type { Listing, ListingAgent } from "@/lib/listings";
-import { SITE_CONFIG, team } from "@/lib/site-data";
+import { OFFICE_SLUG, SITE_CONFIG, team } from "@/lib/site-data";
 
 /** ה-slug של האתר הראשי (הדף של אלי) — נכסים ישנים ללא site_id שייכים אליו */
-export const DEFAULT_SLUG = "sun-city";
+export const DEFAULT_SLUG = OFFICE_SLUG;
 
 export type PublicAgentRow = {
   id: string;

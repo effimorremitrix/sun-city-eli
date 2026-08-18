@@ -138,11 +138,23 @@ export const services = [
  * ולהציב בשדה image של הסוכן המתאים.
  * ------------------------------------------------------------- */
 
+/**
+ * ה-slug של האתר הראשי. הוא גם הדף האישי של אלי כליף — הנכסים הוותיקים כולם
+ * משויכים אליו, ולכן אין לו דף נפרד. מקור אמת יחיד (agents.server.ts מייצא אותו כ-DEFAULT_SLUG).
+ */
+export const OFFICE_SLUG = "sun-city";
+
 export type Agent = {
   name: string;
   role: string;
   photo: string;
   image?: string;
+  /**
+   * כתובת הדף האישי של הסוכן (רשומת sites במסד). כאן נמצא מקור האמת לשיוך
+   * בין הרוסטר הסטטי לרשומות הסוכנים במסד — ראו Team.tsx.
+   * אלי כליף משויך לאתר הראשי, שהוא הדף האישי שלו.
+   */
+  slug: string;
   /** רק לאלי כליף יש טלפון אישי (המספר היחיד באתר) */
   phone?: string;
 };
@@ -150,6 +162,7 @@ export type Agent = {
 export const team: Agent[] = [
   {
     name: "אלי כליף",
+    slug: "sun-city",
     role: 'שותף ובעלים, מומחה נדל"ן דרום נתניה',
     photo: "photo1",
     image: agentEli.url,
@@ -157,36 +170,42 @@ export const team: Agent[] = [
   },
   {
     name: "עינבל קובל בוזגלו",
+    slug: "inbal",
     role: "מנהלת הצוות ושותפה, מומחית לדירות יד שנייה",
     photo: "photo2",
     image: agentInbal.url,
   },
   {
     name: "קובי בוזגלו",
+    slug: "kobi",
     role: 'יועץ נדל"ן ומשכנתאות, מרכז וצפון נתניה ותושבי חוץ',
     photo: "photo3",
     image: agentKobi.url,
   },
   {
     name: "ילנה גנדלין",
+    slug: "yelena",
     role: 'מומחית נדל"ן, מזרח ודרום נתניה, דוברת רוסית',
     photo: "photo4",
     image: agentYelena.url,
   },
   {
     name: "אלעד אבוטבול",
+    slug: "elad",
     role: "מומחה לדירות יד שנייה, מרכז ודרום נתניה",
     photo: "photo5",
     image: agentElad.url,
   },
   {
     name: "קוראל בוחבוט",
+    slug: "koral",
     role: 'יועצת נדל"ן, הערכות שווי וליווי תושבי חוץ',
     photo: "photo6",
     image: agentKoral.url,
   },
   {
     name: "דניאל מוצא",
+    slug: "daniel",
     role: 'מומחה נדל"ן, דרום נתניה',
     photo: "photo7",
     image: agentDaniel.url,
@@ -332,6 +351,9 @@ export const properties: Property[] = [
     images: [prop8],
   },
 ];
+
+/** חיפוש סוכן מהרוסטר לפי כתובת הדף האישי שלו */
+export const teamBySlug = new Map(team.map((m) => [m.slug, m]));
 
 export const neighborhoods = [
   "קריית השרון",
