@@ -30,10 +30,18 @@ export type ScoutCandidate = {
   size_sqm: number | null;
   neighborhood: string | null;
   address: string | null;
+  /* מתקנים כפי שדווחו במודעה — null: המודעה לא ציינה */
+  has_mamad: boolean | null;
+  has_elevator: boolean | null;
+  has_parking: boolean | null;
+  has_balcony: boolean | null;
   raw_summary: string | null;
   match_score: number;
   match_reason: string | null;
 };
+
+/** רף ציון התאמה — מועמד מתחתיו נפסל (רשת ביטחון מעל הסינון הקשיח) */
+export const MIN_MATCH_SCORE = 60;
 
 /** דומיינים שמותר לקבל מהם מועמדים */
 const ALLOWED_HOSTS: Record<string, string> = {
@@ -127,7 +135,8 @@ const SYSTEM_PROMPT = `אתה סוכן איתור נכסים למשרד תיוו
 אם שדה לא מופיע במקור — החזר null. אל תשלים ניחושים.
 אם לא מצאת מודעות מתאימות — החזר רשימה ריקה.
 החזר JSON בלבד, בלי טקסט נוסף, במבנה:
-{"candidates":[{"source_url":string,"title":string,"deal_type":"מכירה"|"השכרה"|null,"price":number|null,"rooms":number|null,"size_sqm":number|null,"neighborhood":string|null,"address":string|null,"summary":string|null,"match_score":number,"match_reason":string}]}
+{"candidates":[{"source_url":string,"title":string,"deal_type":"מכירה"|"השכרה"|null,"price":number|null,"rooms":number|null,"size_sqm":number|null,"neighborhood":string|null,"address":string|null,"has_mamad":boolean|null,"has_elevator":boolean|null,"has_parking":boolean|null,"has_balcony":boolean|null,"summary":string|null,"match_score":number,"match_reason":string}]}
+דווח ממ"ד/מעלית/חניה/מרפסת רק אם המודעה מציינת זאת במפורש — אחרת null.
 match_score הוא 0-100 להתאמה לקריטריונים, match_reason משפט קצר בעברית (עד 20 מילים) שמסביר למה הנכס מתאים.`;
 
 function n(v: unknown): number | null {
@@ -139,13 +148,72 @@ function s(v: unknown, max = 200): string | null {
   return typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null;
 }
 
+/** ערך בוליאני מהמודל — רק true/false מפורשים, כל השאר null ("לא צוין") */
+function b(v: unknown): boolean | null {
+  return v === true ? true : v === false ? false : null;
+}
+
+/** התאמת שכונות סובלנית-לכתיב: שוויון או הכלה לאחד הכיוונים */
+const hoodMatches = (hood: string, list: string[]): boolean =>
+  list.some((h) => hood === h || hood.includes(h) || h.includes(hood));
+
 /**
- * ניקוי קשיח: מועמד תקין רק אם יש לו URL אמיתי מדומיין מוכר וכותרת.
+ * הסינון הקשיח: מחזיר סיבת פסילה בעברית, או null כשהמועמד עומד בכל
+ * קריטריוני הפרופיל. המדיניות: סתירה מפורשת פוסלת; קריטריון מספרי שהוגדר
+ * (מחיר/חדרים/מ"ר) דורש ערך ידוע במודעה — ערך חסר פוסל; מתקן לא מדווח
+ * (null) או שכונה שאינה מזוהה בטקסט — לא פוסלים (אין לאשש היעדר).
+ */
+export function hardCriteriaViolation(
+  c: ScoutCandidate,
+  p: ScoutProfile,
+  allNeighborhoods: string[],
+): string | null {
+  if (c.match_score < MIN_MATCH_SCORE) return `ציון התאמה ${c.match_score} מתחת לרף`;
+  if (c.deal_type && c.deal_type !== p.deal_type) {
+    return `סוג עסקה ${c.deal_type} במקום ${p.deal_type}`;
+  }
+  if (p.min_rooms != null && (c.rooms == null || c.rooms < p.min_rooms)) {
+    return c.rooms == null ? "מספר החדרים לא צוין" : `${c.rooms} חדרים — פחות מהנדרש`;
+  }
+  if (p.min_price != null && (c.price == null || c.price < p.min_price)) {
+    return c.price == null ? "המחיר לא צוין" : "המחיר נמוך מהמינימום";
+  }
+  if (p.max_price != null && (c.price == null || c.price > p.max_price)) {
+    return c.price == null ? "המחיר לא צוין" : "המחיר גבוה מהמקסימום";
+  }
+  if (p.min_size != null && (c.size_sqm == null || c.size_sqm < p.min_size)) {
+    return c.size_sqm == null ? 'שטח המ"ר לא צוין' : "השטח קטן מהנדרש";
+  }
+  const amenities: Array<[boolean, boolean | null, string]> = [
+    [p.needs_mamad, c.has_mamad, 'ממ"ד'],
+    [p.needs_elevator, c.has_elevator, "מעלית"],
+    [p.needs_parking, c.has_parking, "חניה"],
+    [p.needs_balcony, c.has_balcony, "מרפסת"],
+  ];
+  for (const [needed, has, label] of amenities) {
+    if (needed && has === false) return `אין ${label} לפי המודעה`;
+  }
+  if (p.neighborhoods.length && c.neighborhood) {
+    if (!hoodMatches(c.neighborhood, p.neighborhoods)) {
+      // פוסלים רק שכונה שמזוהה בוודאות כשכונה קנונית אחרת; טקסט חופשי
+      // לא מזוהה (וריאנט כתיב, תת-אזור) לא פוסל
+      if (hoodMatches(c.neighborhood, allNeighborhoods)) {
+        return `שכונה ${c.neighborhood} מחוץ לרשימת הפרופיל`;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * ניקוי קשיח: מועמד תקין רק אם יש לו URL אמיתי מדומיין מוכר וכותרת,
+ * והוא עומד בכל קריטריוני הפרופיל (hardCriteriaViolation).
  * כשקיימות תוצאות חיפוש אמיתיות (grounded) — ה-URL חייב להיות מעוגן בהן,
  * כדי שלא יומצאו קישורים; בנוסף נפסלים עמודי תוצאות-חיפוש כלליים.
  */
-function sanitizeCandidates(
+export function sanitizeCandidates(
   raw: unknown,
+  profile: ScoutProfile,
   neighborhoods: string[],
   groundedUrls: Set<string> = new Set(),
 ): ScoutCandidate[] {
@@ -194,10 +262,9 @@ function sanitizeCandidates(
 
     const deal =
       c["deal_type"] === "מכירה" || c["deal_type"] === "השכרה" ? (c["deal_type"] as string) : null;
-    const hood = s(c["neighborhood"], 80);
     const score = Math.max(0, Math.min(100, Math.round(Number(c["match_score"]) || 0)));
 
-    out.push({
+    const cand: ScoutCandidate = {
       source_site: site,
       source_url: url.href,
       title,
@@ -205,12 +272,23 @@ function sanitizeCandidates(
       price: n(c["price"]),
       rooms: n(c["rooms"]),
       size_sqm: n(c["size_sqm"]),
-      neighborhood: hood && neighborhoods.includes(hood) ? hood : hood,
+      // הטקסט הגולמי נשמר לתצוגת האדמין; הבדיקה מול השכונות הקנוניות
+      // נעשית בסינון הקשיח למטה
+      neighborhood: s(c["neighborhood"], 80),
       address: s(c["address"], 160),
+      has_mamad: b(c["has_mamad"]),
+      has_elevator: b(c["has_elevator"]),
+      has_parking: b(c["has_parking"]),
+      has_balcony: b(c["has_balcony"]),
       raw_summary: s(c["summary"], 600),
       match_score: score,
       match_reason: s(c["match_reason"], 240),
-    });
+    };
+
+    // מועמד שסותר את קריטריוני הפרופיל נפסל — ואינו נספר במכסה
+    if (hardCriteriaViolation(cand, profile, neighborhoods) !== null) continue;
+
+    out.push(cand);
     if (out.length >= 12) break;
   }
   return out;
@@ -220,7 +298,9 @@ function buildUserPrompt(p: ScoutProfile): string {
   const parts: string[] = [];
   parts.push(`סוג עסקה: ${p.deal_type}`);
   parts.push(`עיר: ${p.city}`);
-  if (p.neighborhoods.length) parts.push(`שכונות מועדפות: ${p.neighborhoods.join(", ")}`);
+  if (p.neighborhoods.length) {
+    parts.push(`שכונות (קריטריון מחייב — רק מודעות בשכונות האלה): ${p.neighborhoods.join(", ")}`);
+  }
   if (p.min_price) parts.push(`מחיר מינימלי: ${p.min_price} ש"ח`);
   if (p.max_price) parts.push(`מחיר מקסימלי: ${p.max_price} ש"ח`);
   if (p.min_rooms) parts.push(`מינימום חדרים: ${p.min_rooms}`);
@@ -244,7 +324,8 @@ function buildUserPrompt(p: ScoutProfile): string {
 מצא מודעות נדל"ן עדכניות שמתאימות לקריטריונים הבאים:
 ${parts.join("\n")}
 
-בצע כמה חיפושים לפי הצורך, ואז החזר JSON עם עד 10 מועמדים אמיתיים, כולל ה-URL המדויק של עמוד המודעה.`;
+כל הקריטריונים למעלה מחייבים: מודעה שסותרת אחד מהם — אל תכלול. כשהוגדר קריטריון מספרי (מחיר/חדרים/מ"ר) — כלול רק מודעות שהערך בהן ידוע ועומד בו.
+בצע כמה חיפושים לפי הצורך, ואז החזר JSON רק עם מודעות שעומדות בכל הקריטריונים, כולל ה-URL המדויק של עמוד המודעה. אם אין כאלה — החזר {"candidates":[]}. מועמדים עם match_score נמוך מ-${MIN_MATCH_SCORE} מסוננים אוטומטית.`;
 }
 
 /**
@@ -367,7 +448,7 @@ export async function runWebPropertySearch(
     parsed = {};
   }
 
-  const candidates = sanitizeCandidates(parsed, neighborhoods, groundedUrls);
+  const candidates = sanitizeCandidates(parsed, profile, neighborhoods, groundedUrls);
 
   // אימות עדין שהעמודים חיים: פוסל רק 404/410 (חסימת בוטים אינה פסילה)
   const verdicts = await Promise.all(candidates.map((c) => verifyCandidateUrl(c.source_url)));

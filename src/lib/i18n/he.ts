@@ -468,6 +468,7 @@ export const he = {
         : "דירות אמיתיות שכבר מכרנו — כמו שנמכור גם את שלכם.",
     stamp: "נמכר",
     stampPrefix: "גם הנכס הזה",
+    stampSuffix: 'ע"י סאן סיטי',
     soldOn: (d: string) => `נמכר ב-${d}`,
   },
 

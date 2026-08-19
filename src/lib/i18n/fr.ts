@@ -487,6 +487,7 @@ export const fr: Dict = {
         : "Des appartements réels déjà vendus — comme nous vendrons le vôtre.",
     stamp: "VENDU",
     stampPrefix: "Ce bien aussi a été",
+    stampSuffix: "par Sun City",
     soldOn: (d: string) => `Vendu en ${d}`,
   },
 

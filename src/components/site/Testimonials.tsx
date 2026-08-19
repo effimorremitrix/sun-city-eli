@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ChevronRight, ChevronLeft, Quote, Plus, Minus, PlayCircle } from "lucide-react";
 import { useLang } from "@/lib/i18n";
 import { useLive } from "@/lib/site-live";
+import { isVideoUrl } from "@/lib/media";
 
 /** חילוץ מזהה סרטון YouTube מקישור (watch / youtu.be / shorts / embed) */
 const youTubeId = (url: string): string | null => {
@@ -31,6 +32,8 @@ export function Testimonials() {
   // בתוכן הסטטי מהמילון אין videoUrl — קיים רק בממליצים שנשמרו במסד
   const videoUrl = (item as { videoUrl?: string }).videoUrl ?? "";
   const videoId = videoUrl ? youTubeId(videoUrl) : null;
+  // קובץ סרטון (mp4/webm) — הועלה מאזור הניהול או קישור ישיר; מנוגן בנגן מובנה
+  const fileVideo = videoUrl ? isVideoUrl(videoUrl) : false;
 
   const go = (fn: (v: number) => number) => {
     setPlaying(false);
@@ -54,7 +57,7 @@ export function Testimonials() {
           {item.name} <span className="font-normal text-muted-foreground">· {item.type}</span>
         </p>
 
-        {/* סרטון המלצה — הטמעת YouTube או קישור חיצוני */}
+        {/* סרטון המלצה — הטמעת YouTube, נגן מובנה לקובץ, או קישור חיצוני */}
         {videoUrl &&
           (playing && videoId ? (
             <div className="mt-4 overflow-hidden rounded-xl border border-border">
@@ -66,13 +69,26 @@ export function Testimonials() {
                 className="aspect-video w-full"
               />
             </div>
+          ) : playing && fileVideo ? (
+            <div className="mt-4 overflow-hidden rounded-xl border border-border">
+              {/* autoPlay בעקבות לחיצה מפורשת — כמו autoplay=1 בענף ה-YouTube;
+                  object-contain על רקע כהה כדי שסרטון אנכי מהנייד יוצג יפה */}
+              <video
+                src={videoUrl}
+                controls
+                autoPlay
+                playsInline
+                preload="metadata"
+                className="aspect-video w-full bg-primary object-contain"
+              />
+            </div>
           ) : (
             <a
-              href={videoId ? undefined : videoUrl}
-              target={videoId ? undefined : "_blank"}
-              rel={videoId ? undefined : "noopener noreferrer"}
+              href={videoId || fileVideo ? undefined : videoUrl}
+              target={videoId || fileVideo ? undefined : "_blank"}
+              rel={videoId || fileVideo ? undefined : "noopener noreferrer"}
               onClick={
-                videoId
+                videoId || fileVideo
                   ? (e) => {
                       e.preventDefault();
                       setPlaying(true);

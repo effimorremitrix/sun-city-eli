@@ -478,6 +478,7 @@ export const ru: Dict = {
         : "Реальные квартиры, которые мы уже продали — так же продадим и вашу.",
     stamp: "ПРОДАНО",
     stampPrefix: "Этот объект тоже",
+    stampSuffix: "агентством Sun City",
     soldOn: (d: string) => `Продано ${d}`,
   },
 

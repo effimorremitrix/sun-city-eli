@@ -95,6 +95,34 @@ const val = (n: number | null, suffix = "") => (n == null ? "אין מידע" : 
 const toggle = (arr: string[], v: string) =>
   arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 
+/** צ'יפים למתקני המועמד — רק מה שהמודעה ציינה במפורש; null ("לא צוין") מוסתר */
+function AmenityChips({ c }: { c: ScoutCandidateRow }) {
+  const chips = (
+    [
+      [c.has_mamad, 'ממ"ד'],
+      [c.has_elevator, "מעלית"],
+      [c.has_parking, "חניה"],
+      [c.has_balcony, "מרפסת"],
+    ] as Array<[boolean | null, string]>
+  ).filter(([has]) => has !== null);
+  if (!chips.length) return null;
+  return (
+    <p className="mt-1 flex flex-wrap gap-1.5">
+      {chips.map(([has, text]) => (
+        <span
+          key={text}
+          className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+            has ? "bg-secondary text-primary" : "bg-muted text-muted-foreground line-through"
+          }`}
+        >
+          {has ? "✓ " : ""}
+          {text}
+        </span>
+      ))}
+    </p>
+  );
+}
+
 export function AdminScout() {
   const qc = useQueryClient();
   const listProfiles = useServerFn(adminListScoutProfiles);
@@ -184,7 +212,8 @@ export function AdminScout() {
         <p className="mt-1 text-sm text-muted-foreground">
           הסוכן סורק את האינטרנט (יד2, מדלן ואתרי נדל"ן נוספים) ומציע נכסים שמתאימים לקריטריונים
           שלך. כל מועמד מגיע עם קישור למודעת המקור — אין נתונים מומצאים, ושדה חסר מוצג כ"אין מידע".
-          שום נכס לא מתפרסם באתר ללא אישור שלך.
+          מועמדים שסותרים את הקריטריונים או עם ציון התאמה נמוך מסוננים אוטומטית ואינם נשמרים. שום
+          נכס לא מתפרסם באתר ללא אישור שלך.
         </p>
         {msg && (
           <p className="mt-3 rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">
@@ -482,6 +511,7 @@ export function AdminScout() {
                     {c.deal_type ?? "אין מידע"} · {c.neighborhood ?? "אין מידע"} · {nis(c.price)} ·{" "}
                     {val(c.rooms, " חד'")} · {val(c.size_sqm, ' מ"ר')}
                   </p>
+                  <AmenityChips c={c} />
                 </div>
                 <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-primary">
                   {c.source_site} · התאמה {c.match_score}%

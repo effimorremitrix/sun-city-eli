@@ -1,4 +1,6 @@
 import { Home } from "lucide-react";
+import logo from "@/assets/sun-city-logo-full.svg";
+import { useLive } from "@/lib/site-live";
 import { useLang } from "@/lib/i18n";
 import type { SoldProperty } from "@/lib/sold.functions";
 import {
@@ -11,9 +13,202 @@ import {
 
 type Props = { items: SoldProperty[] };
 
+/* ============================================================
+ * פוסטר ה"נמכר" הרשמי של המשרד — משוחזר כקומפוזיציית SVG כך
+ * שכל נכס מקבל את אותה תבנית, ורק התמונה בתוך השמש והכתובת
+ * בסרט בפינה מתחלפות פר נכס.
+ * ============================================================ */
+
+/** מרכז השמש ורדיוס הטבעת במערכת הצירים של הפוסטר (400×400) */
+const CX = 200;
+const CY = 134;
+const RING_R = 98;
+
+/** קרן שמש משולשת: זווית (0 = למעלה, עם כיוון השעון), אורך, חצי-רוחב וצבע */
+type Ray = { angle: number; len: number; hw: number; fill: string };
+
+const GOLD = "#F2A700";
+const GOLD_LIGHT = "#FFC53D";
+const PALE = "#FFE49A";
+const PALE_LIGHT = "#FFF1C9";
+
+const RAYS: Ray[] = [
+  { angle: 0, len: 60, hw: 17, fill: GOLD_LIGHT },
+  { angle: 38, len: 48, hw: 13, fill: GOLD },
+  { angle: 72, len: 42, hw: 12, fill: GOLD_LIGHT },
+  { angle: 104, len: 30, hw: 9, fill: GOLD },
+  { angle: 133, len: 34, hw: 11, fill: PALE },
+  { angle: 158, len: 22, hw: 7, fill: PALE_LIGHT },
+  { angle: 202, len: 22, hw: 7, fill: PALE_LIGHT },
+  { angle: 227, len: 34, hw: 11, fill: PALE },
+  { angle: 256, len: 30, hw: 9, fill: GOLD },
+  { angle: 288, len: 42, hw: 12, fill: GOLD_LIGHT },
+  { angle: 322, len: 48, hw: 13, fill: GOLD },
+];
+
+/** נקודות המשולש של קרן — בסיס צמוד לטבעת, חוד כלפי חוץ */
+const rayPoints = ({ angle, len, hw }: Ray): string => {
+  const rad = (angle * Math.PI) / 180;
+  const dx = Math.sin(rad);
+  const dy = -Math.cos(rad);
+  const px = Math.cos(rad);
+  const py = Math.sin(rad);
+  const r0 = RING_R + 8;
+  const bx = CX + r0 * dx;
+  const by = CY + r0 * dy;
+  const tx = CX + (r0 + len) * dx;
+  const ty = CY + (r0 + len) * dy;
+  return `${tx},${ty} ${bx + hw * px},${by + hw * py} ${bx - hw * px},${by - hw * py}`;
+};
+
+/** הפוסטר של נכס בודד — תמונה בשמש, חותמת "נמכר" וכתובת בסרט */
+function SoldPoster({ item }: { item: SoldProperty }) {
+  const { business } = useLive();
+  const { t } = useLang();
+
+  // מזהי גרדיאנט ייחודיים פר נכס — כמה פוסטרים חיים יחד באותו עמוד
+  const ringId = `sold-ring-${item.id}`;
+  const stampId = `sold-stamp-${item.id}`;
+  // חותמת ארוכה (למשל "ПРОДАНО") מוקטנת כדי להישאר בגבולות הפוסטר
+  const stampSize = Math.min(82, Math.round(330 / (0.62 * t.sold.stamp.length)));
+
+  return (
+    <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-border bg-white shadow-lift">
+      {/* התמונה בתוך השמש (מתחת לטבעת, כדי שהטבעת תכסה את השוליים) */}
+      {item.url ? (
+        <img
+          src={item.url}
+          alt={`${t.sold.stamp} — ${item.address}`}
+          width={400}
+          height={400}
+          loading="lazy"
+          className="absolute left-1/2 top-[33.5%] aspect-square w-[46%] -translate-x-1/2 -translate-y-1/2 rounded-full object-cover"
+        />
+      ) : (
+        <div className="absolute left-1/2 top-[33.5%] flex aspect-square w-[46%] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#FFF1C9]">
+          <Home className="size-1/3 text-sun" aria-hidden="true" />
+        </div>
+      )}
+
+      {/* קרני השמש, הטבעת והכיתוב — סקאלה אחידה לפי ה-viewBox */}
+      <svg
+        viewBox="0 0 400 400"
+        className="pointer-events-none absolute inset-0 size-full"
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient id={ringId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#FFD84D" />
+            <stop offset="1" stopColor="#E99B00" />
+          </linearGradient>
+          <linearGradient id={stampId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#FFDD55" />
+            <stop offset="1" stopColor="#F2A700" />
+          </linearGradient>
+        </defs>
+
+        {RAYS.map((ray) => (
+          <polygon key={ray.angle} points={rayPoints(ray)} fill={ray.fill} />
+        ))}
+
+        {/* הטבעת: מסגרת זהב עם קו פנימי בהיר לתחושת נפח */}
+        <circle
+          cx={CX}
+          cy={CY}
+          r={RING_R}
+          fill="none"
+          stroke={`url(#${ringId})`}
+          strokeWidth={14}
+        />
+        <circle cx={CX} cy={CY} r={RING_R - 6.5} fill="none" stroke="#FFF3CE" strokeWidth={1.5} />
+        <circle cx={CX} cy={CY} r={RING_R + 7} fill="none" stroke="#C87F00" strokeWidth={1.5} />
+
+        {/* "גם הנכס הזה" — לבן עם קו-מתאר כהה, בהטיה קלה */}
+        <text
+          x={CX}
+          y={244}
+          textAnchor="middle"
+          className="font-display"
+          fontSize={24}
+          fontWeight={800}
+          fill="#FFFFFF"
+          stroke="#2A2F45"
+          strokeWidth={6}
+          paintOrder="stroke"
+          transform={`rotate(-4 ${CX} 244)`}
+        >
+          {t.sold.stampPrefix}
+        </text>
+
+        {/* "נמכר" — צהוב ענק עם קו-מתאר חום-אדום וצל תלת-ממד */}
+        <text
+          x={CX + 3}
+          y={312}
+          textAnchor="middle"
+          className="font-display"
+          fontSize={stampSize}
+          fontWeight={900}
+          fill="#7A2410"
+          transform={`rotate(-3 ${CX} 308)`}
+        >
+          {t.sold.stamp}
+        </text>
+        <text
+          x={CX}
+          y={308}
+          textAnchor="middle"
+          className="font-display"
+          fontSize={stampSize}
+          fontWeight={900}
+          fill={`url(#${stampId})`}
+          stroke="#5C1508"
+          strokeWidth={9}
+          paintOrder="stroke"
+          transform={`rotate(-3 ${CX} 308)`}
+        >
+          {t.sold.stamp}
+        </text>
+
+        {/* 'ע"י סאן סיטי' — על פס קרם בהטיה קלה */}
+        <g transform={`rotate(-2 ${CX} 344)`}>
+          <rect x={CX - 132} y={326} width={264} height={36} rx={12} fill="#F3EAD3" />
+          <text
+            x={CX}
+            y={352}
+            textAnchor="middle"
+            className="font-display"
+            fontSize={22}
+            fontWeight={800}
+            fill="#23283B"
+          >
+            {t.sold.stampSuffix}
+          </text>
+        </g>
+      </svg>
+
+      {/* הלוגו — קבוע בפינה השמאלית-תחתונה, כמו בפוסטר המקורי */}
+      <img
+        src={business.logoUrl || logo}
+        alt=""
+        width={120}
+        height={131}
+        loading="lazy"
+        className="absolute bottom-[3%] left-[4%] h-[17%] w-auto object-contain"
+      />
+
+      {/* הכתובת — סרט צהוב נטוי בפינה הימנית-תחתונה, מתעדכן פר נכס */}
+      <div className="absolute bottom-[4.5%] right-[4%] max-w-[58%] -rotate-2 skew-x-[-8deg] rounded-md border-b-4 border-[#B97B00] bg-gradient-to-b from-[#FFCE45] to-[#F0A400] px-4 py-1.5 shadow-md">
+        <p className="skew-x-[8deg] truncate font-display text-sm font-extrabold text-[#1F2430] sm:text-base">
+          {item.address}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /**
- * מדור "נמכר על ידינו" — הוכחה חברתית בסגנון פוסטרי ה"נמכר" של המשרד:
- * תמונה עגולה בטבעת שמש, חותמת "נמכר" גדולה, והכתובת מתחת.
+ * מדור "נמכר על ידינו" — הוכחה חברתית בתבנית פוסטר ה"נמכר"
+ * הרשמי של המשרד: שמש עם התמונה בפנים, חותמת "נמכר" והכתובת בסרט.
  */
 export function SoldSection({ items }: Props) {
   const { dir, t } = useLang();
@@ -47,38 +242,8 @@ export function SoldSection({ items }: Props) {
           {items.map((s) => (
             <CarouselItem key={s.id} className="basis-full sm:basis-1/2 lg:basis-1/3">
               <article className="text-center">
-                <div className="relative mx-auto aspect-square w-full max-w-64">
-                  {/* קרני שמש עדינות סביב הטבעת */}
-                  <div
-                    aria-hidden="true"
-                    className="absolute -inset-3 rounded-full border-4 border-dashed border-sun/40"
-                  />
-                  {s.url ? (
-                    <img
-                      src={s.url}
-                      alt={`${t.sold.stamp} — ${s.address}`}
-                      width={400}
-                      height={400}
-                      loading="lazy"
-                      className="size-full rounded-full border-[6px] border-sun object-cover shadow-lift"
-                    />
-                  ) : (
-                    <div className="flex size-full items-center justify-center rounded-full border-[6px] border-sun bg-sun/15 shadow-lift">
-                      <Home className="size-20 text-sun" aria-hidden="true" />
-                    </div>
-                  )}
-                  <div className="absolute inset-x-0 bottom-4 flex flex-col items-center">
-                    <span className="rounded-full bg-navy/80 px-3 py-0.5 text-xs font-bold text-navy-foreground backdrop-blur-sm">
-                      {t.sold.stampPrefix}
-                    </span>
-                    <span className="mt-0.5 font-display text-5xl font-extrabold leading-none text-sun [text-shadow:0_2px_6px_rgba(0,0,0,0.55)]">
-                      {t.sold.stamp}
-                    </span>
-                  </div>
-                </div>
-
-                <h3 className="mt-4 text-lg font-extrabold text-primary">{s.address}</h3>
-                <p className="mt-0.5 text-sm text-muted-foreground">
+                <SoldPoster item={s} />
+                <p className="mt-3 text-sm text-muted-foreground">
                   {[
                     s.neighborhood,
                     s.sold_at && fmtDate(s.sold_at) ? t.sold.soldOn(fmtDate(s.sold_at)!) : null,
