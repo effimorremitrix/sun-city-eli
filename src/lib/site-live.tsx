@@ -106,8 +106,15 @@ export type LiveSite = {
   siteId: string | null;
   /** ה-slug הציבורי של הדף ("sun-city" לדף של אלי) */
   slug: string | null;
+  /** הגדרות ניתוב/תצוגה של האתר (site_content.settings) */
+  settings: LiveSettings;
   /** האם נמצאה רשומת אתר במסד (false בדף של slug לא קיים) */
   found: boolean;
+};
+
+export type LiveSettings = {
+  /** "/" מפנה בהפניה קבועה (301) אל דף המשרד /sun-city, שהופך לכתובת הקנונית */
+  homeRedirect: boolean;
 };
 
 export const DEFAULT_TEXTS: LiveTexts = {
@@ -147,6 +154,7 @@ export const DEFAULT_LIVE: LiveSite = {
   updatedAt: null,
   siteId: null,
   slug: null,
+  settings: { homeRedirect: false },
   found: false,
 };
 
@@ -167,6 +175,7 @@ export function mergeLive(raw: unknown): LiveSite {
     testimonials?: LiveTestimonial[] | null;
     faq?: LiveFaqItem[] | null;
     translations?: LiveTranslations;
+    settings?: Partial<LiveSettings>;
     updated_at?: string | null;
   };
   const business = { ...DEFAULT_BUSINESS, ...(data.business ?? {}) };
@@ -204,6 +213,7 @@ export function mergeLive(raw: unknown): LiveSite {
     updatedAt: data.updated_at ?? null,
     siteId: data.id ?? null,
     slug: data.slug ?? null,
+    settings: { homeRedirect: data.settings?.homeRedirect === true },
     found: raw != null,
   };
 }

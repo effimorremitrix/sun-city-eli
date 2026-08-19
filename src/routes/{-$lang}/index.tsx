@@ -1,5 +1,10 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
-import { HomePage, HomeError, HomeNotFound, loadHomeData } from "@/components/site/HomePage";
+import {
+  HomePage,
+  HomeError,
+  HomeNotFound,
+  loadHomeDataOrRedirect,
+} from "@/components/site/HomePage";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "@/lib/i18n";
 import { headForLocale } from "@/lib/i18n/seo";
 
@@ -20,7 +25,7 @@ export const Route = createFileRoute("/{-$lang}/")({
     if (!isLocale(param)) throw notFound();
   },
   head: ({ params }) => headForLocale(langFromParam(params.lang)),
-  loader: loadHomeData,
+  loader: ({ params }) => loadHomeDataOrRedirect(langFromParam(params.lang)),
   component: Index,
   errorComponent: RouteError,
   notFoundComponent: RouteNotFound,

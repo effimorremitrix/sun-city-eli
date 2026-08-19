@@ -4,11 +4,15 @@ import { SITE_CONFIG, properties } from "@/lib/site-data";
 /** הדומיין הקנוני של האתר בפרודקשן */
 export const SITE_URL = "https://sun-city.company";
 
-const urlFor = (lang: Locale) =>
-  lang === "he" ? `${SITE_URL}/` : `${SITE_URL}${LOCALE_META[lang].path}`;
+const urlFor = (lang: Locale, slug?: string) =>
+  slug
+    ? `${SITE_URL}${lang === "he" ? "" : LOCALE_META[lang].path}/${slug}`
+    : lang === "he"
+      ? `${SITE_URL}/`
+      : `${SITE_URL}${LOCALE_META[lang].path}`;
 
 /** JSON-LD פר-שפה: פרטי הסוכנות + הנכסים הסטטיים */
-const schemaFor = (lang: Locale) => {
+const schemaFor = (lang: Locale, slug?: string) => {
   const t = DICTS[lang];
   return {
     "@context": "https://schema.org",
@@ -19,7 +23,7 @@ const schemaFor = (lang: Locale) => {
         alternateName: SITE_CONFIG.nameEn,
         telephone: SITE_CONFIG.phone,
         email: SITE_CONFIG.email,
-        url: urlFor(lang),
+        url: urlFor(lang, slug),
         inLanguage: lang,
         areaServed: t.seo.areaServed,
         sameAs: [
@@ -58,10 +62,14 @@ const schemaFor = (lang: Locale) => {
   };
 };
 
-/** head מלא לעמוד הבית בשפה נתונה: title, description, canonical, hreflang ו-JSON-LD */
-export function headForLocale(lang: Locale) {
+/**
+ * head מלא לעמוד הבית בשפה נתונה: title, description, canonical, hreflang ו-JSON-LD.
+ * עם opts.slug כל הכתובות (canonical, hreflang, og:url, JSON-LD) מצביעות על
+ * /<slug> במקום על שורש האתר — למצב שבו /sun-city הוא הכתובת הראשית.
+ */
+export function headForLocale(lang: Locale, opts: { slug?: string } = {}) {
   const t = DICTS[lang];
-  const canonical = urlFor(lang);
+  const canonical = urlFor(lang, opts.slug);
 
   return {
     meta: [
@@ -80,9 +88,15 @@ export function headForLocale(lang: Locale) {
     ],
     links: [
       { rel: "canonical", href: canonical },
-      ...LOCALES.map((l) => ({ rel: "alternate", hrefLang: l, href: urlFor(l) })),
-      { rel: "alternate", hrefLang: "x-default", href: `${SITE_URL}/` },
+      ...LOCALES.map((l) => ({ rel: "alternate", hrefLang: l, href: urlFor(l, opts.slug) })),
+      {
+        rel: "alternate",
+        hrefLang: "x-default",
+        href: opts.slug ? `${SITE_URL}/${opts.slug}` : `${SITE_URL}/`,
+      },
     ],
-    scripts: [{ type: "application/ld+json", children: JSON.stringify(schemaFor(lang)) }],
+    scripts: [
+      { type: "application/ld+json", children: JSON.stringify(schemaFor(lang, opts.slug)) },
+    ],
   };
 }

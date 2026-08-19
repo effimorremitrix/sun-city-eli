@@ -11,7 +11,9 @@ import { ItemsSection } from "@/components/site/ItemsSection";
 import { MobileBar } from "@/components/site/MobileBar";
 import { FloatingWhatsApp } from "@/components/site/FloatingWhatsApp";
 import { SoldSection } from "@/components/site/SoldSection";
+import { redirect } from "@tanstack/react-router";
 import { SiteLiveProvider, localizeLive, type LiveSite } from "@/lib/site-live";
+import { OFFICE_SLUG } from "@/lib/site-data";
 import { getPublicSite } from "@/lib/site.functions";
 import { listPublicListings, listPublicAgents } from "@/lib/listings.functions";
 import { listPublicSoldProperties, type SoldProperty } from "@/lib/sold.functions";
@@ -46,6 +48,19 @@ export async function loadHomeData(): Promise<HomeData> {
     listPublicSoldProperties({ data: {} }),
   ]);
   return { live, listings, agents, sold };
+}
+
+/** נתוני הדף הראשי — או הפניה קבועה (301) אל /sun-city כשהדגל homeRedirect דולק */
+export async function loadHomeDataOrRedirect(lang: Locale): Promise<HomeData> {
+  const data = await loadHomeData();
+  if (data.live.settings.homeRedirect) {
+    throw redirect({
+      to: "/{-$lang}/$agentSlug",
+      params: { lang: lang === "he" ? undefined : lang, agentSlug: OFFICE_SLUG },
+      statusCode: 301,
+    });
+  }
+  return data;
 }
 
 export function HomePage({ data, lang }: { data: HomeData; lang: Locale }) {
