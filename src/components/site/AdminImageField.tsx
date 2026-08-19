@@ -61,8 +61,12 @@ export default function AdminImageField({
         upsert: false,
       });
       if (error) throw new Error(error.message);
-      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      onChange(data.publicUrl);
+      // ה-bucket פרטי, ולכן נשמרת כתובת חתומה לטווח ארוך (10 שנים) שנטענת גם לגולש אנונימי
+      const { data, error: signError } = await supabase.storage
+        .from(BUCKET)
+        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+      if (signError || !data?.signedUrl) throw new Error(signError?.message ?? "יצירת קישור נכשלה");
+      onChange(new URL(data.signedUrl, window.location.origin).toString());
     } catch (e) {
       setErr(e instanceof Error ? e.message : "העלאת הקובץ נכשלה");
     } finally {
