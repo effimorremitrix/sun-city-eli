@@ -1,7 +1,13 @@
 import { Home } from "lucide-react";
 import { useLang } from "@/lib/i18n";
 import type { SoldProperty } from "@/lib/sold.functions";
-import { Reveal } from "./Reveal";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 type Props = { items: SoldProperty[] };
 
@@ -10,7 +16,7 @@ type Props = { items: SoldProperty[] };
  * תמונה עגולה בטבעת שמש, חותמת "נמכר" גדולה, והכתובת מתחת.
  */
 export function SoldSection({ items }: Props) {
-  const { t } = useLang();
+  const { dir, t } = useLang();
   if (items.length === 0) return null;
 
   const fmtDate = (iso: string) => {
@@ -27,10 +33,19 @@ export function SoldSection({ items }: Props) {
         {t.sold.subtitle(items.length)}
       </p>
 
-      <ul className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((s, i) => (
-          <li key={s.id}>
-            <Reveal delay={i * 70}>
+      {/* קרוסלה: היסטוריית המכירות של כל המשרד ארוכה מדי לרשת סטטית */}
+      <Carousel
+        className="mt-8"
+        opts={{
+          direction: dir === "rtl" ? "rtl" : "ltr",
+          align: "start",
+          loop: items.length > 3,
+        }}
+        dir={dir}
+      >
+        <CarouselContent>
+          {items.map((s) => (
+            <CarouselItem key={s.id} className="basis-full sm:basis-1/2 lg:basis-1/3">
               <article className="text-center">
                 <div className="relative mx-auto aspect-square w-full max-w-64">
                   {/* קרני שמש עדינות סביב הטבעת */}
@@ -73,10 +88,16 @@ export function SoldSection({ items }: Props) {
                 </p>
                 {s.note && <p className="mt-1 text-sm font-semibold text-sun">{s.note}</p>}
               </article>
-            </Reveal>
-          </li>
-        ))}
-      </ul>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        {items.length > 1 && (
+          <>
+            <CarouselPrevious />
+            <CarouselNext />
+          </>
+        )}
+      </Carousel>
     </section>
   );
 }

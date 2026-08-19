@@ -28,7 +28,8 @@ const langFromParam = (param: string | undefined): Locale =>
 
 /**
  * דף אישי של סוכן בכתובת /<slug> (וגם /en/<slug> וכו') — אותו עיצוב של
- * הדף הראשי, עם הפרטים, הנכסים והמכירות של הסוכן בלבד.
+ * הדף הראשי, עם הפרטים של הסוכן ועם מלאי הנכסים והמכירות המשותף של כל
+ * המשרד. כל הפניות מהדף מנותבות לסוכן של הדף, גם על נכס שסוכן אחר העלה.
  */
 export const Route = createFileRoute("/{-$lang}/$agentSlug")({
   beforeLoad: ({ params }) => {
@@ -50,7 +51,7 @@ export const Route = createFileRoute("/{-$lang}/$agentSlug")({
       getPublicSite({ data: { slug } }),
       listPublicListings({ data: { slug } }),
       listPublicAgents(),
-      listPublicSoldProperties({ data: { slug } }),
+      listPublicSoldProperties({ data: {} }),
     ]);
     if (!live.found) throw notFound();
     return { live, listings, agents, sold };

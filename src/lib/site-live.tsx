@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react";
-import { SITE_CONFIG, team } from "@/lib/site-data";
+import { OFFICE_SLUG, SITE_CONFIG, team } from "@/lib/site-data";
 import { DICTS, type Dict, type Locale } from "@/lib/i18n";
 
 /** ============================================================
@@ -173,7 +173,14 @@ export function mergeLive(raw: unknown): LiveSite {
   if (!Array.isArray(business.hours) || business.hours.length === 0) {
     business.hours = DEFAULT_BUSINESS.hours;
   }
-  business.social = { ...DEFAULT_BUSINESS.social, ...(business.social ?? {}) };
+  /* רשתות חברתיות: בדף אישי של סוכן מוצגים רק הקישורים שלו עצמו. נפילה
+   * לרשתות המשרד הייתה שולחת גולשים מהדף של סוכן אחד לרשתות של אחר —
+   * ולכן היא שמורה לאתר המשרד בלבד (ולמצב שאין בכלל רשומה במסד). */
+  const officeSite = data.slug == null || data.slug === OFFICE_SLUG;
+  const emptySocial = { facebook: "", instagram: "", tiktok: "" };
+  business.social = officeSite
+    ? { ...DEFAULT_BUSINESS.social, ...(business.social ?? {}) }
+    : { ...emptySocial, ...(business.social ?? {}) };
   // ה-JSONB במסד חופשי — מנרמלים את השדות שהתצוגה מסתמכת על הטיפוס שלהם
   business.heroImages = Array.isArray(business.heroImages)
     ? business.heroImages.filter((u): u is string => typeof u === "string" && u.trim() !== "")

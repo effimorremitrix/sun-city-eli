@@ -10,6 +10,7 @@ import {
   adminInviteAgent,
   type AdminUserRow,
 } from "@/lib/users.functions";
+import AdminImageField from "@/components/site/AdminImageField";
 
 const NONE = "אין מידע";
 
@@ -77,6 +78,7 @@ export function AdminUsers({ audience }: { audience: UsersAudience }) {
     roleTitle: "",
     phone: "",
     email: "",
+    photoUrl: "",
     facebook: "",
     instagram: "",
     tiktok: "",
@@ -326,7 +328,7 @@ export function AdminUsers({ audience }: { audience: UsersAudience }) {
             <p className="mt-2 text-sm text-muted-foreground">
               {agentModal.mode === "invite"
                 ? "אם המייל לא רשום עדיין — ייווצר חשבון והסוכן יקבל מייל הזמנה להגדרת סיסמה. בכל מקרה יוקם לו דף אישי בכתובת /‏slug באותו עיצוב של האתר."
-                : `${val(agentModal.user.full_name)} יקבל תפקיד סוכן ודף אישי בכתובת /‏slug באותו עיצוב של האתר. הנכסים שיעלה ישויכו אליו והפניות עליהם ינותבו אליו.`}
+                : `${val(agentModal.user.full_name)} יקבל תפקיד סוכן ודף אישי בכתובת /‏slug באותו עיצוב של האתר. בדף יוצג מלאי הנכסים של כל המשרד, וכל הפניות ממנו ינותבו אליו.`}
             </p>
             <div className="mt-3 grid gap-3">
               <label className="block">
@@ -387,6 +389,13 @@ export function AdminUsers({ audience }: { audience: UsersAudience }) {
                   placeholder="agent@example.com"
                 />
               </label>
+              <AdminImageField
+                label="תמונת הסוכן"
+                folder="agents"
+                hint="מוצגת בדף האישי של הסוכן, בקרוסלת הצוות ובכרטיסי הנכסים."
+                value={agentForm.photoUrl}
+                onChange={(url) => setAgentForm({ ...agentForm, photoUrl: url })}
+              />
               <fieldset className="rounded-xl border border-border p-3">
                 <legend className="px-1 text-xs font-bold text-muted-foreground">
                   רשתות חברתיות של הסוכן (יוצגו בראש הדף האישי שלו)
@@ -437,6 +446,7 @@ export function AdminUsers({ audience }: { audience: UsersAudience }) {
                           agentName: f.agentName,
                           roleTitle: f.roleTitle,
                           phone: f.phone,
+                          photoUrl: f.photoUrl,
                           social,
                         },
                       });
@@ -453,6 +463,7 @@ export function AdminUsers({ audience }: { audience: UsersAudience }) {
                             roleTitle: f.roleTitle,
                             phone: f.phone,
                             email: f.email,
+                            photoUrl: f.photoUrl,
                             social,
                           },
                         }),

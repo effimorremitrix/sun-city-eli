@@ -51,7 +51,6 @@ export const ru: Dict = {
 
   team: {
     othersTitle: "Другие агенты Sun City",
-    toPersonalPage: (name: string) => `Личная страница: ${name}`,
     kicker: "Люди, а не корпорация",
     title: "Наша команда",
     subtitle:

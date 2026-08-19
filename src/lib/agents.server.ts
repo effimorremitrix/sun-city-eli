@@ -46,12 +46,25 @@ const DEFAULT_AGENT: ListingAgent = {
 };
 
 /**
- * מצמיד לכל נכס את הסוכן שאליו הוא משויך, כדי שכל פנייה מהאתר
- * תנותב לסוכן של הנכס ולא לסוכן של הדף.
+ * מצמיד לכל נכס את הסוכן שאליו הפניות עליו ינותבו.
+ *
+ * pageSlug — הסוכן של הדף האישי שבו אנחנו נמצאים. מלאי הנכסים משותף לכל
+ * הסוכנים, ולכן בדף אישי כל הנכסים מיוחסים לסוכן של הדף: גולש שהגיע דרך
+ * הדף של סוכן מסוים מדבר איתו, גם על נכס שסוכן אחר העלה.
+ * בלי pageSlug (עמוד הבית של המשרד) כל נכס מיוחס לסוכן שפרסם אותו.
  */
-export async function attachListingAgents(listings: Listing[]): Promise<Listing[]> {
+export async function attachListingAgents(
+  listings: Listing[],
+  pageSlug?: string | null,
+): Promise<Listing[]> {
   if (!listings.length) return listings;
   const agents = await fetchPublicAgents();
+
+  if (pageSlug) {
+    const pageAgent = agents.filter((a) => a.slug === pageSlug).map(toListingAgent)[0];
+    if (pageAgent) return listings.map((l) => ({ ...l, agent: pageAgent }));
+  }
+
   const bySite = new Map(agents.map((a) => [a.id, toListingAgent(a)]));
   const defaultAgent =
     agents.filter((a) => a.slug === DEFAULT_SLUG).map(toListingAgent)[0] ?? DEFAULT_AGENT;

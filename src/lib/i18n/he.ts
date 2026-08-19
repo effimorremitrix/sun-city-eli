@@ -52,7 +52,6 @@ export const he = {
 
   team: {
     othersTitle: "עוד סוכנים בסאן סיטי",
-    toPersonalPage: (name: string) => `לדף האישי של ${name}`,
     kicker: "אנשים, לא חברה",
     title: "הצוות שלנו",
     subtitle: "בוחרים סוכן, לא חברה. דברו ישירות עם מי שיטפל בכם.",

@@ -184,6 +184,8 @@ type AgentSiteInput = {
   roleTitle: string;
   phone: string;
   email: string;
+  /** תמונת הפרופיל של הסוכן; ריק = לא לשנות את התמונה הקיימת */
+  photoUrl: string;
   social: { facebook: string; instagram: string; tiktok: string };
 };
 
@@ -194,6 +196,7 @@ function sanitizeAgentSiteInput(input: {
   roleTitle?: string;
   phone?: string;
   email?: string;
+  photoUrl?: string;
   social?: { facebook?: string; instagram?: string; tiktok?: string };
 }): AgentSiteInput {
   const url = (v: unknown) => {
@@ -201,6 +204,14 @@ function sanitizeAgentSiteInput(input: {
     if (!s) return "";
     if (!/^https:\/\//.test(s) || s.length > 300) {
       throw new Error("קישור לרשת חברתית חייב להתחיל ב-https:// (עד 300 תווים)");
+    }
+    return s;
+  };
+  const photo = (v: unknown) => {
+    const s = String(v ?? "").trim();
+    if (!s) return "";
+    if (!/^https:\/\//.test(s) || s.length > 500) {
+      throw new Error("כתובת תמונת הסוכן חייבת להתחיל ב-https:// (עד 500 תווים)");
     }
     return s;
   };
@@ -213,6 +224,7 @@ function sanitizeAgentSiteInput(input: {
     roleTitle: String(input.roleTitle ?? "").trim(),
     phone: String(input.phone ?? "").trim(),
     email: String(input.email ?? "").trim(),
+    photoUrl: photo(input.photoUrl),
     social: {
       facebook: url(input.social?.facebook),
       instagram: url(input.social?.instagram),
@@ -243,7 +255,7 @@ function agentBusiness(data: AgentSiteInput, existing: AgentBusiness = {}): Agen
     roleTitle: data.roleTitle || existing.roleTitle || 'יועץ/ת נדל"ן',
     ...(data.phone ? { phone: data.phone, phoneTel } : {}),
     ...(data.email ? { email: data.email } : {}),
-    photoUrl: existing.photoUrl ?? "",
+    photoUrl: data.photoUrl || existing.photoUrl || "",
     bio: existing.bio ?? "",
     social: {
       facebook: data.social.facebook || prev.facebook || "",
@@ -353,6 +365,7 @@ export const adminCreateAgentSite = createServerFn({ method: "POST" })
       roleTitle?: string;
       phone?: string;
       email?: string;
+      photoUrl?: string;
       social?: { facebook?: string; instagram?: string; tiktok?: string };
     }) => sanitizeAgentSiteInput(input),
   )
@@ -378,6 +391,7 @@ export const adminInviteAgent = createServerFn({ method: "POST" })
       agentName: string;
       roleTitle?: string;
       phone?: string;
+      photoUrl?: string;
       social?: { facebook?: string; instagram?: string; tiktok?: string };
     }) => {
       const data = sanitizeAgentSiteInput(input);
