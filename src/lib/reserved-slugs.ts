@@ -5,6 +5,8 @@ export const RESERVED_AGENT_SLUGS = new Set([
   "account",
   "privacy",
   "accessibility",
+  "terms",
+  "data-deletion",
   "reset-password",
   "api",
   "en",

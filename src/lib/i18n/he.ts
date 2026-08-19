@@ -423,6 +423,8 @@ export const he = {
     team: "הצוות",
     accessibility: "הצהרת נגישות",
     privacy: "מדיניות פרטיות",
+    terms: "תנאי שימוש",
+    dataDeletion: "מחיקת מידע",
     myAccount: "האזור האישי שלי",
     facebookAria: "עמוד הפייסבוק שלנו",
     instagramAria: "עמוד האינסטגרם שלנו",
