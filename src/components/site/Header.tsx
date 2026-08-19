@@ -28,11 +28,11 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
         <a
           href="#top"
           onClick={go("top")}
-          className="flex items-center gap-2"
+          className="flex shrink-0 items-center gap-2"
           aria-label={t.nav.toTopAria(business.name)}
         >
           <img
@@ -61,13 +61,15 @@ export function Header() {
           </span>
         </a>
 
-        <nav aria-label={t.nav.mainNavAria} className="hidden items-center gap-5 lg:flex">
+        {/* whitespace-nowrap על כל פריט: בלעדיו flex מכווץ קישורים ארוכים
+            ("השירותים שלנו", "Vendre un bien") לשתי שורות */}
+        <nav aria-label={t.nav.mainNavAria} className="hidden items-center gap-4 lg:flex xl:gap-5">
           {t.nav.links.map((l) => (
             <a
               key={l.id}
               href={`#${l.id}`}
               onClick={go(l.id)}
-              className="text-sm font-semibold text-foreground transition-colors hover:text-sun"
+              className="whitespace-nowrap text-sm font-semibold text-foreground transition-colors hover:text-sun"
             >
               {l.label}
             </a>
@@ -80,7 +82,7 @@ export function Header() {
 
           <a
             href={`tel:${business.phoneTel}`}
-            className="flex items-center gap-1.5 text-sm font-bold text-primary"
+            className="flex items-center gap-1.5 whitespace-nowrap text-sm font-bold text-primary"
             aria-label={t.nav.callAria(business.phone)}
             dir="ltr"
           >
@@ -92,7 +94,7 @@ export function Header() {
             {user ? (
               <>
                 <span
-                  className="hidden items-center gap-1.5 text-sm font-bold text-primary xl:flex"
+                  className="hidden items-center gap-1.5 whitespace-nowrap text-sm font-bold text-primary xl:flex"
                   title={user.email}
                 >
                   <User className="size-4 text-sun" aria-hidden="true" />
@@ -100,14 +102,14 @@ export function Header() {
                 </span>
                 <Link
                   to="/account"
-                  className="text-sm font-semibold text-foreground transition-colors hover:text-sun"
+                  className="whitespace-nowrap text-sm font-semibold text-foreground transition-colors hover:text-sun"
                 >
                   {t.nav.myAccount}
                 </Link>
                 <button
                   type="button"
                   onClick={logout}
-                  className="flex items-center gap-1 text-sm font-bold text-destructive transition-colors hover:text-destructive/80"
+                  className="flex items-center gap-1 whitespace-nowrap text-sm font-bold text-destructive transition-colors hover:text-destructive/80"
                   aria-label={t.nav.logoutAria}
                 >
                   <LogOut className="size-4" aria-hidden="true" />
@@ -118,14 +120,14 @@ export function Header() {
               <>
                 <Link
                   to="/auth"
-                  className="text-sm font-semibold text-foreground transition-colors hover:text-sun"
+                  className="whitespace-nowrap text-sm font-semibold text-foreground transition-colors hover:text-sun"
                 >
                   {t.nav.authArea}
                 </Link>
                 <a
                   href="#sellers"
                   onClick={go("sellers")}
-                  className="rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground shadow-soft transition-transform hover:-translate-y-0.5"
+                  className="whitespace-nowrap rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground shadow-soft transition-transform hover:-translate-y-0.5"
                 >
                   {t.nav.freeValuation}
                 </a>

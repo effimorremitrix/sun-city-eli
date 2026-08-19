@@ -1,10 +1,18 @@
 import { Link } from "@tanstack/react-router";
+import { Check, ChevronDown } from "lucide-react";
 import { LOCALES, LOCALE_META, useLang, type Locale } from "@/lib/i18n";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 /* ============================================================
- * בורר שפות בדגלים — שורת דגלי SVG בהדר (בהשראת lahav-n.co.il):
- * דגל לכל שפה, פינות מעוגלות, צל עדין, התרוממות בריחוף,
- * והשפה הפעילה מסומנת ב-outline בצבע הענבר של המותג.
+ * בורר שפות בדגלים (בהשראת lahav-n.co.il):
+ * בדסקטופ — תפריט נפתח: דגל השפה הנוכחית + חץ, והרשימה נפתחת
+ * אנכית עם דגל ושם כל שפה (חוסך את רוחב ארבעת הדגלים בהדר).
+ * במובייל (big) — שורת דגלים שטוחה כבעבר.
  * העברית מקושרת לנתיב הראשי, שאר השפות ל-/en, /fr, /ru.
  * ============================================================ */
 
@@ -61,7 +69,7 @@ const FLAGS: Record<Locale, () => React.JSX.Element> = {
   ru: FlagRussia,
 };
 
-function FlagLink({ locale, big }: { locale: Locale; big?: boolean | undefined }) {
+function FlagLink({ locale }: { locale: Locale }) {
   const { lang } = useLang();
   const Flag = FLAGS[locale];
   const meta = LOCALE_META[locale];
@@ -75,9 +83,9 @@ function FlagLink({ locale, big }: { locale: Locale; big?: boolean | undefined }
       aria-label={meta.name}
       title={meta.name}
       aria-current={active ? "page" : undefined}
-      className={`block shrink-0 overflow-hidden rounded-[4px] shadow-soft transition-transform hover:-translate-y-[1px] ${
-        big ? "h-[25px] w-[36px]" : "h-[18px] w-[26px]"
-      } ${active ? "outline-2 outline-offset-2 outline-sun" : ""}`}
+      className={`block h-[25px] w-[36px] shrink-0 overflow-hidden rounded-[4px] shadow-soft transition-transform hover:-translate-y-[1px] ${
+        active ? "outline-2 outline-offset-2 outline-sun" : ""
+      }`}
     >
       <Flag />
     </Link>
@@ -85,16 +93,60 @@ function FlagLink({ locale, big }: { locale: Locale; big?: boolean | undefined }
 }
 
 export function LangSwitcher({ big, className }: { big?: boolean; className?: string }) {
-  const { t } = useLang();
+  const { t, lang, dir } = useLang();
+
+  // הפאנל במובייל: שורת דגלים שטוחה — כל השפות גלויות בלחיצה אחת
+  if (big) {
+    return (
+      <div
+        role="group"
+        aria-label={t.nav.langsLabel}
+        className={`flex items-center gap-3 ${className ?? ""}`}
+      >
+        {LOCALES.map((locale) => (
+          <FlagLink key={locale} locale={locale} />
+        ))}
+      </div>
+    );
+  }
+
+  const Current = FLAGS[lang];
   return (
-    <div
-      role="group"
-      aria-label={t.nav.langsLabel}
-      className={`flex items-center ${big ? "gap-3" : "gap-2"} ${className ?? ""}`}
-    >
-      {LOCALES.map((locale) => (
-        <FlagLink key={locale} locale={locale} big={big} />
-      ))}
+    <div className={`flex items-center ${className ?? ""}`}>
+      <DropdownMenu dir={dir} modal={false}>
+        <DropdownMenuTrigger
+          aria-label={t.nav.langsLabel}
+          className="flex items-center gap-1.5 rounded-lg outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sun"
+        >
+          <span className="block h-[18px] w-[26px] shrink-0 overflow-hidden rounded-[4px] shadow-soft">
+            <Current />
+          </span>
+          <ChevronDown className="size-4 text-primary" aria-hidden="true" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="min-w-40">
+          {LOCALES.map((locale) => {
+            const Flag = FLAGS[locale];
+            const active = lang === locale;
+            return (
+              <DropdownMenuItem key={locale} asChild>
+                <Link
+                  to="/{-$lang}"
+                  params={{ lang: locale === "he" ? undefined : locale }}
+                  resetScroll
+                  aria-current={active ? "page" : undefined}
+                  className={`flex cursor-pointer items-center gap-2 ${active ? "font-bold text-primary" : ""}`}
+                >
+                  <span className="block h-[18px] w-[26px] shrink-0 overflow-hidden rounded-[4px] shadow-soft">
+                    <Flag />
+                  </span>
+                  {LOCALE_META[locale].name}
+                  {active && <Check className="ms-auto size-4 text-sun" aria-hidden="true" />}
+                </Link>
+              </DropdownMenuItem>
+            );
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
