@@ -57,28 +57,22 @@ async function withUrls(rows: RawRow[]): Promise<SoldProperty[]> {
 }
 
 /**
- * הדירות שנמכרו להצגה ציבורית. בלי slug — של כל הסוכנים (הדף הראשי);
- * עם slug — רק של הסוכן של אותו דף.
+ * הדירות שנמכרו להצגה ציבורית — היסטוריית המכירות של כל המשרד, בכל הדפים.
+ * כמו הנכסים, זו הוכחה חברתית משותפת ולא רשימה אישית לכל סוכן.
  */
 export const listPublicSoldProperties = createServerFn({ method: "GET" })
-  .inputValidator((input?: { slug?: string | null }) => ({ slug: input?.slug ?? null }))
-  .handler(async ({ data }): Promise<SoldProperty[]> => {
+  .inputValidator(() => ({}))
+  .handler(async (): Promise<SoldProperty[]> => {
     const { publicDb } = await import("@/lib/public-db.server");
     const db = publicDb();
     if (!db) return [];
 
-    let query = db
+    const query = db
       .from("sold_properties")
       .select(COLUMNS)
       .eq("is_published", true)
       .order("sort_order", { ascending: true })
       .order("sold_at", { ascending: false });
-
-    if (data.slug) {
-      const { data: siteId } = await db.rpc("get_site_id", { p_slug: data.slug });
-      if (!siteId) return [];
-      query = query.eq("site_id", siteId as string);
-    }
 
     const { data: rows, error } = await query.limit(24);
     if (error) {

@@ -52,7 +52,6 @@ export const en: Dict = {
 
   team: {
     othersTitle: "More Sun City agents",
-    toPersonalPage: (name: string) => `${name}'s personal page`,
     kicker: "People, not a corporation",
     title: "Our Team",
     subtitle:

@@ -7,9 +7,11 @@ import { listingInputSchema } from "@/lib/listing-schema";
 /* ----------------------- קריאה ציבורית ----------------------- */
 
 /**
- * הנכסים המפורסמים באתר. בלי slug — כל הנכסים של כל הסוכנים (הדף הראשי);
- * עם slug — רק הנכסים של הסוכן של אותו דף. לכל נכס מוצמד הסוכן שלו,
- * כדי שכל פנייה תנותב אליו.
+ * הנכסים המפורסמים באתר — מלאי אחד משותף לכל הסוכנים. כל נכס שמתפרסם
+ * מוצג בכל הדפים, בלי קשר לשאלה מי העלה אותו.
+ *
+ * slug הוא הסוכן של הדף האישי שבו אנחנו נמצאים, והוא משמש לניתוב הפניות
+ * בלבד (ראה attachListingAgents) — לא לסינון המלאי.
  */
 export const listPublicListings = createServerFn({ method: "GET" })
   .inputValidator((input?: { slug?: string | null }) => ({ slug: input?.slug ?? null }))
@@ -18,24 +20,12 @@ export const listPublicListings = createServerFn({ method: "GET" })
     const db = publicDb();
     if (!db) return [];
 
-    let query = db
+    const { data: rows, error } = await db
       .from("listings")
       .select(LISTING_COLUMNS)
       .eq("is_published", true)
       .order("sort_order", { ascending: true });
 
-    if (data.slug) {
-      const { DEFAULT_SLUG } = await import("@/lib/agents.server");
-      const { data: siteId } = await db.rpc("get_site_id", { p_slug: data.slug });
-      if (!siteId) return [];
-      // נכסים ישנים ללא site_id שייכים לאתר הראשי
-      query =
-        data.slug === DEFAULT_SLUG
-          ? query.or(`site_id.eq.${siteId},site_id.is.null`)
-          : query.eq("site_id", siteId as string);
-    }
-
-    const { data: rows, error } = await query;
     if (error) {
       console.error("listPublicListings failed", error.message);
       return [];
@@ -43,7 +33,7 @@ export const listPublicListings = createServerFn({ method: "GET" })
     const { attachListingImages } = await import("@/lib/listing-images.server");
     const { attachListingAgents } = await import("@/lib/agents.server");
     const withImages = await attachListingImages((rows ?? []) as unknown as Listing[]);
-    return attachListingAgents(withImages);
+    return attachListingAgents(withImages, data.slug);
   });
 
 /** רשימת הסוכנים הפעילים להצגה ציבורית (כרטיסי צוות + קישור לדף האישי) */

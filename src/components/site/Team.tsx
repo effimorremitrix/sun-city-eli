@@ -1,6 +1,5 @@
-import { Link } from "@tanstack/react-router";
-import { Phone, MessageCircle, ArrowLeft } from "lucide-react";
-import { team, business, waProps, OFFICE_SLUG } from "@/lib/site-data";
+import { Phone, MessageCircle } from "lucide-react";
+import { team, business, waProps } from "@/lib/site-data";
 import { useLang } from "@/lib/i18n";
 import { useLive } from "@/lib/site-live";
 import type { PublicAgentRow } from "@/lib/agents.server";
@@ -35,12 +34,10 @@ type TeamCard = {
   photo: string | null;
   /** מספר אישי לפנייה ישירה; null — הפנייה מנותבת למשרד */
   phoneTel: string | null;
-  /** קיימת רשומת site במסד, כלומר יש דף אישי חי בכתובת /slug */
-  hasPage: boolean;
 };
 
 export function Team({ agents = [], variant = "primary" }: Props) {
-  const { t, dir, lang } = useLang();
+  const { t, dir } = useLang();
   const { slug: currentSlug } = useLive();
 
   /* הרוסטר של המשרד הוא השלד, ורשומות המסד מעשירות אותו ומוסיפות לו סוכנים
@@ -54,7 +51,6 @@ export function Team({ agents = [], variant = "primary" }: Props) {
       role: db?.role_title || t.team.roles[m.name] || m.role,
       photo: db?.photo_url || m.image || null,
       phoneTel: db?.phone_tel || (m.phone ? business.phoneTel : null),
-      hasPage: db != null,
     };
   });
 
@@ -69,41 +65,12 @@ export function Team({ agents = [], variant = "primary" }: Props) {
       role: a.role_title ?? "",
       photo: a.photo_url || null,
       phoneTel: a.phone_tel || null,
-      hasPage: true,
     });
   }
 
   // בדף אישי מציגים את שאר הסוכנים; בדף הראשי — את כולם
   const shown = variant === "secondary" ? cards.filter((c) => c.slug !== currentSlug) : cards;
   if (!shown.length) return null;
-
-  const langParam = lang === "he" ? undefined : lang;
-
-  /** הקישור לדף האישי; לאתר הראשי — לדף הבית, ולדף שאנחנו כבר בו — אין קישור */
-  const personalPageLink = (c: TeamCard) => {
-    if (!c.hasPage || c.slug === currentSlug) return null;
-    const className =
-      "mt-3 inline-flex items-center gap-1 text-sm font-bold text-primary underline";
-    const label = (
-      <>
-        {t.team.toPersonalPage(c.name)}
-        <ArrowLeft className="size-4" aria-hidden="true" />
-      </>
-    );
-    return c.slug === OFFICE_SLUG ? (
-      <Link to="/{-$lang}" params={{ lang: langParam }} className={className}>
-        {label}
-      </Link>
-    ) : (
-      <Link
-        to="/{-$lang}/$agentSlug"
-        params={{ lang: langParam, agentSlug: c.slug }}
-        className={className}
-      >
-        {label}
-      </Link>
-    );
-  };
 
   const agentCard = (c: TeamCard) => (
     <article className="soft-card h-full p-5 text-center transition-transform hover:-translate-y-1">
@@ -156,8 +123,6 @@ export function Team({ agents = [], variant = "primary" }: Props) {
           {t.team.contactOffice}
         </a>
       )}
-
-      {personalPageLink(c)}
     </article>
   );
 
