@@ -29,10 +29,12 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
+        {/* בדסקטופ צר (lg) מוצג רק סמל הלוגו; שם המותג והסלוגן חוזרים מ-xl.
+            שורת הסלוגן מתקצרת (truncate) כשחסר מקום — כך הנאב לא נשבר לעולם. */}
         <a
           href="#top"
           onClick={go("top")}
-          className="flex shrink-0 items-center gap-2"
+          className="flex min-w-0 items-center gap-2"
           aria-label={t.nav.toTopAria(business.name)}
         >
           <img
@@ -40,10 +42,10 @@ export function Header() {
             alt={t.nav.logoAlt}
             width={40}
             height={40}
-            className="size-10 object-contain"
+            className="size-10 shrink-0 object-contain"
           />
-          <span className="flex flex-col leading-none">
-            <span className="font-display text-base font-extrabold text-primary">
+          <span className="flex min-w-0 flex-col leading-none lg:hidden xl:flex">
+            <span className="whitespace-nowrap font-display text-base font-extrabold text-primary">
               Sun City <span className="text-sun">{t.nav.brandSuffix}</span>
             </span>
             {/* שם הסוכן של הדף — בדף אישי זה הסוכן שלו, בעמוד הבית סוכן ברירת המחדל.
@@ -62,8 +64,10 @@ export function Header() {
         </a>
 
         {/* whitespace-nowrap על כל פריט: בלעדיו flex מכווץ קישורים ארוכים
-            ("השירותים שלנו", "Vendre un bien") לשתי שורות */}
-        <nav aria-label={t.nav.mainNavAria} className="hidden items-center gap-4 lg:flex xl:gap-5">
+            ("השירותים שלנו", "Vendre un bien") לשתי שורות. התקציב צר (מכל 1152px),
+            ולכן טלפון ואזור אישי מוצגים כאייקונים, והטקסט חוזר בעברית בלבד מ-xl
+            (rtl:) — בשפות הלטיניות התוויות הארוכות לא נכנסות בשום רוחב. */}
+        <nav aria-label={t.nav.mainNavAria} className="hidden items-center gap-3 lg:flex xl:gap-4">
           {t.nav.links.map((l) => (
             <a
               key={l.id}
@@ -75,34 +79,27 @@ export function Header() {
             </a>
           ))}
 
-          <SocialLinks size="size-6" />
-
-          {/* מפריד: בלי הקו והריפוד האייקונים והדגלים נקראים כרצף אחד */}
-          <LangSwitcher className="ms-1 border-s border-border ps-4" />
+          {/* מפריד: בלי הקו והריפוד הקישורים והדגל נקראים כרצף אחד */}
+          <LangSwitcher className="ms-1 border-s border-border ps-3" />
 
           <a
             href={`tel:${business.phoneTel}`}
             className="flex items-center gap-1.5 whitespace-nowrap text-sm font-bold text-primary"
             aria-label={t.nav.callAria(business.phone)}
+            title={business.phone}
             dir="ltr"
           >
             <Phone className="size-4 text-sun" aria-hidden="true" />
-            {business.phone}
+            <span className="hidden xl:rtl:inline">{business.phone}</span>
           </a>
 
           <div className="flex items-center gap-3">
             {user ? (
               <>
-                <span
-                  className="hidden items-center gap-1.5 whitespace-nowrap text-sm font-bold text-primary xl:flex"
-                  title={user.email}
-                >
-                  <User className="size-4 text-sun" aria-hidden="true" />
-                  {t.nav.hello} {displayName}
-                </span>
                 <Link
                   to="/account"
                   className="whitespace-nowrap text-sm font-semibold text-foreground transition-colors hover:text-sun"
+                  title={user.email}
                 >
                   {t.nav.myAccount}
                 </Link>
@@ -113,16 +110,19 @@ export function Header() {
                   aria-label={t.nav.logoutAria}
                 >
                   <LogOut className="size-4" aria-hidden="true" />
-                  <span className="hidden xl:inline">{t.nav.logout}</span>
+                  <span className="hidden xl:rtl:inline">{t.nav.logout}</span>
                 </button>
               </>
             ) : (
               <>
                 <Link
                   to="/auth"
-                  className="whitespace-nowrap text-sm font-semibold text-foreground transition-colors hover:text-sun"
+                  aria-label={t.nav.authArea}
+                  title={t.nav.authArea}
+                  className="flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-foreground transition-colors hover:text-sun"
                 >
-                  {t.nav.authArea}
+                  <User className="size-4 text-sun" aria-hidden="true" />
+                  <span className="hidden xl:rtl:inline">{t.nav.authArea}</span>
                 </Link>
                 <a
                   href="#sellers"
