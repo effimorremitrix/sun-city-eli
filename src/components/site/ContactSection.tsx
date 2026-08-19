@@ -198,7 +198,10 @@ export function ContactSection() {
 
 export function Footer() {
   const { business } = useLive();
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  // הדפים המשפטיים קיימים בעברית ובאנגלית בלבד. גולש עברי מקבל את הנוסח העברי,
+  // וכל שאר השפות מופנות לנוסח האנגלי דרך ?lang=en.
+  const legalSearch = lang === "he" ? {} : ({ lang: "en" } as const);
 
   return (
     <footer className="border-t border-border bg-navy px-4 py-10 pb-28 text-navy-foreground lg:pb-10">
@@ -268,8 +271,18 @@ export function Footer() {
               </Link>
             </li>
             <li>
-              <Link to="/privacy" className="underline">
+              <Link to="/privacy" search={legalSearch} className="underline">
                 {t.footer.privacy}
+              </Link>
+            </li>
+            <li>
+              <Link to="/terms" search={legalSearch} className="underline">
+                {t.footer.terms}
+              </Link>
+            </li>
+            <li>
+              <Link to="/data-deletion" search={legalSearch} className="underline">
+                {t.footer.dataDeletion}
               </Link>
             </li>
             <li className="mt-3 border-t border-navy-foreground/15 pt-3 text-xs text-navy-foreground/55">

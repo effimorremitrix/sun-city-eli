@@ -433,6 +433,8 @@ export const ru: Dict = {
     team: "Команда",
     accessibility: "Заявление о доступности",
     privacy: "Политика конфиденциальности",
+    terms: "Условия использования",
+    dataDeletion: "Удаление данных",
     myAccount: "Личный кабинет",
     facebookAria: "Наша страница в Facebook",
     instagramAria: "Наша страница в Instagram",

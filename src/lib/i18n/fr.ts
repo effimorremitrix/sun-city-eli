@@ -441,6 +441,8 @@ export const fr: Dict = {
     team: "L'équipe",
     accessibility: "Déclaration d'accessibilité",
     privacy: "Politique de confidentialité",
+    terms: "Conditions d'utilisation",
+    dataDeletion: "Suppression des données",
     myAccount: "Mon espace",
     facebookAria: "Notre page Facebook",
     instagramAria: "Notre page Instagram",
