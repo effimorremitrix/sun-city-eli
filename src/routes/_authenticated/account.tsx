@@ -38,10 +38,17 @@ const TAB_KEYS: TabKey[] = [
   "usage",
 ];
 
+/** slug של דף מנוהל — לקישור ניהול ישיר (?site=slug) של המנהל הראשי */
+const SITE_PARAM_RE = /^[a-z0-9-]{1,60}$/;
+
 export const Route = createFileRoute("/_authenticated/account")({
-  validateSearch: (search: Record<string, unknown>): { tab?: TabKey } => {
+  validateSearch: (search: Record<string, unknown>): { tab?: TabKey; site?: string } => {
     const tab = search["tab"];
-    return TAB_KEYS.includes(tab as TabKey) ? { tab: tab as TabKey } : {};
+    const site = search["site"];
+    return {
+      ...(TAB_KEYS.includes(tab as TabKey) ? { tab: tab as TabKey } : {}),
+      ...(typeof site === "string" && SITE_PARAM_RE.test(site) ? { site } : {}),
+    };
   },
   head: () => ({
     meta: [
@@ -155,10 +162,14 @@ function AccountPage() {
   const isManager = isAdmin || account.data?.isAgent === true;
 
   const tab: TabKey = isManager ? (search.tab ?? "overview") : "overview";
+  // מעבר בין טאבים משמר את ?site= — כדי שקישור ניהול ישיר ימשיך להצביע על הדף הנבחר
   const setTab = (next: TabKey) =>
     void navigate({
       to: "/account",
-      search: next === "overview" ? {} : { tab: next },
+      search: {
+        ...(next === "overview" ? {} : { tab: next }),
+        ...(search.site ? { site: search.site } : {}),
+      },
       replace: true,
     });
 
@@ -308,7 +319,7 @@ function AccountPage() {
       )}
 
       {/* טאבי הניהול — הלוח המלא */}
-      {isManager && tab !== "overview" && <AdminPanel tab={tab} />}
+      {isManager && tab !== "overview" && <AdminPanel tab={tab} siteSlug={search.site ?? null} />}
 
       {tab === "overview" && (
         <>

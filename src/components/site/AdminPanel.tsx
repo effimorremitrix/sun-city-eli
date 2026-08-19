@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getAdminSite, saveSiteContent } from "@/lib/site.functions";
@@ -24,6 +24,7 @@ import AdminUsage from "@/components/site/AdminUsage";
 import AdminScout from "@/components/site/AdminScout";
 import AdminListingImages from "@/components/site/AdminListingImages";
 import AdminImageField from "@/components/site/AdminImageField";
+import AdminSitesPanel from "@/components/site/AdminSitesPanel";
 import { AdminContentExtras } from "@/components/site/AdminContentExtras";
 import { TabHelp } from "@/components/site/AdminGuide";
 
@@ -178,8 +179,9 @@ const nestContentTranslations = (flat: FlatTranslations): LiveTranslations => {
 /**
  * לוח הניהול המלא — מוצג בתוך האזור האישי (טאבי ניהול מאוחדים).
  * מקבל את הטאב הפעיל; בורר האתרים וההודעות משותפים לכל הטאבים.
+ * siteSlug — קישור ניהול ישיר (?site=slug) שבוחר מראש את הדף המנוהל.
  */
-export function AdminPanel({ tab }: { tab: AdminTabKey }) {
+export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: string | null }) {
   const fetchSite = useServerFn(getAdminSite);
   const fetchListings = useServerFn(adminListListings);
   const saveContent = useServerFn(saveSiteContent);
@@ -194,6 +196,17 @@ export function AdminPanel({ tab }: { tab: AdminTabKey }) {
     queryKey: ["admin-site", siteId],
     queryFn: () => fetchSite({ data: { siteId } }),
   });
+
+  // קישור ניהול ישיר: ?site=slug בוחר את הדף מראש — פעם אחת, כשהרשימה נטענת.
+  // סוכן שקיבל קישור של דף שאינו שלו פשוט לא ימצא את ה-slug ברשימה המסוננת
+  // שלו (RLS) — והדף שלו יישאר נבחר.
+  const appliedSlugRef = useRef(false);
+  useEffect(() => {
+    if (appliedSlugRef.current || !siteSlug || !site.data?.sites) return;
+    appliedSlugRef.current = true;
+    const match = site.data.sites.find((s) => s.slug === siteSlug);
+    if (match) setSiteId(match.id);
+  }, [siteSlug, site.data]);
   const isManager = site.data?.isAdmin === true || site.data?.isAgent === true;
   const isSuperAdmin = site.data?.isSuperAdmin === true;
   const selectedSiteId = site.data?.site?.id ?? null;
@@ -369,7 +382,12 @@ export function AdminPanel({ tab }: { tab: AdminTabKey }) {
       {/* המדריך הרלוונטי לטאב הנוכחי */}
       <TabHelp tab={tab} isAdmin={site.data?.isAdmin === true} />
 
-      {tab === "agents" && isSuperAdmin && <AdminUsers audience="agents" />}
+      {tab === "agents" && isSuperAdmin && (
+        <>
+          <AdminSitesPanel sites={site.data?.sites ?? []} onChanged={() => void site.refetch()} />
+          <AdminUsers audience="agents" />
+        </>
+      )}
       {tab === "clients" && isSuperAdmin && <AdminUsers audience="clients" />}
       {tab === "usage" && isSuperAdmin && <AdminUsage />}
       {tab === "scout" && isSuperAdmin && <AdminScout />}
@@ -759,16 +777,18 @@ export function AdminPanel({ tab }: { tab: AdminTabKey }) {
             />
           </div>
 
-          {/* תמונות הסליידר בראש הדף */}
-          <h3 className="mt-6 text-base font-extrabold text-primary">תמונות הסליידר בראש הדף</h3>
+          {/* תמונות וסרטוני הסליידר בראש הדף */}
+          <h3 className="mt-6 text-base font-extrabold text-primary">
+            תמונות וסרטונים בסליידר בראש הדף
+          </h3>
           <label className="mt-2 block">
             <span className="mb-1 block text-xs font-bold text-muted-foreground">
-              כתובת תמונה אחת בכל שורה. שדה ריק — תמונות ברירת המחדל של האתר.
+              כתובת תמונה או סרטון (mp4/webm) אחת בכל שורה. שדה ריק — תמונות ברירת המחדל של האתר.
             </span>
             <textarea
               className="field min-h-24"
               dir="ltr"
-              placeholder={"https://…/hero-1.jpg\nhttps://…/hero-2.jpg"}
+              placeholder={"https://…/hero-1.jpg\nhttps://…/hero-video.mp4"}
               value={(business.heroImages ?? []).join("\n")}
               onChange={(e) =>
                 setBusiness({
@@ -783,14 +803,15 @@ export function AdminPanel({ tab }: { tab: AdminTabKey }) {
           </label>
           <div className="mt-3">
             <AdminImageField
-              label="הוספת תמונה לסליידר"
+              label="הוספת תמונה או סרטון לסליידר"
               folder="hero"
+              allowVideo
               value=""
               onChange={(url) =>
                 url &&
                 setBusiness({ ...business, heroImages: [...(business.heroImages ?? []), url] })
               }
-              hint="כל העלאה מוסיפה שורה לרשימה שלמעלה."
+              hint="כל העלאה מוסיפה שורה לרשימה שלמעלה. סרטון: עד 50MB, מומלץ קצר — הוא מוצג מושתק ובלולאה."
             />
           </div>
 
