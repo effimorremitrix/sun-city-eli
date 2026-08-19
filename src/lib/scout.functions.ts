@@ -14,6 +14,11 @@ export type ScoutCandidateRow = {
   size_sqm: number | null;
   neighborhood: string | null;
   address: string | null;
+  /* מתקנים כפי שדווחו במודעה — null: המודעה לא ציינה */
+  has_mamad: boolean | null;
+  has_elevator: boolean | null;
+  has_parking: boolean | null;
+  has_balcony: boolean | null;
   raw_summary: string | null;
   match_score: number;
   match_reason: string | null;
@@ -28,7 +33,7 @@ const PROFILE_COLUMNS =
   "id,label,deal_type,city,neighborhoods,min_price,max_price,min_rooms,min_size,needs_mamad,needs_elevator,needs_parking,needs_balcony,sources,notes,is_active,last_run_at,created_at,updated_at";
 
 const CANDIDATE_COLUMNS =
-  "id,scout_profile_id,source_site,source_url,title,deal_type,price,rooms,size_sqm,neighborhood,address,raw_summary,match_score,match_reason,status,created_listing_id,created_at";
+  "id,scout_profile_id,source_site,source_url,title,deal_type,price,rooms,size_sqm,neighborhood,address,has_mamad,has_elevator,has_parking,has_balcony,raw_summary,match_score,match_reason,status,created_listing_id,created_at";
 
 const num = (v: unknown): number | null => {
   if (v === null || v === undefined || v === "") return null;
@@ -273,6 +278,11 @@ export const adminApproveCandidate = createServerFn({ method: "POST" })
         price: cand.price,
         rooms: cand.rooms,
         size_sqm: cand.size_sqm,
+        // רק מתקן שאושש במודעה עובר לטיוטה; null נשאר false כברירת המחדל
+        has_mamad: cand.has_mamad ?? false,
+        has_elevator: cand.has_elevator ?? false,
+        has_parking: cand.has_parking ?? false,
+        has_balcony: cand.has_balcony ?? false,
         is_published: false,
       })
       .select("id")
