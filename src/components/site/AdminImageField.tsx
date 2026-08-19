@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { isVideoUrl } from "@/lib/media";
+import { acceptFor, fileExt, fileMimeType, isVideoUrl } from "@/lib/media";
 
 const BUCKET = "site-media";
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -9,6 +9,18 @@ const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
 const RASTER_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const SVG_TYPE = "image/svg+xml";
 const VIDEO_TYPES = ["video/mp4", "video/webm"];
+
+/** מזהה אקראי לשם הקובץ; נופל לגיבוי בדפדפנים ישנים בלי crypto.randomUUID */
+const randomId = (): string => {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+  } catch {
+    /* נופלים לגיבוי למטה */
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+};
 
 type Props = {
   label: string;
@@ -51,14 +63,16 @@ export default function AdminImageField({
     if (!file) return;
     setErr(null);
 
-    if (!allowed.includes(file.type)) {
+    // סוג הקובץ מהדפדפן, ואם ריק (נפוץ ל-SVG בווינדוס) — נגזר מהסיומת
+    const type = fileMimeType(file);
+    if (!allowed.includes(type)) {
       const kinds = ["JPG, PNG, WebP", allowSvg ? "SVG" : "", allowVideo ? "MP4, WebM" : ""]
         .filter(Boolean)
         .join(", ");
       setErr(`סוגי קבצים נתמכים: ${kinds}`);
       return;
     }
-    const isVideo = file.type.startsWith("video/");
+    const isVideo = type.startsWith("video/");
     if (file.size > (isVideo ? MAX_VIDEO_SIZE : MAX_SIZE)) {
       setErr(isVideo ? "הסרטון גדול מדי (עד 50MB)" : "הקובץ גדול מדי (עד 5MB)");
       return;
@@ -66,10 +80,11 @@ export default function AdminImageField({
 
     setBusy(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const path = `${folder}/${crypto.randomUUID()}.${ext}`;
+      const ext = fileExt(file.name) || "jpg";
+      const path = `${folder}/${randomId()}.${ext}`;
       const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
-        contentType: file.type,
+        // contentType מפורש לפי הסוג שנגזר — כדי שהעלאת SVG עם file.type ריק לא תיפסל
+        contentType: type,
         upsert: false,
       });
       if (error) throw new Error(error.message);
@@ -124,15 +139,24 @@ export default function AdminImageField({
             onChange={(e) => onChange(e.target.value)}
           />
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => inputRef.current?.click()}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary disabled:opacity-60"
+            {/* לחצן ההעלאה עוטף את שדה הקובץ ב-<label> — לחיצה טבעית שפותחת את
+                בורר הקבצים בכל דפדפן, בלי קריאה תכנותית ל-click() שנחסמת לעיתים. */}
+            <label
+              className={`inline-flex items-center gap-1.5 rounded-xl border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary ${
+                busy ? "cursor-default opacity-60" : "cursor-pointer"
+              }`}
             >
               <ImagePlus className="size-4 text-sun" aria-hidden="true" />
               {busy ? "מעלה…" : "העלאת קובץ"}
-            </button>
+              <input
+                ref={inputRef}
+                type="file"
+                accept={acceptFor(allowed)}
+                className="hidden"
+                disabled={busy}
+                onChange={(e) => void handleFile(e.target.files?.[0])}
+              />
+            </label>
             {value && (
               <button
                 type="button"
@@ -153,14 +177,6 @@ export default function AdminImageField({
           )}
         </div>
       </div>
-
-      <input
-        ref={inputRef}
-        type="file"
-        accept={allowed.join(",")}
-        className="hidden"
-        onChange={(e) => void handleFile(e.target.files?.[0])}
-      />
     </div>
   );
 }
