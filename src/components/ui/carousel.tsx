@@ -185,8 +185,10 @@ const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ComponentProp
         size={size}
         className={cn(
           "absolute  h-8 w-8 rounded-full",
+          // עד xl החץ נשאר בתוך שולי העמוד — מעבר לקצה הוא מרחיב את ה-body
+          // וגורם לגלילה אופקית בנייד (העמוד "נחתך" בקצה הימני ב-RTL)
           orientation === "horizontal"
-            ? "-left-12 top-1/2 -translate-y-1/2"
+            ? "-left-3 top-1/2 -translate-y-1/2 xl:-left-12"
             : "-top-12 left-1/2 -translate-x-1/2 rotate-90",
           className,
         )}
@@ -214,7 +216,7 @@ const CarouselNext = React.forwardRef<HTMLButtonElement, React.ComponentProps<ty
         className={cn(
           "absolute h-8 w-8 rounded-full",
           orientation === "horizontal"
-            ? "-right-12 top-1/2 -translate-y-1/2"
+            ? "-right-3 top-1/2 -translate-y-1/2 xl:-right-12"
             : "-bottom-12 left-1/2 -translate-x-1/2 rotate-90",
           className,
         )}

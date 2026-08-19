@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import { useId, type SVGProps } from "react";
 import { useLive } from "@/lib/site-live";
 import { useLang } from "@/lib/i18n";
 
@@ -20,17 +20,21 @@ export function FacebookBrandIcon(props: SVGProps<SVGSVGElement>) {
 }
 
 export function InstagramBrandIcon(props: SVGProps<SVGSVGElement>) {
+  /* מזהה ייחודי לכל מופע: id קבוע גורם לכל האייקונים בעמוד להפנות לגרדיאנט
+     הראשון ב-DOM, וכשהוא בתוך אלמנט מוסתר (התפריט בדסקטופ/מובייל) — האייקון
+     נצבע שקוף. */
+  const gradId = useId();
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" {...props}>
       <defs>
-        <radialGradient id="igGrad" cx="0.3" cy="1.1" r="1.3">
+        <radialGradient id={gradId} cx="0.3" cy="1.1" r="1.3">
           <stop offset="0" stopColor="#FED576" />
           <stop offset="0.26" stopColor="#F47133" />
           <stop offset="0.61" stopColor="#BC3081" />
           <stop offset="1" stopColor="#4C63D2" />
         </radialGradient>
       </defs>
-      <rect width="24" height="24" rx="6" fill="url(#igGrad)" />
+      <rect width="24" height="24" rx="6" fill={`url(#${gradId})`} />
       <rect
         x="4.5"
         y="4.5"
