@@ -9,6 +9,7 @@ import logo from "@/assets/sun-city-logo-full.svg";
 import { SITE_CONFIG } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
 import { useLang } from "@/lib/i18n";
+import { isVideoUrl } from "@/lib/media";
 
 /** תמונות ברירת המחדל של הסליידר — עד שמעלים תמונות משלכם באזור הניהול */
 const DEFAULT_SLIDES = [heroImg, prop1, prop2, prop3, prop4];
@@ -32,6 +33,12 @@ export function Hero() {
     watchDrag: slides.length > 1,
   });
   const [current, setCurrent] = useState(0);
+  // סרטונים לא מתנגנים אוטומטית כשהמערכת מבקשת "פחות תנועה" — נבדק אחרי
+  // ה-hydration כי window לא קיים בצד השרת
+  const [reducedMotion, setReducedMotion] = useState(false);
+  useEffect(() => {
+    setReducedMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, []);
 
   const select = useCallback(() => {
     if (embla) setCurrent(embla.selectedScrollSnap());
@@ -61,14 +68,28 @@ export function Hero() {
         <div className="flex h-full">
           {slides.map((src, i) => (
             <div key={src} className="h-full min-w-0 shrink-0 grow-0 basis-full">
-              <img
-                src={src}
-                alt={i === 0 ? t.hero.imageAlt : ""}
-                width={1600}
-                height={1008}
-                loading={i === 0 ? "eager" : "lazy"}
-                className="size-full object-cover"
-              />
+              {isVideoUrl(src) ? (
+                // שקופית וידאו — מושתקת ובלולאה, כרקע חי מאחורי הטקסט
+                <video
+                  src={src}
+                  muted
+                  loop
+                  playsInline
+                  autoPlay={!reducedMotion}
+                  preload={i === 0 ? "auto" : "metadata"}
+                  aria-label={i === 0 ? t.hero.imageAlt : undefined}
+                  className="size-full object-cover"
+                />
+              ) : (
+                <img
+                  src={src}
+                  alt={i === 0 ? t.hero.imageAlt : ""}
+                  width={1600}
+                  height={1008}
+                  loading={i === 0 ? "eager" : "lazy"}
+                  className="size-full object-cover"
+                />
+              )}
             </div>
           ))}
         </div>
