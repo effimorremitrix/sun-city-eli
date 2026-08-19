@@ -105,6 +105,21 @@
     font-family: var(--font-sans);
   }
 
+  /* רשת ביטחון נגד גלישה אופקית: בחלק מהטלפונים אלמנט רחב מדי מזיז את כל
+     העמוד וה"הירו" נחתך בקצה הימני (RTL). clip ולא hidden — כדי לא ליצור
+     scroll container שמשבש את ה-header הדביק. */
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  @supports not (overflow: clip) {
+    html,
+    body {
+      overflow-x: hidden;
+    }
+  }
+
   h1,
   h2,
   h3,

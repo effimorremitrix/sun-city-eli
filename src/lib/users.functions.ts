@@ -175,6 +175,36 @@ export const adminSetUserRole = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** הפעלה או השבתה של דף אישי של סוכן (מנהל ראשי בלבד) — דף מושבת מחזיר 404 */
+export const adminSetSiteActive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { siteId: string; isActive: boolean }) => ({
+    siteId: String(input.siteId),
+    isActive: Boolean(input.isActive),
+  }))
+  .handler(async ({ data, context }) => {
+    const { assertSuperAdmin } = await import("@/lib/admin.server");
+    await assertSuperAdmin(context);
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: site, error: siteError } = await supabaseAdmin
+      .from("sites")
+      .select("slug")
+      .eq("id", data.siteId)
+      .maybeSingle();
+    if (siteError) throw new Error(siteError.message);
+    if (!site) throw new Error("הדף לא נמצא");
+    if (site.slug === OFFICE_SLUG) throw new Error("אי אפשר להשבית את אתר המשרד הראשי");
+
+    const { error } = await supabaseAdmin
+      .from("sites")
+      .update({ is_active: data.isActive })
+      .eq("id", data.siteId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?$/;
 
 type AgentSiteInput = {

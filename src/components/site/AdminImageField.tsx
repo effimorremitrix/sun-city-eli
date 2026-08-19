@@ -1,11 +1,14 @@
 import { useRef, useState } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { isVideoUrl } from "@/lib/media";
 
 const BUCKET = "site-media";
 const MAX_SIZE = 5 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
 const RASTER_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const SVG_TYPE = "image/svg+xml";
+const VIDEO_TYPES = ["video/mp4", "video/webm"];
 
 type Props = {
   label: string;
@@ -16,12 +19,14 @@ type Props = {
   folder: string;
   /** לוגו מותר גם כ-SVG; תצלום סוכן לא */
   allowSvg?: boolean;
+  /** סליידר ההירו מקבל גם סרטונים (mp4/webm, עד 50MB) */
+  allowVideo?: boolean;
   hint?: string;
 };
 
 /**
- * שדה תמונה יחיד לאזור הניהול: תצוגה מקדימה, העלאת קובץ ל-bucket הציבורי
- * site-media, הסרה, ואפשרות להדביק כתובת חיצונית (לערכים שנשמרו כך בעבר).
+ * שדה תמונה (או סרטון) יחיד לאזור הניהול: תצוגה מקדימה, העלאת קובץ ל-bucket
+ * הציבורי site-media, הסרה, ואפשרות להדביק כתובת חיצונית (לערכים שנשמרו כך בעבר).
  */
 export default function AdminImageField({
   label,
@@ -29,26 +34,33 @@ export default function AdminImageField({
   onChange,
   folder,
   allowSvg = false,
+  allowVideo = false,
   hint,
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const allowed = allowSvg ? [...RASTER_TYPES, SVG_TYPE] : RASTER_TYPES;
+  const allowed = [
+    ...RASTER_TYPES,
+    ...(allowSvg ? [SVG_TYPE] : []),
+    ...(allowVideo ? VIDEO_TYPES : []),
+  ];
 
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
     setErr(null);
 
     if (!allowed.includes(file.type)) {
-      setErr(
-        allowSvg ? "סוגי קבצים נתמכים: JPG, PNG, WebP, SVG" : "סוגי קבצים נתמכים: JPG, PNG, WebP",
-      );
+      const kinds = ["JPG, PNG, WebP", allowSvg ? "SVG" : "", allowVideo ? "MP4, WebM" : ""]
+        .filter(Boolean)
+        .join(", ");
+      setErr(`סוגי קבצים נתמכים: ${kinds}`);
       return;
     }
-    if (file.size > MAX_SIZE) {
-      setErr("הקובץ גדול מדי (עד 5MB)");
+    const isVideo = file.type.startsWith("video/");
+    if (file.size > (isVideo ? MAX_VIDEO_SIZE : MAX_SIZE)) {
+      setErr(isVideo ? "הסרטון גדול מדי (עד 50MB)" : "הקובץ גדול מדי (עד 5MB)");
       return;
     }
 
@@ -61,12 +73,10 @@ export default function AdminImageField({
         upsert: false,
       });
       if (error) throw new Error(error.message);
-      // ה-bucket פרטי, ולכן נשמרת כתובת חתומה לטווח ארוך (10 שנים) שנטענת גם לגולש אנונימי
-      const { data, error: signError } = await supabase.storage
-        .from(BUCKET)
-        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-      if (signError || !data?.signedUrl) throw new Error(signError?.message ?? "יצירת קישור נכשלה");
-      onChange(new URL(data.signedUrl, window.location.origin).toString());
+      // ה-bucket ציבורי — נשמרת כתובת קבועה שאינה פוקעת (כתובות חתומות ישנות
+      // ממשיכות לעבוד עד לפקיעתן)
+      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      onChange(data.publicUrl);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "העלאת הקובץ נכשלה");
     } finally {
@@ -81,11 +91,21 @@ export default function AdminImageField({
 
       <div className="flex items-start gap-3">
         {value ? (
-          <img
-            src={value}
-            alt=""
-            className="size-16 shrink-0 rounded-lg border border-border bg-card object-contain"
-          />
+          isVideoUrl(value) ? (
+            <video
+              src={value}
+              muted
+              playsInline
+              preload="metadata"
+              className="size-16 shrink-0 rounded-lg border border-border bg-card object-contain"
+            />
+          ) : (
+            <img
+              src={value}
+              alt=""
+              className="size-16 shrink-0 rounded-lg border border-border bg-card object-contain"
+            />
+          )
         ) : (
           <div
             className="flex size-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-border text-muted-foreground"
