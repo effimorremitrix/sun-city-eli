@@ -216,7 +216,7 @@ type AgentSiteInput = {
   email: string;
   /** תמונת הפרופיל של הסוכן; ריק = לא לשנות את התמונה הקיימת */
   photoUrl: string;
-  social: { facebook: string; instagram: string; tiktok: string };
+  social: { facebook: string; instagram: string; tiktok: string; whatsappGroup: string };
 };
 
 function sanitizeAgentSiteInput(input: {
@@ -227,7 +227,7 @@ function sanitizeAgentSiteInput(input: {
   phone?: string;
   email?: string;
   photoUrl?: string;
-  social?: { facebook?: string; instagram?: string; tiktok?: string };
+  social?: { facebook?: string; instagram?: string; tiktok?: string; whatsappGroup?: string };
 }): AgentSiteInput {
   const url = (v: unknown) => {
     const s = String(v ?? "").trim();
@@ -259,6 +259,7 @@ function sanitizeAgentSiteInput(input: {
       facebook: url(input.social?.facebook),
       instagram: url(input.social?.instagram),
       tiktok: url(input.social?.tiktok),
+      whatsappGroup: url(input.social?.whatsappGroup),
     },
   };
 }
@@ -268,7 +269,7 @@ type AgentBusiness = {
   roleTitle?: string;
   photoUrl?: string;
   bio?: string;
-  social?: { facebook?: string; instagram?: string; tiktok?: string };
+  social?: { facebook?: string; instagram?: string; tiktok?: string; whatsappGroup?: string };
   [key: string]: unknown;
 };
 
@@ -291,6 +292,7 @@ function agentBusiness(data: AgentSiteInput, existing: AgentBusiness = {}): Agen
       facebook: data.social.facebook || prev.facebook || "",
       instagram: data.social.instagram || prev.instagram || "",
       tiktok: data.social.tiktok || prev.tiktok || "",
+      whatsappGroup: data.social.whatsappGroup || prev.whatsappGroup || "",
     },
   };
 }
@@ -396,7 +398,7 @@ export const adminCreateAgentSite = createServerFn({ method: "POST" })
       phone?: string;
       email?: string;
       photoUrl?: string;
-      social?: { facebook?: string; instagram?: string; tiktok?: string };
+      social?: { facebook?: string; instagram?: string; tiktok?: string; whatsappGroup?: string };
     }) => sanitizeAgentSiteInput(input),
   )
   .handler(async ({ data, context }) => {
@@ -422,7 +424,7 @@ export const adminInviteAgent = createServerFn({ method: "POST" })
       roleTitle?: string;
       phone?: string;
       photoUrl?: string;
-      social?: { facebook?: string; instagram?: string; tiktok?: string };
+      social?: { facebook?: string; instagram?: string; tiktok?: string; whatsappGroup?: string };
     }) => {
       const data = sanitizeAgentSiteInput(input);
       const email = String(input.email ?? "")

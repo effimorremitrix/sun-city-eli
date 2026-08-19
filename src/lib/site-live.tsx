@@ -25,7 +25,7 @@ export type LiveBusiness = {
   roleTitle: string;
   photoUrl: string;
   bio: string;
-  social: { facebook: string; instagram: string; tiktok: string };
+  social: { facebook: string; instagram: string; tiktok: string; whatsappGroup: string };
   /* --- נכסי מותג הניתנים להחלפה באזור הניהול --- */
   /** לוגו מלא — מוצג בתוך הסליידר בראש הדף. ריק = הלוגו המובנה של האתר. */
   logoUrl: string;
@@ -129,7 +129,7 @@ export const DEFAULT_BUSINESS: LiveBusiness = {
   roleTitle: team[0]!.role,
   photoUrl: team[0]!.image ?? "",
   bio: "",
-  social: { ...SITE_CONFIG.social },
+  social: { ...SITE_CONFIG.social, whatsappGroup: SITE_CONFIG.whatsappGroup.url1 },
   logoUrl: "",
   logoIconUrl: "",
   heroImages: [],
@@ -177,10 +177,15 @@ export function mergeLive(raw: unknown): LiveSite {
    * לרשתות המשרד הייתה שולחת גולשים מהדף של סוכן אחד לרשתות של אחר —
    * ולכן היא שמורה לאתר המשרד בלבד (ולמצב שאין בכלל רשומה במסד). */
   const officeSite = data.slug == null || data.slug === OFFICE_SLUG;
-  const emptySocial = { facebook: "", instagram: "", tiktok: "" };
+  const emptySocial = { facebook: "", instagram: "", tiktok: "", whatsappGroup: "" };
   business.social = officeSite
     ? { ...DEFAULT_BUSINESS.social, ...(business.social ?? {}) }
     : { ...emptySocial, ...(business.social ?? {}) };
+  /* קבוצת הקונים של המשרד היא ברירת המחדל באתר המשרד — גם כשרשומת המסד
+   * נשמרה עם שדה ריק (העורך שומר "" עבור שדות שלא מולאו). */
+  if (officeSite && !business.social.whatsappGroup?.trim()) {
+    business.social.whatsappGroup = SITE_CONFIG.whatsappGroup.url1;
+  }
   // ה-JSONB במסד חופשי — מנרמלים את השדות שהתצוגה מסתמכת על הטיפוס שלהם
   business.heroImages = Array.isArray(business.heroImages)
     ? business.heroImages.filter((u): u is string => typeof u === "string" && u.trim() !== "")

@@ -444,6 +444,8 @@ export const fr: Dict = {
     myAccount: "Mon espace",
     facebookAria: "Notre page Facebook",
     instagramAria: "Notre page Instagram",
+    whatsappGroupAria: "Notre groupe WhatsApp d'acheteurs",
+    whatsappGroupJoinMsg: "Bonjour, je souhaite rejoindre le groupe WhatsApp des acheteurs 🙂",
     license: (num: string) => `Licence immobilière : ${num}`,
     rights: (year: number, name: string) => `© ${year} ${name}. Tous droits réservés.`,
   },

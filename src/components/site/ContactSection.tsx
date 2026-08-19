@@ -25,6 +25,7 @@ export function ContactSection() {
         topic: form.topic || t.contact.topicOther,
         message: form.message || "-",
       }),
+      business.phoneTel,
     );
   };
 
@@ -103,7 +104,7 @@ export function ContactSection() {
           </ul>
 
           <a
-            {...waProps(t.contact.waHello(business.name))}
+            {...waProps(t.contact.waHello(business.name), business.phoneTel)}
             className="flex items-center justify-center gap-2 rounded-xl bg-whatsapp py-3 text-sm font-bold text-whatsapp-foreground"
           >
             <MessageCircle className="size-5" aria-hidden="true" />

@@ -3,11 +3,16 @@ import { Users } from "lucide-react";
 import { business, neighborhoods, openWa } from "@/lib/site-data";
 import { isValidIsraeliPhone } from "@/lib/leads";
 import { useLang } from "@/lib/i18n";
+import { useLive } from "@/lib/site-live";
 
 export function BuyerSection() {
   const { t } = useLang();
+  const { business: live } = useLive();
   const [form, setForm] = useState({ name: "", phone: "", budget: "", rooms: "", area: "" });
   const [err, setErr] = useState<string | null>(null);
+
+  /* קבוצת הקונים של סוכן הדף (מהאזור האישי); אם לא הוזנה — קבוצות המשרד */
+  const agentGroup = live.social?.whatsappGroup?.trim() || "";
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,13 +20,14 @@ export function BuyerSection() {
     if (!isValidIsraeliPhone(form.phone)) return setErr(t.misc.phoneError);
     setErr(null);
     openWa(
-      t.buyers.waMsg(business.name, {
+      t.buyers.waMsg(live.name, {
         name: form.name,
         phone: form.phone,
         budget: form.budget || t.buyers.notSpecified,
         rooms: form.rooms || t.buyers.notSpecified,
         area: form.area || t.buyers.notSpecified,
       }),
+      live.phoneTel,
     );
   };
 
@@ -34,7 +40,7 @@ export function BuyerSection() {
       </p>
 
       <a
-        href={business.whatsappGroup.url1}
+        href={agentGroup || business.whatsappGroup.url1}
         target="_blank"
         rel="noopener noreferrer"
         className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-whatsapp px-6 py-4 text-lg font-bold text-whatsapp-foreground shadow-lift sm:w-auto"
@@ -42,17 +48,20 @@ export function BuyerSection() {
         <Users className="size-6" aria-hidden="true" />
         {t.buyers.joinGroup}
       </a>
-      <p className="mt-2 text-xs text-muted-foreground">
-        {t.buyers.groupFullQ}{" "}
-        <a
-          href={business.whatsappGroup.url2}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-bold text-primary underline"
-        >
-          {t.buyers.secondGroup}
-        </a>
-      </p>
+      {/* "הקבוצה מלאה" רלוונטי רק לקבוצות המשרד — לסוכן יש קבוצה אחת משלו */}
+      {!agentGroup && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          {t.buyers.groupFullQ}{" "}
+          <a
+            href={business.whatsappGroup.url2}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold text-primary underline"
+          >
+            {t.buyers.secondGroup}
+          </a>
+        </p>
+      )}
 
       <form
         onSubmit={submit}

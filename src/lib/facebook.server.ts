@@ -62,7 +62,8 @@ export function facebookAuthUrl(siteId: string, userId: string): string {
     client_id: appId,
     redirect_uri: redirect,
     state: buildOAuthState(siteId, userId),
-    scope: "pages_manage_posts,pages_read_engagement,ads_management,business_management",
+    scope:
+      "pages_manage_posts,pages_read_engagement,ads_management,business_management,instagram_basic,instagram_content_publish",
     response_type: "code",
   });
   return `https://www.facebook.com/v21.0/dialog/oauth?${params}`;
@@ -125,6 +126,18 @@ export async function handleFacebookCallback(
   const page = pages.data?.[0];
   if (!page) throw new Error("לא נמצא עמוד עסקי בחשבון הפייסבוק שחובר");
 
+  // חשבון אינסטגרם עסקי המקושר לעמוד (אופציונלי — נדרש רק לפרסום "נמכר" אוטומטי)
+  let igUserId: string | null = null;
+  try {
+    const ig = await graph<{ instagram_business_account?: { id: string } }>(`/${page.id}`, {
+      fields: "instagram_business_account",
+      access_token: page.access_token,
+    });
+    igUserId = ig.instagram_business_account?.id ?? null;
+  } catch {
+    igUserId = null;
+  }
+
   // חשבון מודעות (אופציונלי — נדרש רק לקמפיינים)
   let adAccountId: string | null = null;
   try {
@@ -144,6 +157,7 @@ export async function handleFacebookCallback(
       page_name: page.name,
       page_access_token: page.access_token,
       ad_account_id: adAccountId,
+      ig_user_id: igUserId,
       connected_by: parsed.userId,
     },
     { onConflict: "site_id" },
@@ -160,6 +174,7 @@ export type FacebookStatus = {
   connected: boolean;
   pageName: string | null;
   hasAdAccount: boolean;
+  hasInstagram: boolean;
   connectedAt: string | null;
 };
 
@@ -170,13 +185,14 @@ export async function getConnectionStatus(siteId: string): Promise<FacebookStatu
       connected: false,
       pageName: null,
       hasAdAccount: false,
+      hasInstagram: false,
       connectedAt: null,
     };
   }
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data } = await supabaseAdmin
     .from("facebook_connections")
-    .select("page_name, ad_account_id, connected_at")
+    .select("page_name, ad_account_id, ig_user_id, connected_at")
     .eq("site_id", siteId)
     .maybeSingle();
   return {
@@ -184,6 +200,7 @@ export async function getConnectionStatus(siteId: string): Promise<FacebookStatu
     connected: Boolean(data),
     pageName: (data?.page_name as string | undefined) ?? null,
     hasAdAccount: Boolean(data?.ad_account_id),
+    hasInstagram: Boolean(data?.ig_user_id),
     connectedAt: (data?.connected_at as string | undefined) ?? null,
   };
 }
@@ -192,7 +209,7 @@ async function getConnection(siteId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
     .from("facebook_connections")
-    .select("page_id, page_name, page_access_token, ad_account_id")
+    .select("page_id, page_name, page_access_token, ad_account_id, ig_user_id")
     .eq("site_id", siteId)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -202,6 +219,7 @@ async function getConnection(siteId: string) {
     page_name: string;
     page_access_token: string;
     ad_account_id: string | null;
+    ig_user_id: string | null;
   };
 }
 
@@ -274,6 +292,71 @@ export async function publishListingToPage(
     const post = await graph<{ id: string }>(`/${conn.page_id}/feed`, params, "POST");
     await record("success", post.id);
     return { postId: post.id };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    await record("error", undefined, msg);
+    throw new Error(msg);
+  }
+}
+
+/* ---------------------- פרסום "נמכר" לאינסטגרם ---------------------- */
+
+/**
+ * פרסום פוסט "נמכר" לחשבון האינסטגרם העסקי המקושר לעמוד הפייסבוק של האתר.
+ * דורש שהחיבור נעשה עם ההרשאות החדשות (instagram_content_publish) ושיש
+ * ig_user_id שמור. image_url חייב להיות נגיש ציבורית (כתובת חתומה תקינה).
+ */
+export async function publishSoldToInstagram(args: {
+  listingId: string;
+  imageUrl: string;
+  caption: string;
+  siteId: string;
+  userId: string;
+}): Promise<{ mediaId: string }> {
+  const conn = await getConnection(args.siteId);
+  if (!conn.ig_user_id) {
+    throw new Error(
+      "לא מחובר חשבון אינסטגרם עסקי. חברו מחדש את הפייסבוק בטאב הפרסום כשהעמוד מקושר לאינסטגרם",
+    );
+  }
+
+  const record = async (status: "success" | "error", mediaId?: string, errMsg?: string) => {
+    // כשל ברישום היומן לא מפיל את הפרסום עצמו
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("listing_posts").insert({
+        listing_id: args.listingId,
+        target: "instagram",
+        status,
+        fb_post_id: mediaId ?? null,
+        error: errMsg ?? null,
+        created_by: args.userId,
+      });
+    } catch (e) {
+      console.error("listing_posts instagram record failed", e instanceof Error ? e.message : e);
+    }
+  };
+
+  try {
+    const container = await graph<{ id: string }>(
+      `/${conn.ig_user_id}/media`,
+      {
+        image_url: args.imageUrl,
+        caption: args.caption,
+        access_token: conn.page_access_token,
+      },
+      "POST",
+    );
+    const published = await graph<{ id: string }>(
+      `/${conn.ig_user_id}/media_publish`,
+      {
+        creation_id: container.id,
+        access_token: conn.page_access_token,
+      },
+      "POST",
+    );
+    await record("success", published.id);
+    return { mediaId: published.id };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     await record("error", undefined, msg);

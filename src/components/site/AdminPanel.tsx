@@ -8,6 +8,7 @@ import {
   adminDeleteListing,
   adminBackfillListingCoords,
 } from "@/lib/listings.functions";
+import { adminMarkListingSold, type MarkListingSoldResult } from "@/lib/sold.functions";
 import { formatListingPrice, type Listing } from "@/lib/listings";
 import { neighborhoods } from "@/lib/site-data";
 import type {
@@ -187,6 +188,7 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
   const saveContent = useServerFn(saveSiteContent);
   const saveListing = useServerFn(adminSaveListing);
   const removeListing = useServerFn(adminDeleteListing);
+  const markListingSold = useServerFn(adminMarkListingSold);
   const backfillCoords = useServerFn(adminBackfillListingCoords);
 
   // ה-site הנבחר: אדמין יכול לעבור בין הסוכנים; סוכן רואה רק את שלו
@@ -221,6 +223,9 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
   const [err, setErr] = useState<string | null>(null);
   const [form, setForm] = useState<ListingForm>(emptyForm);
   const [coordsMsg, setCoordsMsg] = useState<string | null>(null);
+  // פוסט "נמכר" מוכן להעתקה — תוצאת הסימון האחרון (הטקסט ניתן לעריכה לפני העתקה)
+  const [soldPost, setSoldPost] = useState<MarkListingSoldResult | null>(null);
+  const [soldPostCopied, setSoldPostCopied] = useState(false);
 
   const [business, setBusiness] = useState<LiveBusiness | null>(null);
   const [texts, setTexts] = useState<LiveTexts | null>(null);
@@ -688,6 +693,68 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
             </div>
           )}
 
+          {/* פוסט "נמכר" — מוצג אחרי סימון נכס כנמכר, מוכן להעתקה לאינסטגרם */}
+          {soldPost && (
+            <div className="mt-4 rounded-xl border-2 border-sun bg-secondary p-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-base font-extrabold text-primary">פוסט "נמכר" — מוכן להעתקה</h3>
+                <button
+                  type="button"
+                  className="text-sm underline"
+                  onClick={() => setSoldPost(null)}
+                >
+                  סגירה
+                </button>
+              </div>
+              <p className="mt-1 text-xs font-semibold text-primary">
+                {soldPost.instagram.posted
+                  ? "הפוסט פורסם אוטומטית לאינסטגרם ✓"
+                  : soldPost.instagram.attempted
+                    ? `הפרסום האוטומטי לאינסטגרם נכשל (${soldPost.instagram.error ?? "שגיאה"}) — אפשר לפרסם ידנית עם הנוסח שלמטה`
+                    : "אין חיבור אינסטגרם עסקי לדף — העתיקו את הנוסח ופרסמו ידנית (חיבור: טאב הפרסום)"}
+              </p>
+              <div className="mt-3 flex flex-wrap items-start gap-3">
+                {soldPost.post.imageUrl && (
+                  <a href={soldPost.post.imageUrl} target="_blank" rel="noopener noreferrer">
+                    <img
+                      src={soldPost.post.imageUrl}
+                      alt="תמונת הנכס שנמכר"
+                      className="size-24 rounded-xl border-2 border-sun object-cover"
+                    />
+                  </a>
+                )}
+                <textarea
+                  className="field min-h-32 flex-1"
+                  value={soldPost.post.text}
+                  onChange={(e) =>
+                    setSoldPost({ ...soldPost, post: { ...soldPost.post, text: e.target.value } })
+                  }
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(soldPost.post.text);
+                    setSoldPostCopied(true);
+                    window.setTimeout(() => setSoldPostCopied(false), 2000);
+                  }}
+                >
+                  {soldPostCopied ? "הועתק ✓" : "העתקת הנוסח"}
+                </button>
+                <a
+                  href="https://www.instagram.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-xl border border-primary/30 px-4 py-2 text-sm font-bold text-primary"
+                >
+                  פתיחת אינסטגרם
+                </a>
+              </div>
+            </div>
+          )}
+
           {listings.isLoading && <p className="mt-2 text-sm text-muted-foreground">טוען נכסים…</p>}
           <ul className="mt-3 grid gap-3">
             {(listings.data ?? []).map((l) => (
@@ -708,6 +775,30 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
                     <button type="button" className="underline" onClick={() => setForm(toForm(l))}>
                       עריכה
                     </button>
+                    {l.is_published && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        className="font-bold text-sun underline"
+                        onClick={() => {
+                          if (
+                            !window.confirm(
+                              `לסמן את "${l.title}" כנמכר? הנכס יוסתר מהאתר ויתווסף למדור "נמכר על ידינו".`,
+                            )
+                          )
+                            return;
+                          void run(async () => {
+                            const res = (await markListingSold({
+                              data: { listingId: l.id },
+                            })) as MarkListingSoldResult;
+                            setSoldPost(res);
+                            setSoldPostCopied(false);
+                          }, 'הנכס סומן כנמכר ונוסף למדור "נמכר על ידינו"');
+                        }}
+                      >
+                        סימון כנמכר
+                      </button>
+                    )}
                     <button
                       type="button"
                       disabled={busy}
@@ -917,17 +1008,22 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
             </label>
             {(
               [
-                ["facebook", "קישור פייסבוק"],
-                ["instagram", "קישור אינסטגרם"],
-                ["tiktok", "קישור טיקטוק"],
+                ["facebook", "קישור פייסבוק", "https://www.facebook.com/..."],
+                ["instagram", "קישור אינסטגרם", "https://www.instagram.com/..."],
+                ["tiktok", "קישור טיקטוק", "https://www.tiktok.com/..."],
+                [
+                  "whatsappGroup",
+                  "קישור קבוצת קונים בוואטסאפ (ריק — פנייה לוואטסאפ האישי)",
+                  "https://chat.whatsapp.com/...",
+                ],
               ] as const
-            ).map(([key, label]) => (
+            ).map(([key, label, placeholder]) => (
               <label className="block" key={key}>
                 <span className="mb-1 block text-xs font-bold text-muted-foreground">{label}</span>
                 <input
                   className="field"
                   dir="ltr"
-                  placeholder={`https://www.${key}.com/...`}
+                  placeholder={placeholder}
                   value={business.social?.[key] ?? ""}
                   onChange={(e) =>
                     setBusiness({

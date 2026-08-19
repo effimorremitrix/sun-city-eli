@@ -316,7 +316,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
           <p className="font-bold text-primary">{t.properties.noResultsTitle}</p>
           <p className="mt-1 text-sm text-muted-foreground">{t.properties.noResultsText}</p>
           <a
-            {...waProps(t.properties.waNoResultsMsg)}
+            {...waProps(t.properties.waNoResultsMsg, live.phoneTel)}
             className="mt-4 inline-block rounded-xl bg-whatsapp px-5 py-3 text-sm font-bold text-whatsapp-foreground"
           >
             {t.properties.waNoResultsBtn}

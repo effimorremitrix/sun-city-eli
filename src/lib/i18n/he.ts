@@ -426,6 +426,8 @@ export const he = {
     myAccount: "האזור האישי שלי",
     facebookAria: "עמוד הפייסבוק שלנו",
     instagramAria: "עמוד האינסטגרם שלנו",
+    whatsappGroupAria: "קבוצת הקונים שלנו בוואטסאפ",
+    whatsappGroupJoinMsg: "שלום, אשמח להצטרף לקבוצת הקונים בוואטסאפ 🙂",
     license: (num: string) => `רישיון תיווך: ${num}`,
     rights: (year: number, name: string) => `© ${year} ${name}. כל הזכויות שמורות.`,
   },

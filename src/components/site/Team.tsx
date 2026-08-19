@@ -94,7 +94,9 @@ export function Team({ agents = [], variant = "primary" }: Props) {
       <h3 className="mt-3 text-lg font-extrabold">{c.name}</h3>
       {c.role && <p className="mt-1 text-sm font-semibold text-sun">{c.role}</p>}
 
-      {c.phoneTel ? (
+      {/* בדף אישי (הקרוסלה) הכרטיס תצוגתי בלבד — בלי קישורי פנייה, כדי שלא
+       * להסיט פניות מסוכן הדף. כפתורי הקשר מוצגים רק בדף הראשי. */}
+      {variant !== "primary" ? null : c.phoneTel ? (
         <div className="mt-4 flex gap-2">
           <a
             {...waProps(t.team.waAgent(c.name, business.name), c.phoneTel)}
