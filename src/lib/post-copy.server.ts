@@ -12,6 +12,43 @@ const SYSTEM_PROMPT = `אתה קופירייטר נדל"ן ישראלי. כתו�
 {"variants":[string,string,string],"hashtags":[string,...]}
 כל נוסח 3-6 שורות, שונה באופיו (ענייני / חם ומשפחתי / ממוקד השקעה). 6-10 האשטגים בעברית ובאנגלית.`;
 
+/* ---------------------- פוסט "נמכר" ---------------------- */
+
+export type SoldPostCopy = { text: string; hashtags: string[] };
+
+const SOLD_HASHTAGS = [
+  "#נמכר",
+  "#נדלן_נתניה",
+  "#סאן_סיטי",
+  "#SunCity",
+  "#נדלן",
+  "#Netanya",
+  "#RealEstate",
+];
+
+/**
+ * נוסח פוסט "נמכר" — תבנית דטרמיניסטית (בלי תלות ב-AI), כדי שסימון נכס
+ * כנמכר לעולם לא ייכשל על מפתח API חסר. משמש גם לפרסום האוטומטי לאינסטגרם
+ * וגם כנוסח מוכן להעתקה.
+ */
+export function buildSoldPostCopy(listing: {
+  title: string;
+  address?: string | null;
+  neighborhood?: string | null;
+}): SoldPostCopy {
+  const place = [listing.address?.trim() || listing.title, listing.neighborhood?.trim()]
+    .filter(Boolean)
+    .join(", ");
+  const text = [
+    `נמכר! 🎉 ${place}`,
+    'עוד נכס שמצא בית חדש עם סאן סיטי נדל"ן. תודה על האמון! 🙏',
+    "חושבים למכור או לקנות? דברו איתנו ונלווה אתכם עד המפתח. 🏠",
+    "",
+    SOLD_HASHTAGS.join(" "),
+  ].join("\n");
+  return { text, hashtags: SOLD_HASHTAGS };
+}
+
 export async function generatePostCopy(listingId: string, force = false): Promise<PostCopy> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { AI_MODEL, logAiUsage } = await import("@/lib/ai-usage.server");

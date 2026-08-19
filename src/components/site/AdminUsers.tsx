@@ -82,6 +82,7 @@ export function AdminUsers({ audience }: { audience: UsersAudience }) {
     facebook: "",
     instagram: "",
     tiktok: "",
+    whatsappGroup: "",
   };
   const [agentForm, setAgentForm] = useState(emptyAgentForm);
 
@@ -403,11 +404,16 @@ export function AdminUsers({ audience }: { audience: UsersAudience }) {
                 <div className="grid gap-2">
                   {(
                     [
-                      ["facebook", "קישור פייסבוק"],
-                      ["instagram", "קישור אינסטגרם"],
-                      ["tiktok", "קישור טיקטוק"],
+                      ["facebook", "קישור פייסבוק", "https://www.facebook.com/..."],
+                      ["instagram", "קישור אינסטגרם", "https://www.instagram.com/..."],
+                      ["tiktok", "קישור טיקטוק", "https://www.tiktok.com/..."],
+                      [
+                        "whatsappGroup",
+                        "קישור קבוצת קונים בוואטסאפ",
+                        "https://chat.whatsapp.com/...",
+                      ],
                     ] as const
-                  ).map(([key, label]) => (
+                  ).map(([key, label, placeholder]) => (
                     <label key={key} className="block">
                       <span className="mb-1 block text-xs text-muted-foreground">{label}</span>
                       <input
@@ -415,7 +421,7 @@ export function AdminUsers({ audience }: { audience: UsersAudience }) {
                         dir="ltr"
                         value={agentForm[key]}
                         onChange={(e) => setAgentForm({ ...agentForm, [key]: e.target.value })}
-                        placeholder={`https://www.${key}.com/...`}
+                        placeholder={placeholder}
                       />
                     </label>
                   ))}
@@ -435,7 +441,12 @@ export function AdminUsers({ audience }: { audience: UsersAudience }) {
                 onClick={async () => {
                   const modal = agentModal;
                   const f = agentForm;
-                  const social = { facebook: f.facebook, instagram: f.instagram, tiktok: f.tiktok };
+                  const social = {
+                    facebook: f.facebook,
+                    instagram: f.instagram,
+                    tiktok: f.tiktok,
+                    whatsappGroup: f.whatsappGroup,
+                  };
                   setAgentModal(null);
                   if (modal.mode === "invite") {
                     await run(async () => {

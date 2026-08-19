@@ -149,7 +149,7 @@ export function Hero() {
           </li>
           <li>
             <a
-              href={SITE_CONFIG.whatsappGroup.url1}
+              href={business.social?.whatsappGroup?.trim() || SITE_CONFIG.whatsappGroup.url1}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block rounded-full bg-[oklch(1_0_0/0.12)] px-4 py-2 text-sm font-semibold text-primary-foreground backdrop-blur"

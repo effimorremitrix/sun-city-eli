@@ -171,6 +171,151 @@ export const adminSaveSoldProperty = createServerFn({ method: "POST" })
     return { ok: true, id: row.id as string };
   });
 
+/** תוצאת סימון נכס כנמכר — כולל פוסט מוכן להעתקה וסטטוס הפרסום לאינסטגרם */
+export type MarkListingSoldResult = {
+  ok: true;
+  soldId: string;
+  post: { text: string; imageUrl: string | null };
+  instagram: { attempted: boolean; posted: boolean; error: string | null };
+};
+
+/**
+ * סימון נכס קיים כ"נמכר" בפעולה אחת: יצירת רשומה במדור "נמכר על ידינו"
+ * (כולל העתקת התמונה הראשית), הסתרת הנכס מהאתר, והכנת פוסט "נמכר" —
+ * כולל ניסיון פרסום אוטומטי לאינסטגרם כשמחובר חשבון עסקי (כשל שם אינו
+ * מבטל את הסימון).
+ */
+export const adminMarkListingSold = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { listingId: string }) => ({ listingId: String(input.listingId) }))
+  .handler(async ({ data, context }): Promise<MarkListingSoldResult> => {
+    const { assertManager } = await import("@/lib/admin.server");
+    const access = await assertManager(context);
+
+    const { data: listing, error: listingError } = await context.supabase
+      .from("listings")
+      .select("id, site_id, title, address, neighborhood, image_url")
+      .eq("id", data.listingId)
+      .maybeSingle();
+    if (listingError) throw new Error(listingError.message);
+    if (!listing) throw new Error("הנכס לא נמצא");
+
+    // נכסים ישנים בלי site_id שייכים לאתר הראשי (אותה מוסכמה כמו ברשימת הניהול)
+    const siteId =
+      (listing.site_id as string | null) ??
+      access.sites.filter((s) => s.slug === "sun-city")[0]?.id;
+    if (!siteId || !access.sites.some((s) => s.id === siteId)) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // התמונה הראשית: קובץ באחסון מועתק למדור (כדי שמחיקת הנכס לא תשבור אותו)
+    const { data: images } = await context.supabase
+      .from("listing_images")
+      .select("storage_path, external_url, kind, sort_order")
+      .eq("listing_id", data.listingId)
+      .order("sort_order", { ascending: true });
+    const firstImage = (
+      (images ?? []) as Array<{
+        storage_path: string | null;
+        external_url: string | null;
+        kind: string | null;
+      }>
+    ).filter((i) => i.kind !== "video")[0];
+
+    let soldStoragePath: string | null = null;
+    let soldImageUrl: string | null = null;
+    if (firstImage?.storage_path) {
+      const ext = firstImage.storage_path.split(".").pop()?.toLowerCase() || "jpg";
+      const dest = `sold/${siteId}/${crypto.randomUUID()}.${ext}`;
+      const { error: copyError } = await supabaseAdmin.storage
+        .from(BUCKET)
+        .copy(firstImage.storage_path, dest);
+      if (copyError) {
+        console.error("mark-sold image copy failed", copyError.message);
+      } else {
+        soldStoragePath = dest;
+      }
+    }
+    if (!soldStoragePath) {
+      soldImageUrl = firstImage?.external_url ?? (listing.image_url as string | null) ?? null;
+      if (soldImageUrl && !soldImageUrl.startsWith("http")) soldImageUrl = null;
+    }
+
+    const address =
+      String(listing.address ?? "").trim() || String(listing.title ?? "").trim() || "נכס";
+
+    const { data: soldRow, error: insertError } = await context.supabase
+      .from("sold_properties")
+      .insert({
+        site_id: siteId,
+        address: address.slice(0, 200),
+        neighborhood: (listing.neighborhood as string | null) ?? null,
+        note: null,
+        sold_at: new Date().toISOString().slice(0, 10),
+        is_published: true,
+        sort_order: 0,
+        ...(soldStoragePath ? { storage_path: soldStoragePath } : {}),
+        ...(soldImageUrl ? { image_url: soldImageUrl } : {}),
+      })
+      .select("id")
+      .single();
+    if (insertError) throw new Error(insertError.message);
+
+    const { error: unpublishError } = await context.supabase
+      .from("listings")
+      .update({ is_published: false })
+      .eq("id", data.listingId);
+    if (unpublishError) throw new Error(unpublishError.message);
+
+    // פוסט "נמכר" מוכן להעתקה + כתובת תמונה טרייה לפרסום
+    const { buildSoldPostCopy } = await import("@/lib/post-copy.server");
+    const post = buildSoldPostCopy({
+      title: String(listing.title ?? ""),
+      address: listing.address as string | null,
+      neighborhood: listing.neighborhood as string | null,
+    });
+
+    let postImageUrl: string | null = soldImageUrl;
+    if (soldStoragePath) {
+      const { data: signed } = await supabaseAdmin.storage
+        .from(BUCKET)
+        .createSignedUrl(soldStoragePath, SIGNED_TTL);
+      postImageUrl = signed?.signedUrl ?? null;
+    }
+
+    // פרסום אוטומטי לאינסטגרם — מיטב-מאמץ, לעולם לא מפיל את הסימון
+    const instagram = { attempted: false, posted: false, error: null as string | null };
+    try {
+      const { data: conn } = await supabaseAdmin
+        .from("facebook_connections")
+        .select("ig_user_id")
+        .eq("site_id", siteId)
+        .maybeSingle();
+      if (conn?.ig_user_id && postImageUrl) {
+        instagram.attempted = true;
+        const { publishSoldToInstagram } = await import("@/lib/facebook.server");
+        await publishSoldToInstagram({
+          listingId: data.listingId,
+          imageUrl: postImageUrl,
+          caption: post.text,
+          siteId,
+          userId: context.userId,
+        });
+        instagram.posted = true;
+      }
+    } catch (e) {
+      instagram.error = e instanceof Error ? e.message : "הפרסום לאינסטגרם נכשל";
+      console.error("instagram sold auto-post failed", instagram.error);
+    }
+
+    return {
+      ok: true,
+      soldId: soldRow.id as string,
+      post: { text: post.text, imageUrl: postImageUrl },
+      instagram,
+    };
+  });
+
 export const adminDeleteSoldProperty = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string }) => input)

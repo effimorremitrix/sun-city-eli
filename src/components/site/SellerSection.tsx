@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { ClipboardList, Home, FileCheck2 } from "lucide-react";
-import { business, openWa } from "@/lib/site-data";
+import { openWa } from "@/lib/site-data";
 import { isValidIsraeliPhone } from "@/lib/leads";
 import { useLang } from "@/lib/i18n";
+import { useLive } from "@/lib/site-live";
 
 const stepIcons = [ClipboardList, Home, FileCheck2];
 
 export function SellerSection() {
   const { t } = useLang();
+  const { business } = useLive();
   const [form, setForm] = useState({ name: "", phone: "", address: "", rooms: "" });
   const [err, setErr] = useState<string | null>(null);
 
@@ -17,6 +19,7 @@ export function SellerSection() {
     if (!isValidIsraeliPhone(form.phone)) return setErr(t.misc.phoneError);
     if (!form.address.trim()) return setErr(t.sellers.errAddress);
     setErr(null);
+    // הפנייה מגיעה לוואטסאפ של סוכן הדף הנוכחי (בדף הראשי — של המשרד)
     openWa(
       t.sellers.waMsg(business.name, {
         name: form.name,
@@ -24,6 +27,7 @@ export function SellerSection() {
         address: form.address,
         rooms: form.rooms || t.sellers.notSpecified,
       }),
+      business.phoneTel,
     );
   };
 

@@ -58,6 +58,7 @@ export type Database = {
           ad_account_id: string | null
           connected_at: string
           connected_by: string | null
+          ig_user_id: string | null
           page_access_token: string
           page_id: string
           page_name: string
@@ -67,6 +68,7 @@ export type Database = {
           ad_account_id?: string | null
           connected_at?: string
           connected_by?: string | null
+          ig_user_id?: string | null
           page_access_token: string
           page_id: string
           page_name: string
@@ -76,6 +78,7 @@ export type Database = {
           ad_account_id?: string | null
           connected_at?: string
           connected_by?: string | null
+          ig_user_id?: string | null
           page_access_token?: string
           page_id?: string
           page_name?: string

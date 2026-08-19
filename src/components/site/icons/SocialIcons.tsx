@@ -1,6 +1,7 @@
 import { useId, type SVGProps } from "react";
 import { useLive } from "@/lib/site-live";
 import { useLang } from "@/lib/i18n";
+import { buildWa } from "@/lib/site-data";
 
 /**
  * אייקוני מותג צבעוניים לרשתות החברתיות — מוצגים בראש העמוד.
@@ -66,6 +67,40 @@ export function TikTokBrandIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** אייקון מקורי לקבוצת הקונים: בית ירוק-וואטסאפ עם דמויות הקונים מתחת לגג */
+export function BuyersGroupBrandIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" {...props}>
+      <rect width="24" height="24" rx="6" fill="#25D366" />
+      {/* גג הבית */}
+      <path
+        d="M4.6 11.2L12 5l7.4 6.2"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* קירות הבית */}
+      <path
+        d="M6.4 10.6V19h11.2v-8.4"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* הקונים: שלוש דמויות בתוך הבית */}
+      <circle cx="9" cy="13.4" r="1.25" fill="#fff" />
+      <circle cx="15" cy="13.4" r="1.25" fill="#fff" />
+      <circle cx="12" cy="12.6" r="1.45" fill="#fff" />
+      <path d="M6.9 19c.35-1.7 1.05-2.55 2.1-2.55S10.75 17.3 11 19z" fill="#fff" />
+      <path d="M13 19c.25-1.7.95-2.55 2-2.55s1.75.85 2.1 2.55z" fill="#fff" />
+      <path d="M9.6 19c.3-2 1.1-3 2.4-3s2.1 1 2.4 3z" fill="#fff" />
+    </svg>
+  );
+}
+
 /** שורת קישורי הרשתות של הדף הנוכחי (רק קישורים שמולאו) */
 export function SocialLinks({
   size = "size-7",
@@ -76,15 +111,19 @@ export function SocialLinks({
 }) {
   const { business } = useLive();
   const { t } = useLang();
-  const social = business.social ?? { facebook: "", instagram: "", tiktok: "" };
+  const social = business.social ?? { facebook: "", instagram: "", tiktok: "", whatsappGroup: "" };
+
+  /* קבוצת הקונים מוצגת תמיד: קבוצה שהוזנה באזור האישי, ואם אין —
+   * הוואטסאפ האישי של סוכן הדף (בדף הראשי — של המשרד). */
+  const groupHref =
+    social.whatsappGroup?.trim() || buildWa(t.footer.whatsappGroupJoinMsg, business.phoneTel);
 
   const links = [
     { href: social.facebook, label: t.footer.facebookAria, Icon: FacebookBrandIcon },
     { href: social.instagram, label: t.footer.instagramAria, Icon: InstagramBrandIcon },
     { href: social.tiktok, label: "TikTok", Icon: TikTokBrandIcon },
   ].filter((l) => Boolean(l.href?.trim()));
-
-  if (!links.length) return null;
+  links.push({ href: groupHref, label: t.footer.whatsappGroupAria, Icon: BuyersGroupBrandIcon });
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>

@@ -39,7 +39,7 @@ export function ItemsSection() {
                 </p>
               )}
               <a
-                {...waProps(t.items.waMsg(business.name, item.title))}
+                {...waProps(t.items.waMsg(business.name, item.title), business.phoneTel)}
                 className="mt-4 block rounded-xl bg-whatsapp py-2.5 text-center text-sm font-bold text-whatsapp-foreground"
               >
                 {t.items.waBtn}

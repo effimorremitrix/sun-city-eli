@@ -436,6 +436,8 @@ export const ru: Dict = {
     myAccount: "Личный кабинет",
     facebookAria: "Наша страница в Facebook",
     instagramAria: "Наша страница в Instagram",
+    whatsappGroupAria: "Наша группа покупателей в WhatsApp",
+    whatsappGroupJoinMsg: "Здравствуйте, хочу присоединиться к группе покупателей в WhatsApp 🙂",
     license: (num: string) => `Лицензия риэлтора: ${num}`,
     rights: (year: number, name: string) => `© ${year} ${name}. Все права защищены.`,
   },

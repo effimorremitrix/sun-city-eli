@@ -435,6 +435,8 @@ export const en: Dict = {
     myAccount: "My account",
     facebookAria: "Our Facebook page",
     instagramAria: "Our Instagram page",
+    whatsappGroupAria: "Our buyers WhatsApp group",
+    whatsappGroupJoinMsg: "Hi, I'd love to join the buyers WhatsApp group 🙂",
     license: (num: string) => `Real estate license: ${num}`,
     rights: (year: number, name: string) => `© ${year} ${name}. All rights reserved.`,
   },

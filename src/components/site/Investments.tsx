@@ -9,6 +9,7 @@ const valIcons = [Award, Eye, ShieldCheck];
 
 export function Services() {
   const { t } = useLang();
+  const { business: live } = useLive();
 
   return (
     <section id="services" className="mx-auto max-w-6xl px-4 py-14 md:py-20">
@@ -27,7 +28,7 @@ export function Services() {
                     {s.text}
                   </p>
                   <a
-                    {...waProps(t.services.waMsg(business.name, s.title))}
+                    {...waProps(t.services.waMsg(live.name, s.title), live.phoneTel)}
                     className="mt-4 rounded-xl bg-primary py-2.5 text-center text-sm font-bold text-primary-foreground"
                   >
                     {t.services.waBtn}
