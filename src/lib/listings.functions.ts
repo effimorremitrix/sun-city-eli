@@ -107,8 +107,92 @@ export const adminSaveListing = createServerFn({ method: "POST" })
       siteId = fallback?.id ?? null;
     }
 
+    // קואורדינטות למפה: ערך ידני מהטופס מנצח; אחרת גיאוקוד מהכתובת.
+    // מדלגים על הגיאוקוד כשהכתובת לא השתנתה ויש כבר מיקום — כדי לא לפנות
+    // ל-Nominatim בכל שמירה של שינוי מחיר.
+    let { lat, lng } = data;
+    if (lat == null || lng == null) {
+      let needsGeocode = true;
+      if (data.id) {
+        const { data: existing } = await context.supabase
+          .from("listings")
+          .select("address, neighborhood, city, lat, lng")
+          .eq("id", data.id)
+          .maybeSingle();
+        const unchanged =
+          existing != null &&
+          existing.address === data.address &&
+          existing.neighborhood === data.neighborhood &&
+          existing.city === data.city;
+        if (unchanged && existing?.lat != null && existing.lng != null) {
+          lat = existing.lat;
+          lng = existing.lng;
+          needsGeocode = false;
+        }
+      }
+      if (needsGeocode) {
+        const { geocodeListing } = await import("@/lib/geocode.server");
+        const coords = await geocodeListing(data);
+        lat = coords?.lat ?? null;
+        lng = coords?.lng ?? null;
+      }
+    }
+
     const origin = new URL(getRequest().url).origin;
-    return saveListingAndNotify(context, { ...data, site_id: siteId }, origin);
+    return saveListingAndNotify(context, { ...data, site_id: siteId, lat, lng }, origin);
+  });
+
+/**
+ * השלמת מיקומים לנכסים שאין להם קואורדינטות — לשימוש חד־פעמי אחרי הוספת
+ * המפה, ולנכסים שהגיאוקוד פספס. רץ בקצב שמדיניות Nominatim מתירה.
+ */
+export const adminBackfillListingCoords = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input?: { limit?: number }) => ({
+    limit: Math.min(Math.max(input?.limit ?? 25, 1), 50),
+  }))
+  .handler(async ({ data, context }) => {
+    const { assertManager } = await import("@/lib/admin.server");
+    const access = await assertManager(context);
+
+    let query = context.supabase
+      .from("listings")
+      .select("id, address, neighborhood, city")
+      .is("lat", null)
+      .limit(data.limit);
+
+    // סוכן משלים רק את הנכסים של האתר שלו; אדמין את כולם
+    if (!access.isAdmin) {
+      const ownIds = access.sites.map((s) => s.id);
+      if (!ownIds.length) return { scanned: 0, located: 0 };
+      query = query.in("site_id", ownIds);
+    }
+
+    const { data: rows, error } = await query;
+    if (error) throw new Error(error.message);
+    const pending = (rows ?? []) as Array<{
+      id: string;
+      address: string | null;
+      neighborhood: string | null;
+      city: string | null;
+    }>;
+    if (!pending.length) return { scanned: 0, located: 0 };
+
+    const { geocodeMany } = await import("@/lib/geocode.server");
+    const results = await geocodeMany(pending);
+
+    let located = 0;
+    for (const { id, coords } of results) {
+      if (!coords) continue;
+      const { error: updateError } = await context.supabase
+        .from("listings")
+        .update({ lat: coords.lat, lng: coords.lng })
+        .eq("id", id);
+      if (updateError) throw new Error(updateError.message);
+      located += 1;
+    }
+
+    return { scanned: pending.length, located };
   });
 
 export const adminDeleteListing = createServerFn({ method: "POST" })

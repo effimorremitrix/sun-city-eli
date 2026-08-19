@@ -26,6 +26,20 @@ export type LiveBusiness = {
   photoUrl: string;
   bio: string;
   social: { facebook: string; instagram: string; tiktok: string };
+  /* --- נכסי מותג הניתנים להחלפה באזור הניהול --- */
+  /** לוגו מלא — מוצג בתוך הסליידר בראש הדף. ריק = הלוגו המובנה של האתר. */
+  logoUrl: string;
+  /** סמל מרובע — מוצג בהדר ובפוטר. ריק = הסמל המובנה של האתר. */
+  logoIconUrl: string;
+  /** תמונות הסליידר בראש הדף. ריק = תמונות ברירת המחדל המובנות. */
+  heroImages: string[];
+  /* --- חוות דעת: מקושרות למקור, לא מקובעות בקוד --- */
+  /** קישור לעמוד חוות הדעת (גוגל). ריק = הבאדג' מוצג בלי קישור. */
+  reviewsUrl: string;
+  /** מספר חוות הדעת. null = הבאדג' לא מוצג כלל (בלי המצאת מספרים). */
+  reviewsCount: number | null;
+  /** דירוג ממוצע. null = הבאדג' לא מוצג כלל. */
+  reviewsRating: number | null;
 };
 
 export type LiveTexts = {
@@ -116,6 +130,12 @@ export const DEFAULT_BUSINESS: LiveBusiness = {
   photoUrl: team[0]!.image ?? "",
   bio: "",
   social: { ...SITE_CONFIG.social },
+  logoUrl: "",
+  logoIconUrl: "",
+  heroImages: [],
+  reviewsUrl: SITE_CONFIG.googleReviewsUrl,
+  reviewsCount: SITE_CONFIG.reviewsCount,
+  reviewsRating: SITE_CONFIG.reviewsRating,
 };
 
 export const DEFAULT_LIVE: LiveSite = {
@@ -128,6 +148,12 @@ export const DEFAULT_LIVE: LiveSite = {
   siteId: null,
   slug: null,
   found: false,
+};
+
+/** ערך מספרי מהמסד — מחרוזת ריקה, null או ערך לא מספרי הופכים ל-null */
+const toNumberOrNull = (v: unknown): number | null => {
+  const n = typeof v === "string" ? Number(v.trim()) : v;
+  return typeof n === "number" && Number.isFinite(n) ? n : null;
 };
 
 /** ממזג נתונים חלקיים מבסיס הנתונים עם ברירות המחדל */
@@ -148,6 +174,12 @@ export function mergeLive(raw: unknown): LiveSite {
     business.hours = DEFAULT_BUSINESS.hours;
   }
   business.social = { ...DEFAULT_BUSINESS.social, ...(business.social ?? {}) };
+  // ה-JSONB במסד חופשי — מנרמלים את השדות שהתצוגה מסתמכת על הטיפוס שלהם
+  business.heroImages = Array.isArray(business.heroImages)
+    ? business.heroImages.filter((u): u is string => typeof u === "string" && u.trim() !== "")
+    : [];
+  business.reviewsCount = toNumberOrNull(business.reviewsCount);
+  business.reviewsRating = toNumberOrNull(business.reviewsRating);
   return {
     business,
     texts: { ...DEFAULT_TEXTS, ...(data.texts ?? {}) },

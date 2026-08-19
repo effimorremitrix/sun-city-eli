@@ -1,6 +1,7 @@
 import { BadgeCheck, Calculator, Handshake, Scale, ShieldCheck, Eye, Award } from "lucide-react";
 import { business, waProps } from "@/lib/site-data";
-import { useLang } from "@/lib/i18n";
+import { formatRating, useLang } from "@/lib/i18n";
+import { useLive } from "@/lib/site-live";
 import { Reveal } from "./Reveal";
 
 const svcIcons = [BadgeCheck, Calculator, Handshake, Scale];
@@ -42,7 +43,14 @@ export function Services() {
 }
 
 export function WhyUs() {
-  const { t } = useLang();
+  const { lang, t } = useLang();
+  const { business: live } = useLive();
+
+  /* חוות דעת — הנתונים מגיעים מאזור הניהול ומקושרים למקור. */
+  const reviewBadges = [
+    live.reviewsCount == null ? null : t.whyUs.reviewsBadge(live.reviewsCount),
+    live.reviewsRating == null ? null : t.whyUs.ratingBadge(formatRating(live.reviewsRating, lang)),
+  ].filter((b): b is string => b !== null);
 
   return (
     <section id="why" className="bg-secondary py-14 md:py-20">
@@ -70,12 +78,22 @@ export function WhyUs() {
         </ul>
 
         <ul className="mt-6 flex flex-wrap gap-2">
-          {t.whyUs.badges.map((b) => (
-            <li
-              key={b}
-              className="rounded-full bg-card px-4 py-2 text-sm font-bold text-primary shadow-soft"
-            >
-              {b}
+          {reviewBadges.map((b) => (
+            <li key={b}>
+              {live.reviewsUrl ? (
+                <a
+                  href={live.reviewsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block rounded-full bg-card px-4 py-2 text-sm font-bold text-primary underline shadow-soft transition-transform hover:-translate-y-0.5"
+                >
+                  {b}
+                </a>
+              ) : (
+                <span className="block rounded-full bg-card px-4 py-2 text-sm font-bold text-primary shadow-soft">
+                  {b}
+                </span>
+              )}
             </li>
           ))}
         </ul>

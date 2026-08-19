@@ -31,7 +31,6 @@ export const fr: Dict = {
     hello: "Bonjour,",
     defaultUser: "Utilisateur",
     myAccount: "Mon espace",
-    adminSite: "Administration",
     authArea: "Espace personnel",
     logout: "Déconnexion",
     logoutFull: "Se déconnecter",
@@ -46,6 +45,8 @@ export const fr: Dict = {
     ctaProperties: "Voir les biens",
     badgeTop10: "Parmi le top 10 à Netanya",
     badgeGroup: "Rejoindre notre groupe WhatsApp",
+    slidesAria: "Choisir une image du carrousel",
+    slideAria: (n: number) => `Aller à l'image ${n}`,
   },
 
   team: {
@@ -148,6 +149,12 @@ export const fr: Dict = {
       size: "Surface (m²)",
     },
     personalAgent: "Agent personnel : alertes pour les nouveaux biens",
+    viewList: "Liste",
+    viewMap: "Carte",
+    mapOpenListing: "Voir l'annonce",
+    mapNoLocation: "Aucun bien avec une localisation précise à afficher sur la carte.",
+    mapMissingCount: (n: number) =>
+      `${n} biens ne sont pas sur la carte — ils n'ont pas de localisation précise.`,
     noResultsTitle: "Aucun bien ne correspond à ces filtres",
     noResultsText: "Dites-nous ce que vous cherchez et nous trouverons le bien qui vous convient.",
     waNoResultsBtn: "Bien à la demande via WhatsApp",
@@ -306,7 +313,8 @@ export const fr: Dict = {
       },
       { title: "Fiabilité", text: "Intégrité et responsabilité dans chaque action." },
     ],
-    badges: ["Plus de 55 avis clients", "5,0 étoiles sur Google"],
+    reviewsBadge: (count: number) => `Plus de ${count} avis clients`,
+    ratingBadge: (rating: string) => `${rating} étoiles sur Google`,
     badge: "Parmi les 10 meilleures agences immobilières de Netanya, classement Madlan 2023-2026",
     successFeeNote:
       "Honoraires au succès uniquement — vous ne payez que lorsque la transaction est conclue.",
@@ -433,7 +441,6 @@ export const fr: Dict = {
     accessibility: "Déclaration d'accessibilité",
     privacy: "Politique de confidentialité",
     myAccount: "Mon espace",
-    adminSite: "Administration",
     facebookAria: "Notre page Facebook",
     instagramAria: "Notre page Instagram",
     license: (num: string) => `Licence immobilière : ${num}`,
@@ -465,8 +472,6 @@ export const fr: Dict = {
   },
 
   dataSource: {
-    db: "Source des données : la base de données de l'agence",
-    office: "Source des données : informations saisies par l'agence Sun City Immobilier",
     updated: "Mis à jour :",
   },
 

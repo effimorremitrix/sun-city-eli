@@ -205,7 +205,7 @@ export function Footer() {
         <div>
           <p className="flex items-center gap-2 font-display text-lg font-extrabold text-navy-foreground">
             <img
-              src={logoIcon}
+              src={business.logoIconUrl || logoIcon}
               alt={t.footer.logoAlt}
               width={48}
               height={48}
@@ -274,12 +274,6 @@ export function Footer() {
             <li className="mt-3 border-t border-navy-foreground/15 pt-3 text-xs text-navy-foreground/55">
               <Link to="/account" className="underline">
                 {t.footer.myAccount}
-              </Link>
-              <span aria-hidden="true" className="px-1.5">
-                ·
-              </span>
-              <Link to="/account" search={{ tab: "listings" }} className="underline">
-                {t.footer.adminSite}
               </Link>
             </li>
           </ul>

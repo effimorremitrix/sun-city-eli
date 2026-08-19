@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getAdminSite, saveSiteContent } from "@/lib/site.functions";
-import { adminListListings, adminSaveListing, adminDeleteListing } from "@/lib/listings.functions";
+import {
+  adminListListings,
+  adminSaveListing,
+  adminDeleteListing,
+  adminBackfillListingCoords,
+} from "@/lib/listings.functions";
 import { formatListingPrice, type Listing } from "@/lib/listings";
 import { neighborhoods } from "@/lib/site-data";
 import type {
@@ -18,6 +23,7 @@ import { AdminSold } from "@/components/site/AdminSold";
 import AdminUsage from "@/components/site/AdminUsage";
 import AdminScout from "@/components/site/AdminScout";
 import AdminListingImages from "@/components/site/AdminListingImages";
+import AdminImageField from "@/components/site/AdminImageField";
 import { AdminContentExtras } from "@/components/site/AdminContentExtras";
 import { TabHelp } from "@/components/site/AdminGuide";
 
@@ -32,6 +38,8 @@ type ListingForm = {
   city: string;
   neighborhood: string;
   address: string;
+  lat: string;
+  lng: string;
   price: string;
   rooms: string;
   size_sqm: string;
@@ -57,6 +65,8 @@ const emptyForm: ListingForm = {
   city: "נתניה",
   neighborhood: "",
   address: "",
+  lat: "",
+  lng: "",
   price: "",
   rooms: "",
   size_sqm: "",
@@ -83,6 +93,8 @@ const toForm = (l: Listing): ListingForm => ({
   city: l.city,
   neighborhood: l.neighborhood ?? "",
   address: l.address ?? "",
+  lat: l.lat == null ? "" : String(l.lat),
+  lng: l.lng == null ? "" : String(l.lng),
   price: l.price == null ? "" : String(l.price),
   rooms: l.rooms == null ? "" : String(l.rooms),
   size_sqm: l.size_sqm == null ? "" : String(l.size_sqm),
@@ -173,6 +185,7 @@ export function AdminPanel({ tab }: { tab: AdminTabKey }) {
   const saveContent = useServerFn(saveSiteContent);
   const saveListing = useServerFn(adminSaveListing);
   const removeListing = useServerFn(adminDeleteListing);
+  const backfillCoords = useServerFn(adminBackfillListingCoords);
 
   // ה-site הנבחר: אדמין יכול לעבור בין הסוכנים; סוכן רואה רק את שלו
   const [siteId, setSiteId] = useState<string | null>(null);
@@ -194,6 +207,7 @@ export function AdminPanel({ tab }: { tab: AdminTabKey }) {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [form, setForm] = useState<ListingForm>(emptyForm);
+  const [coordsMsg, setCoordsMsg] = useState<string | null>(null);
 
   const [business, setBusiness] = useState<LiveBusiness | null>(null);
   const [texts, setTexts] = useState<LiveTexts | null>(null);
@@ -233,6 +247,8 @@ export function AdminPanel({ tab }: { tab: AdminTabKey }) {
           city: form.city || "נתניה",
           neighborhood: str(form.neighborhood),
           address: str(form.address),
+          lat: num(form.lat),
+          lng: num(form.lng),
           price: num(form.price),
           rooms: num(form.rooms),
           size_sqm: num(form.size_sqm),
@@ -384,6 +400,33 @@ export function AdminPanel({ tab }: { tab: AdminTabKey }) {
                 value={form.address}
                 maxLength={200}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
+              />
+            </label>
+            {/* מיקום למפה — מתמלא אוטומטית מהכתובת בשמירה. למלא ידנית רק כשהאיתור פספס. */}
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                קו רוחב למפה (lat) — ריק = איתור אוטומטי
+              </span>
+              <input
+                className="field"
+                type="number"
+                step="any"
+                dir="ltr"
+                value={form.lat}
+                onChange={(e) => setForm({ ...form, lat: e.target.value })}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                קו אורך למפה (lng) — ריק = איתור אוטומטי
+              </span>
+              <input
+                className="field"
+                type="number"
+                step="any"
+                dir="ltr"
+                value={form.lng}
+                onChange={(e) => setForm({ ...form, lng: e.target.value })}
               />
             </label>
             <label className="block">
@@ -559,6 +602,46 @@ export function AdminPanel({ tab }: { tab: AdminTabKey }) {
       {tab === "listings" && (
         <section className="soft-card mt-6 p-5">
           <h2 className="text-lg font-extrabold text-primary">הנכסים במסד הנתונים</h2>
+
+          {/* מיקום למפה: הנכסים שנשמרו לפני הוספת המפה עדיין בלי קואורדינטות */}
+          {(() => {
+            const withoutCoords = (listings.data ?? []).filter(
+              (l) => l.lat == null || l.lng == null,
+            ).length;
+            if (!withoutCoords) return null;
+            return (
+              <div className="mt-3 rounded-xl border border-border p-3">
+                <p className="text-sm text-muted-foreground">
+                  {withoutCoords} נכסים עדיין בלי מיקום ולכן אינם מוצגים על המפה באתר.
+                </p>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() =>
+                    run(async () => {
+                      setCoordsMsg(null);
+                      const res = (await backfillCoords({ data: { limit: 25 } })) as {
+                        scanned: number;
+                        located: number;
+                      };
+                      setCoordsMsg(`נסרקו ${res.scanned} נכסים, אותרו ${res.located} מיקומים.`);
+                    }, "השלמת המיקומים הסתיימה")
+                  }
+                  className="mt-2 rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground disabled:opacity-60"
+                >
+                  השלמת מיקומים (עד 25 נכסים)
+                </button>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  האיתור מתבצע מול OpenStreetMap בקצב של נכס אחד לשנייה, ולכן הפעולה עשויה להימשך
+                  כחצי דקה.
+                </p>
+                {coordsMsg && (
+                  <p className="mt-1 text-xs font-semibold text-primary">{coordsMsg}</p>
+                )}
+              </div>
+            );
+          })()}
+
           {listings.isLoading && <p className="mt-2 text-sm text-muted-foreground">טוען נכסים…</p>}
           <ul className="mt-3 grid gap-3">
             {(listings.data ?? []).map((l) => (
@@ -626,6 +709,122 @@ export function AdminPanel({ tab }: { tab: AdminTabKey }) {
             ))}
           </div>
 
+          {/* לוגו האתר — מחליף את הלוגו המובנה בהדר, בפוטר ובסליידר */}
+          <h3 className="mt-6 text-base font-extrabold text-primary">לוגו האתר</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            שדה ריק — האתר משתמש בלוגו המובנה שלו.
+          </p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <AdminImageField
+              label="לוגו מלא (בסליידר בראש הדף)"
+              folder="logos"
+              allowSvg
+              value={business.logoUrl ?? ""}
+              onChange={(url) => setBusiness({ ...business, logoUrl: url })}
+            />
+            <AdminImageField
+              label="סמל מרובע (הדר ופוטר)"
+              folder="logos"
+              allowSvg
+              value={business.logoIconUrl ?? ""}
+              onChange={(url) => setBusiness({ ...business, logoIconUrl: url })}
+            />
+          </div>
+
+          {/* תמונות הסליידר בראש הדף */}
+          <h3 className="mt-6 text-base font-extrabold text-primary">תמונות הסליידר בראש הדף</h3>
+          <label className="mt-2 block">
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">
+              כתובת תמונה אחת בכל שורה. שדה ריק — תמונות ברירת המחדל של האתר.
+            </span>
+            <textarea
+              className="field min-h-24"
+              dir="ltr"
+              placeholder={"https://…/hero-1.jpg\nhttps://…/hero-2.jpg"}
+              value={(business.heroImages ?? []).join("\n")}
+              onChange={(e) =>
+                setBusiness({
+                  ...business,
+                  heroImages: e.target.value
+                    .split("\n")
+                    .map((u) => u.trim())
+                    .filter(Boolean),
+                })
+              }
+            />
+          </label>
+          <div className="mt-3">
+            <AdminImageField
+              label="הוספת תמונה לסליידר"
+              folder="hero"
+              value=""
+              onChange={(url) =>
+                url &&
+                setBusiness({ ...business, heroImages: [...(business.heroImages ?? []), url] })
+              }
+              hint="כל העלאה מוסיפה שורה לרשימה שלמעלה."
+            />
+          </div>
+
+          {/* חוות דעת — המספר והדירוג המוצגים בסקשן "למה סאן סיטי", מקושרים למקור */}
+          <h3 className="mt-6 text-base font-extrabold text-primary">חוות דעת מלקוחות</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            המספר והדירוג מוצגים כתגיות בסקשן "למה סאן סיטי" ומקושרים לעמוד חוות הדעת. שדה ריק —
+            התגייה לא מוצגת כלל.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <label className="block sm:col-span-2">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                קישור לחוות הדעת בגוגל
+              </span>
+              <input
+                className="field"
+                dir="ltr"
+                placeholder="https://www.google.com/maps/..."
+                value={business.reviewsUrl ?? ""}
+                onChange={(e) => setBusiness({ ...business, reviewsUrl: e.target.value })}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                מספר חוות דעת
+              </span>
+              <input
+                className="field"
+                type="number"
+                min={0}
+                dir="ltr"
+                value={business.reviewsCount ?? ""}
+                onChange={(e) =>
+                  setBusiness({
+                    ...business,
+                    reviewsCount: e.target.value.trim() === "" ? null : Number(e.target.value),
+                  })
+                }
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                דירוג ממוצע (0–5)
+              </span>
+              <input
+                className="field"
+                type="number"
+                min={0}
+                max={5}
+                step="0.1"
+                dir="ltr"
+                value={business.reviewsRating ?? ""}
+                onChange={(e) =>
+                  setBusiness({
+                    ...business,
+                    reviewsRating: e.target.value.trim() === "" ? null : Number(e.target.value),
+                  })
+                }
+              />
+            </label>
+          </div>
+
           {/* פרופיל הסוכן של הדף: שם, תפקיד, תמונה, אודות ורשתות חברתיות */}
           <h3 className="mt-6 text-base font-extrabold text-primary">פרופיל הסוכן של הדף</h3>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -636,19 +835,26 @@ export function AdminPanel({ tab }: { tab: AdminTabKey }) {
               [
                 ["agentName", "שם הסוכן"],
                 ["roleTitle", "תפקיד"],
-                ["photoUrl", "כתובת תמונת הסוכן (URL)"],
               ] as Array<[keyof LiveBusiness, string]>
             ).map(([key, label]) => (
               <label className="block" key={String(key)}>
                 <span className="mb-1 block text-xs font-bold text-muted-foreground">{label}</span>
                 <input
                   className="field"
-                  dir={key === "photoUrl" ? "ltr" : undefined}
                   value={String(business[key] ?? "")}
                   onChange={(e) => setBusiness({ ...business, [key]: e.target.value })}
                 />
               </label>
             ))}
+            <div className="sm:col-span-2">
+              <AdminImageField
+                label="תמונת הסוכן"
+                folder="agents"
+                hint="מוצגת בדף האישי של הסוכן, בקרוסלת הצוות ובכרטיסי הנכסים שלו."
+                value={business.photoUrl ?? ""}
+                onChange={(url) => setBusiness({ ...business, photoUrl: url })}
+              />
+            </div>
             <label className="block sm:col-span-2">
               <span className="mb-1 block text-xs font-bold text-muted-foreground">
                 כמה מילים על הסוכן (אודות)

@@ -31,7 +31,6 @@ export const en: Dict = {
     hello: "Hello,",
     defaultUser: "User",
     myAccount: "My Account",
-    adminSite: "Site Admin",
     authArea: "Sign In",
     logout: "Log out",
     logoutFull: "Log out",
@@ -47,6 +46,8 @@ export const en: Dict = {
     ctaProperties: "View Properties",
     badgeTop10: "Among Netanya's Top 10",
     badgeGroup: "Join our WhatsApp property group",
+    slidesAria: "Choose a slider image",
+    slideAria: (n: number) => `Go to image ${n}`,
   },
 
   team: {
@@ -145,6 +146,12 @@ export const en: Dict = {
       size: "Size (sqm)",
     },
     personalAgent: "Personal agent: alerts for new properties",
+    viewList: "List",
+    viewMap: "Map",
+    mapOpenListing: "View listing",
+    mapNoLocation: "No properties with an exact location to show on the map yet.",
+    mapMissingCount: (n: number) =>
+      `${n} properties are not on the map — they have no exact location.`,
     noResultsTitle: "No properties match these filters",
     noResultsText: "Tell us what you're looking for and we'll find a matching property for you.",
     waNoResultsBtn: "Property on demand via WhatsApp",
@@ -298,7 +305,8 @@ export const en: Dict = {
       { title: "Transparency", text: "Full sharing of all relevant information with clients." },
       { title: "Reliability", text: "Integrity and accountability in every action." },
     ],
-    badges: ["Over 55 client reviews", "5.0 stars on Google"],
+    reviewsBadge: (count: number) => `Over ${count} client reviews`,
+    ratingBadge: (rating: string) => `${rating} stars on Google`,
     badge: "Among Netanya's top 10 real-estate agencies, Madlan ranking 2023–2026",
     successFeeNote: "Success-based fee only — you pay only when a deal closes.",
   },
@@ -424,7 +432,6 @@ export const en: Dict = {
     accessibility: "Accessibility statement",
     privacy: "Privacy policy",
     myAccount: "My account",
-    adminSite: "Site admin",
     facebookAria: "Our Facebook page",
     instagramAria: "Our Instagram page",
     license: (num: string) => `Real estate license: ${num}`,
@@ -456,8 +463,6 @@ export const en: Dict = {
   },
 
   dataSource: {
-    db: "Data source: the office database",
-    office: "Data source: data entered by the Sun City Real Estate office",
     updated: "Updated:",
   },
 

@@ -1,4 +1,3 @@
-import { DataSource } from "@/components/site/DataSource";
 import { Link } from "@tanstack/react-router";
 import { Phone, MessageCircle, ArrowLeft } from "lucide-react";
 import { team, business, waProps, OFFICE_SLUG } from "@/lib/site-data";
@@ -169,11 +168,6 @@ export function Team({ agents = [], variant = "primary" }: Props) {
         <h2 className="mt-2 text-3xl md:text-4xl">
           {variant === "secondary" ? t.team.othersTitle : t.team.title}
         </h2>
-        <DataSource
-          source={shown.some((c) => c.hasPage) ? "db" : "office"}
-          updatedAt={null}
-          className="mt-2"
-        />
         <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">{t.team.subtitle}</p>
 
         {variant === "secondary" ? (

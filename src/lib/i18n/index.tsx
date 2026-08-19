@@ -68,6 +68,13 @@ export const formatPrice = (n: number, lang: Locale = DEFAULT_LOCALE) => {
 };
 
 /** תאריך "עודכן ב" בפורמט המקומי; כשאין תאריך — "אין מידע" בשפת הדף */
+/** דירוג לתצוגה — ספרה אחת אחרי הנקודה, עם מפריד העשרוני של השפה */
+export const formatRating = (n: number, lang: Locale = DEFAULT_LOCALE) =>
+  n.toLocaleString(LOCALE_META[lang].intl, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+
 export const formatUpdatedFor = (iso: string | null | undefined, lang: Locale) => {
   const noInfo = DICTS[lang].misc.noInfo;
   if (!iso) return noInfo;

@@ -137,7 +137,7 @@ export function AdminUsers({ audience }: { audience: UsersAudience }) {
         )}
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
-        {copy.hint} מקור המידע: מסד הנתונים של האתר. שדה ללא נתון מוצג כ״{NONE}״.
+        {copy.hint} שדה ללא נתון מוצג כ״{NONE}״.
       </p>
 
       <label className="mt-4 block">

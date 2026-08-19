@@ -34,6 +34,12 @@ const schemaFor = (lang: Locale) => {
           addressLocality: t.seo.areaServed,
           addressCountry: "IL",
         },
+        aggregateRating: {
+          "@type": "AggregateRating",
+          ratingValue: SITE_CONFIG.reviewsRating,
+          reviewCount: SITE_CONFIG.reviewsCount,
+          bestRating: 5,
+        },
       },
       ...properties.map((p) => ({
         "@type": "Residence",

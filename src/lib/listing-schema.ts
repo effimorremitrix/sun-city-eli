@@ -14,6 +14,8 @@ export const listingInputSchema = z.object({
   city: z.string().trim().max(60).default("נתניה"),
   neighborhood: z.string().trim().max(80).nullable().default(null),
   address: z.string().trim().max(200).nullable().default(null),
+  lat: optionalNumber.default(null),
+  lng: optionalNumber.default(null),
   price: optionalNumber.default(null),
   rooms: optionalNumber.default(null),
   size_sqm: optionalNumber.default(null),

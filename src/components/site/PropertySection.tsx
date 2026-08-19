@@ -22,6 +22,8 @@ import {
   Warehouse,
   ArrowUpDown,
   PlayCircle,
+  List,
+  Map as MapIcon,
 } from "lucide-react";
 import { neighborhoods, priceRanges, waProps, openWa, business } from "@/lib/site-data";
 import {
@@ -38,6 +40,7 @@ import { aiSearchListings, type AiSearchResult } from "@/lib/ai-search.functions
 import { useLive } from "@/lib/site-live";
 import { isValidIsraeliPhone } from "@/lib/leads";
 import { mapValue, useLang } from "@/lib/i18n";
+import { PropertyMap } from "@/components/site/PropertyMap";
 import { Reveal } from "./Reveal";
 
 const featureIcons = {
@@ -60,6 +63,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
   const [range, setRange] = useState("all");
   const [area, setArea] = useState("all");
   const [sort, setSort] = useState<ListingSortKey>("newest");
+  const [view, setView] = useState<"list" | "map">("list");
   const [selected, setSelected] = useState<Listing | null>(null);
 
   const [query, setQuery] = useState("");
@@ -108,7 +112,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
     <section id="properties" className="mx-auto max-w-6xl px-4 py-14 md:py-20">
       <p className="text-sm font-bold text-sun">{t.properties.kicker}</p>
       <h2 className="mt-2 text-3xl md:text-4xl">{t.properties.title}</h2>
-      <DataSource source="db" updatedAt={updatedAt} className="mt-2" />
+      <DataSource updatedAt={updatedAt} className="mt-2" />
 
       {/* חיפוש חכם בטקסט חופשי */}
       <form onSubmit={runAiSearch} className="soft-card mt-6 p-4" noValidate>
@@ -240,6 +244,29 @@ export function PropertySection({ listings, updatedAt }: Props) {
           {t.properties.found(filtered.length)}
         </p>
         <div className="flex flex-wrap items-center gap-3">
+          {/* מעבר בין רשימה למפה — שתי התצוגות מציגות בדיוק את אותם נכסים מסוננים */}
+          <div className="flex overflow-hidden rounded-xl border border-border" role="group">
+            {(
+              [
+                ["list", t.properties.viewList, List],
+                ["map", t.properties.viewMap, MapIcon],
+              ] as const
+            ).map(([key, label, Icon]) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={view === key}
+                onClick={() => setView(key)}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold ${
+                  view === key ? "bg-sun text-sun-foreground" : "text-primary"
+                }`}
+              >
+                <Icon className="size-4" aria-hidden="true" />
+                {label}
+              </button>
+            ))}
+          </div>
+
           {/* מיון התצוגה — ברירת המחדל: לפי תאריך הוספה */}
           <label className="flex items-center gap-1.5 text-sm">
             <ArrowUpDown className="size-4 text-sun" aria-hidden="true" />
@@ -269,16 +296,20 @@ export function PropertySection({ listings, updatedAt }: Props) {
         </div>
       </div>
 
-      {/* גובה אחיד לכל הכרטיסים: ה-Reveal והכרטיס נמתחים לגובה השורה */}
-      <ul className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((p, i) => (
-          <li key={p.id} className="h-full">
-            <Reveal delay={i * 60} className="h-full">
-              <PropertyCard property={p} onOpen={() => setSelected(p)} />
-            </Reveal>
-          </li>
-        ))}
-      </ul>
+      {view === "map" ? (
+        <PropertyMap listings={filtered} onOpen={setSelected} />
+      ) : (
+        /* גובה אחיד לכל הכרטיסים: ה-Reveal והכרטיס נמתחים לגובה השורה */
+        <ul className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((p, i) => (
+            <li key={p.id} className="h-full">
+              <Reveal delay={i * 60} className="h-full">
+                <PropertyCard property={p} onOpen={() => setSelected(p)} />
+              </Reveal>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {filtered.length === 0 && (
         <div className="soft-card mt-4 p-6 text-center">

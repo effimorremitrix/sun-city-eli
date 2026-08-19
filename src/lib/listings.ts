@@ -44,6 +44,9 @@ export type Listing = {
   city: string;
   neighborhood: string | null;
   address: string | null;
+  /** קואורדינטות לתצוגת המפה — null כשאין מיקום מדויק */
+  lat: number | null;
+  lng: number | null;
   price: number | null;
   rooms: number | null;
   size_sqm: number | null;
@@ -212,7 +215,7 @@ export const formatListingPrice = (n: number | null, lang: Locale = "he") =>
   n == null ? DICTS[lang].misc.noInfo : formatPrice(n, lang);
 
 export const LISTING_COLUMNS =
-  "id, site_id, deal_type, title, description, translations, city, neighborhood, address, price, rooms, size_sqm, floor, has_mamad, has_elevator, has_parking, has_balcony, has_storage, storage_count, parking_count, tag, image_url, image_key, is_published, sort_order, created_at, updated_at";
+  "id, site_id, deal_type, title, description, translations, city, neighborhood, address, lat, lng, price, rooms, size_sqm, floor, has_mamad, has_elevator, has_parking, has_balcony, has_storage, storage_count, parking_count, tag, image_url, image_key, is_published, sort_order, created_at, updated_at";
 
 /* ------------------------- מיון נכסים בתצוגה ------------------------- */
 
