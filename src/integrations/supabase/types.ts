@@ -314,6 +314,8 @@ export type Database = {
           image_key: string | null
           image_url: string | null
           is_published: boolean
+          lat: number | null
+          lng: number | null
           neighborhood: string | null
           parking_count: number | null
           post_copy: Json | null
@@ -345,6 +347,8 @@ export type Database = {
           image_key?: string | null
           image_url?: string | null
           is_published?: boolean
+          lat?: number | null
+          lng?: number | null
           neighborhood?: string | null
           parking_count?: number | null
           post_copy?: Json | null
@@ -376,6 +380,8 @@ export type Database = {
           image_key?: string | null
           image_url?: string | null
           is_published?: boolean
+          lat?: number | null
+          lng?: number | null
           neighborhood?: string | null
           parking_count?: number | null
           post_copy?: Json | null
