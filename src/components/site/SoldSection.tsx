@@ -1,5 +1,4 @@
 import { Home } from "lucide-react";
-import { DataSource } from "@/components/site/DataSource";
 import { useLang } from "@/lib/i18n";
 import type { SoldProperty } from "@/lib/sold.functions";
 import { Reveal } from "./Reveal";
@@ -24,7 +23,6 @@ export function SoldSection({ items }: Props) {
     <section id="sold" className="mx-auto max-w-6xl px-4 py-14 md:py-20">
       <p className="text-sm font-bold text-sun">{t.sold.label}</p>
       <h2 className="mt-2 text-3xl md:text-4xl">{t.sold.title}</h2>
-      <DataSource source="db" updatedAt={null} className="mt-2" />
       <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">
         {t.sold.subtitle(items.length)}
       </p>

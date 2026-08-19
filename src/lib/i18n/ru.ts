@@ -31,7 +31,6 @@ export const ru: Dict = {
     hello: "Здравствуйте,",
     defaultUser: "Пользователь",
     myAccount: "Личный кабинет",
-    adminSite: "Управление сайтом",
     authArea: "Личный кабинет",
     logout: "Выйти",
     logoutFull: "Выйти",
@@ -46,6 +45,8 @@ export const ru: Dict = {
     ctaProperties: "Смотреть объекты",
     badgeTop10: "В топ-10 агентств Нетании",
     badgeGroup: "Группа объектов в WhatsApp",
+    slidesAria: "Выбор изображения в слайдере",
+    slideAria: (n: number) => `Перейти к изображению ${n}`,
   },
 
   team: {
@@ -146,6 +147,12 @@ export const ru: Dict = {
       size: "Площадь (м²)",
     },
     personalAgent: "Личный агент: уведомления о новых объектах",
+    viewList: "Список",
+    viewMap: "Карта",
+    mapOpenListing: "К объявлению",
+    mapNoLocation: "Пока нет объектов с точным адресом для показа на карте.",
+    mapMissingCount: (n: number) =>
+      `${n} объектов не показаны на карте — у них нет точного адреса.`,
     noResultsTitle: "По этим фильтрам объектов не найдено",
     noResultsText: "Расскажите, что вы ищете, и мы подберём подходящий объект.",
     waNoResultsBtn: "Объект под запрос в WhatsApp",
@@ -299,7 +306,8 @@ export const ru: Dict = {
       { title: "Прозрачность", text: "Полный обмен всей значимой информацией с клиентами." },
       { title: "Надёжность", text: "Честность и ответственность в каждом действии." },
     ],
-    badges: ["Более 55 отзывов клиентов", "5,0 звёзд в Google"],
+    reviewsBadge: (count: number) => `Более ${count} отзывов клиентов`,
+    ratingBadge: (rating: string) => `${rating} звёзд в Google`,
     badge: "В топ-10 агентств недвижимости Нетании по рейтингу Madlan 2023-2026",
     successFeeNote: "Оплата только за результат — вы платите только при закрытии сделки.",
   },
@@ -425,7 +433,6 @@ export const ru: Dict = {
     accessibility: "Заявление о доступности",
     privacy: "Политика конфиденциальности",
     myAccount: "Личный кабинет",
-    adminSite: "Управление сайтом",
     facebookAria: "Наша страница в Facebook",
     instagramAria: "Наша страница в Instagram",
     license: (num: string) => `Лицензия риэлтора: ${num}`,
@@ -456,8 +463,6 @@ export const ru: Dict = {
   },
 
   dataSource: {
-    db: "Источник данных: база данных агентства",
-    office: "Источник данных: сведения, внесённые офисом Sun City",
     updated: "Обновлено:",
   },
 

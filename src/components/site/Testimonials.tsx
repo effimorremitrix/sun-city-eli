@@ -43,11 +43,7 @@ export function Testimonials() {
     <section className="mx-auto max-w-3xl px-4 py-14 md:py-20">
       <p className="text-sm font-bold text-sun">{t.testimonials.kicker}</p>
       <h2 className="mt-2 text-3xl md:text-4xl">{t.testimonials.title}</h2>
-      <DataSource
-        source={live.testimonials?.length ? "db" : "office"}
-        updatedAt={live.testimonials?.length ? live.updatedAt : null}
-        className="mt-2"
-      />
+      <DataSource updatedAt={live.testimonials?.length ? live.updatedAt : null} className="mt-2" />
 
       <div className="soft-card mt-6 p-6">
         <Quote className="size-7 text-sun" aria-hidden="true" />

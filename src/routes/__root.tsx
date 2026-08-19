@@ -11,6 +11,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import leafletCss from "leaflet/dist/leaflet.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { DEFAULT_LOCALE, dirFor, isLocale } from "../lib/i18n";
 
@@ -95,6 +96,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: appCss,
+      },
+      // סגנונות Leaflet — נדרשים לפריסת האריחים והנעצים במפת הנכסים
+      {
+        rel: "stylesheet",
+        href: leafletCss,
       },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },

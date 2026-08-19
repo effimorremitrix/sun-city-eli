@@ -174,3 +174,88 @@
     scroll-behavior: auto;
   }
 }
+
+/* ============================================================
+ * מפת הנכסים (Leaflet) — נעץ מחיר וחלון קופץ בסגנון המותג.
+ * הסימון נבנה בתוך divIcon/popup של Leaflet ולכן אינו עובר דרך Tailwind.
+ * ============================================================ */
+
+/* הנעץ מקבל את גודל התווית; המיקום מעל הנקודה נעשה בתזוזה של התווית עצמה,
+   כי ה-transform של אלמנט הנעץ שמור ל-Leaflet למיקום על המפה. */
+.map-pin-icon {
+  width: auto;
+  height: auto;
+  white-space: nowrap;
+}
+
+.map-pin {
+  display: inline-block;
+  transform: translate(-50%, -100%);
+  white-space: nowrap;
+  border-radius: 9999px;
+  border: 2px solid var(--card);
+  background: var(--sun);
+  color: var(--sun-foreground);
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-soft);
+}
+
+.leaflet-marker-icon:hover .map-pin,
+.leaflet-marker-icon:focus-visible .map-pin {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.map-card {
+  width: 13rem;
+}
+
+.map-card-img {
+  display: block;
+  width: 100%;
+  height: 6.5rem;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+.map-card-title {
+  margin-top: 0.5rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.map-card-meta {
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.map-card-price {
+  margin-top: 0.25rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.map-card-btn {
+  margin-top: 0.5rem;
+  width: 100%;
+  cursor: pointer;
+  border-radius: 0.75rem;
+  background: var(--sun);
+  color: var(--sun-foreground);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+/* החלון של Leaflet מגיע עם טיפוגרפיה משלו — מיישרים לשפת האתר */
+.leaflet-popup-content {
+  margin: 0.75rem;
+  font-family: inherit;
+}
+
+.leaflet-container {
+  font-family: inherit;
+}

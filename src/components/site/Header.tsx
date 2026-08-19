@@ -35,12 +35,29 @@ export function Header() {
           className="flex items-center gap-2"
           aria-label={t.nav.toTopAria(business.name)}
         >
-          <img src={logo} alt={t.nav.logoAlt} width={40} height={40} className="size-10" />
+          <img
+            src={business.logoIconUrl || logo}
+            alt={t.nav.logoAlt}
+            width={40}
+            height={40}
+            className="size-10 object-contain"
+          />
           <span className="flex flex-col leading-none">
             <span className="font-display text-base font-extrabold text-primary">
               Sun City <span className="text-sun">{t.nav.brandSuffix}</span>
             </span>
-            <span className="mt-0.5 text-[10px] text-muted-foreground">{business.tagline}</span>
+            {/* שם הסוכן של הדף — בדף אישי זה הסוכן שלו, בעמוד הבית סוכן ברירת המחדל.
+                כשאין שם סוכן נשארת השורה המקורית עם הסלוגן. */}
+            <span className="mt-0.5 truncate text-[10px] text-muted-foreground">
+              {business.agentName ? (
+                <>
+                  <span className="font-bold text-primary">{business.agentName}</span>
+                  {business.roleTitle && <span> · {business.roleTitle}</span>}
+                </>
+              ) : (
+                business.tagline
+              )}
+            </span>
           </span>
         </a>
 
@@ -58,7 +75,8 @@ export function Header() {
 
           <SocialLinks size="size-6" />
 
-          <LangSwitcher />
+          {/* מפריד: בלי הקו והריפוד האייקונים והדגלים נקראים כרצף אחד */}
+          <LangSwitcher className="ms-1 border-s border-border ps-4" />
 
           <a
             href={`tel:${business.phoneTel}`}
@@ -86,15 +104,6 @@ export function Header() {
                 >
                   {t.nav.myAccount}
                 </Link>
-                {(user.isAdmin || user.isAgent) && (
-                  <Link
-                    to="/account"
-                    search={{ tab: "listings" }}
-                    className="text-sm font-semibold text-foreground transition-colors hover:text-sun"
-                  >
-                    {t.nav.adminSite}
-                  </Link>
-                )}
                 <button
                   type="button"
                   onClick={logout}
@@ -189,18 +198,6 @@ export function Header() {
                     {t.nav.myAccount}
                   </Link>
                 </li>
-                {(user.isAdmin || user.isAgent) && (
-                  <li>
-                    <Link
-                      to="/account"
-                      search={{ tab: "listings" }}
-                      onClick={() => setOpen(false)}
-                      className="block border-b border-border/70 py-3 text-base font-semibold text-foreground"
-                    >
-                      {t.nav.adminSite}
-                    </Link>
-                  </li>
-                )}
                 <li className="py-3">
                   <button
                     type="button"

@@ -51,11 +51,13 @@ export const SITE_CONFIG = {
     instagram: "https://www.instagram.com/kalif.eli_sun_city?igsh=MXZ1NmIyYjhoYWljcw==",
     tiktok: "https://www.tiktok.com/@elikalif.suncity?_r=1&_t=ZS-98vPBhf7ZcG2",
   },
-  badges: [
-    'בין 10 משרדי התיווך המובילים בנתניה, בדירוג מדל"ן 2023-2026',
-    "מעל 55 חוות דעת מלקוחות",
-    "5.0 כוכבים בגוגל",
-  ],
+  badges: ['בין 10 משרדי התיווך המובילים בנתניה, בדירוג מדל"ן 2023-2026'],
+  /** חוות דעת: המקור, הכמות והדירוג. ניתנים לעריכה באזור הניהול. */
+  googleReviewsUrl:
+    "https://www.google.com/maps/search/?api=1&query=" +
+    encodeURIComponent('סאן סיטי נדל"ן שמואל הנציב 20 נתניה'),
+  reviewsCount: 55,
+  reviewsRating: 5,
   badge: 'בין 10 משרדי התיווך המובילים בנתניה, בדירוג מדל"ן 2023-2026',
   successFeeNote: "תשלום על בסיס הצלחה בלבד, משלמים רק כשסוגרים עסקה.",
 };

@@ -32,7 +32,6 @@ export const he = {
     hello: "שלום,",
     defaultUser: "משתמש",
     myAccount: "האזור האישי",
-    adminSite: "ניהול האתר",
     authArea: "אזור אישי",
     logout: "יציאה",
     logoutFull: "התנתקות",
@@ -47,6 +46,8 @@ export const he = {
     ctaProperties: "לצפייה בנכסים",
     badgeTop10: "בין 10 המובילים בנתניה",
     badgeGroup: "לקבוצת הנכסים בוואטסאפ",
+    slidesAria: "בחירת תמונה בסליידר",
+    slideAria: (n: number) => `מעבר לתמונה ${n}`,
   },
 
   team: {
@@ -140,6 +141,11 @@ export const he = {
       size: "שטח (מ״ר)",
     },
     personalAgent: "סוכן אישי: התראות על נכסים חדשים",
+    viewList: "רשימה",
+    viewMap: "מפה",
+    mapOpenListing: "לפרטי המודעה",
+    mapNoLocation: "עדיין אין נכסים עם מיקום מדויק להצגה על המפה.",
+    mapMissingCount: (n: number) => `${n} נכסים אינם מוצגים על המפה — אין להם מיקום מדויק.`,
     noResultsTitle: "לא נמצאו נכסים בסינון הזה",
     noResultsText: "ספרו לנו מה אתם מחפשים ונאתר עבורכם נכס מתאים.",
     waNoResultsBtn: "נכס לפי דרישה בוואטסאפ",
@@ -292,7 +298,8 @@ export const he = {
       { title: "שקיפות", text: "שיתוף מלא של כל המידע הרלוונטי עם הלקוחות." },
       { title: "אמינות", text: "יושרה ואחריות בכל פעולה." },
     ],
-    badges: ["מעל 55 חוות דעת מלקוחות", "5.0 כוכבים בגוגל"],
+    reviewsBadge: (count: number) => `מעל ${count} חוות דעת מלקוחות`,
+    ratingBadge: (rating: string) => `${rating} כוכבים בגוגל`,
     badge: 'בין 10 משרדי התיווך המובילים בנתניה, בדירוג מדל"ן 2023-2026',
     successFeeNote: "תשלום על בסיס הצלחה בלבד, משלמים רק כשסוגרים עסקה.",
   },
@@ -417,7 +424,6 @@ export const he = {
     accessibility: "הצהרת נגישות",
     privacy: "מדיניות פרטיות",
     myAccount: "האזור האישי שלי",
-    adminSite: "ניהול האתר",
     facebookAria: "עמוד הפייסבוק שלנו",
     instagramAria: "עמוד האינסטגרם שלנו",
     license: (num: string) => `רישיון תיווך: ${num}`,
@@ -448,8 +454,6 @@ export const he = {
   },
 
   dataSource: {
-    db: "מקור המידע: מסד הנתונים של המשרד",
-    office: 'מקור המידע: נתונים שהוזנו על ידי משרד סאן סיטי נדל"ן',
     updated: "עודכן:",
   },
 
