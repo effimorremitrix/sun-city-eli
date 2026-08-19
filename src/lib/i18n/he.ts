@@ -144,6 +144,7 @@ export const he = {
     viewMap: "מפה",
     mapOpenListing: "לפרטי המודעה",
     mapNoLocation: "עדיין אין נכסים עם מיקום מדויק להצגה על המפה.",
+    mapNoLocationAdminHint: "מנהל? באזור הניהול אפשר להשלים מיקומים אוטומטית לנכסים קיימים.",
     mapMissingCount: (n: number) => `${n} נכסים אינם מוצגים על המפה — אין להם מיקום מדויק.`,
     noResultsTitle: "לא נמצאו נכסים בסינון הזה",
     noResultsText: "ספרו לנו מה אתם מחפשים ונאתר עבורכם נכס מתאים.",

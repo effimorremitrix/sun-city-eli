@@ -3,6 +3,11 @@ import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { LISTING_COLUMNS, type Listing } from "@/lib/listings";
 import { listingInputSchema } from "@/lib/listing-schema";
+import type { ManagedSite } from "@/lib/admin.server";
+
+/** האם הרשימה כוללת את האתר הראשי — נכסים ישנים בלי site_id שייכים אליו */
+const includesDefaultSite = (sites: ManagedSite[], ids: string[]) =>
+  sites.some((s) => ids.includes(s.id) && s.slug === "sun-city");
 
 /* ----------------------- קריאה ציבורית ----------------------- */
 
@@ -57,17 +62,15 @@ export const adminListListings = createServerFn({ method: "GET" })
       .order("sort_order", { ascending: true });
 
     const ownIds = access.sites.map((s) => s.id);
-    const includesDefault = (ids: string[]) =>
-      access.sites.some((s) => ids.includes(s.id) && s.slug === "sun-city");
 
     if (data.siteId) {
       if (!ownIds.includes(data.siteId)) throw new Error("Forbidden");
       // נכסים ישנים ללא site_id שייכים לאתר הראשי
-      query = includesDefault([data.siteId])
+      query = includesDefaultSite(access.sites, [data.siteId])
         ? query.or(`site_id.eq.${data.siteId},site_id.is.null`)
         : query.eq("site_id", data.siteId);
     } else if (!access.isAdmin) {
-      query = includesDefault(ownIds)
+      query = includesDefaultSite(access.sites, ownIds)
         ? query.or(`site_id.in.(${ownIds.join(",")}),site_id.is.null`)
         : query.in("site_id", ownIds);
     }
@@ -133,30 +136,51 @@ export const adminSaveListing = createServerFn({ method: "POST" })
   });
 
 /**
- * השלמת מיקומים לנכסים שאין להם קואורדינטות — לשימוש חד־פעמי אחרי הוספת
+ * השלמת מיקומים לנכסים שאין להם קואורדינטות — לנכסים שנשמרו לפני הוספת
  * המפה, ולנכסים שהגיאוקוד פספס. רץ בקצב שמדיניות Nominatim מתירה.
+ *
+ * עובד ב-batches קטנים כדי שכל קריאה תסתיים לפני טיימאאוט של פונקציית שרת,
+ * וכל נכס נשמר מיד אחרי שאותר — קטיעה באמצע לא מאבדת את מה שכבר הושלם.
+ * cursor (after) מאפשר ללקוח להמשיך מעבר לכתובות שלא אותרו, כדי שהן לא
+ * יחסמו את שאר הנכסים בקריאות הבאות.
  */
 export const adminBackfillListingCoords = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input?: { limit?: number }) => ({
-    limit: Math.min(Math.max(input?.limit ?? 25, 1), 50),
+  .inputValidator((input?: { limit?: number; after?: string | null }) => ({
+    limit: Math.min(Math.max(input?.limit ?? 8, 1), 10),
+    after: input?.after ?? null,
   }))
   .handler(async ({ data, context }) => {
     const { assertManager } = await import("@/lib/admin.server");
     const access = await assertManager(context);
 
-    let query = context.supabase
-      .from("listings")
-      .select("id, address, neighborhood, city")
-      .is("lat", null)
-      .limit(data.limit);
-
-    // סוכן משלים רק את הנכסים של האתר שלו; אדמין את כולם
-    if (!access.isAdmin) {
-      const ownIds = access.sites.map((s) => s.id);
-      if (!ownIds.length) return { scanned: 0, located: 0 };
-      query = query.in("site_id", ownIds);
+    const ownIds = access.sites.map((s) => s.id);
+    if (!access.isAdmin && !ownIds.length) {
+      return { scanned: 0, located: 0, remaining: 0, cursor: null as string | null };
     }
+
+    // סוכן משלים רק את הנכסים של האתר שלו (כולל נכסים ישנים בלי site_id
+    // כשהוא מנהל את האתר הראשי — כמו ב-adminListListings); אדמין את כולם
+    const applyScope = <
+      T extends { or(filters: string): T; in(column: string, values: string[]): T },
+    >(
+      q: T,
+    ): T => {
+      if (access.isAdmin) return q;
+      return includesDefaultSite(access.sites, ownIds)
+        ? q.or(`site_id.in.(${ownIds.join(",")}),site_id.is.null`)
+        : q.in("site_id", ownIds);
+    };
+
+    let query = applyScope(
+      context.supabase
+        .from("listings")
+        .select("id, address, neighborhood, city")
+        .is("lat", null)
+        .order("id", { ascending: true })
+        .limit(data.limit),
+    );
+    if (data.after) query = query.gt("id", data.after);
 
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
@@ -166,23 +190,36 @@ export const adminBackfillListingCoords = createServerFn({ method: "POST" })
       neighborhood: string | null;
       city: string | null;
     }>;
-    if (!pending.length) return { scanned: 0, located: 0 };
 
-    const { geocodeMany } = await import("@/lib/geocode.server");
-    const results = await geocodeMany(pending);
+    const { geocodeListing, GEOCODE_MIN_INTERVAL_MS } = await import("@/lib/geocode.server");
 
     let located = 0;
-    for (const { id, coords } of results) {
+    for (const [i, row] of pending.entries()) {
+      if (i > 0) await new Promise((r) => setTimeout(r, GEOCODE_MIN_INTERVAL_MS));
+      const coords = await geocodeListing(row);
       if (!coords) continue;
       const { error: updateError } = await context.supabase
         .from("listings")
         .update({ lat: coords.lat, lng: coords.lng })
-        .eq("id", id);
-      if (updateError) throw new Error(updateError.message);
-      located += 1;
+        .eq("id", row.id);
+      // נכס אחד שנכשל לא עוצר את השאר
+      if (updateError) console.error("coords backfill update failed", row.id, updateError.message);
+      else located += 1;
     }
 
-    return { scanned: pending.length, located };
+    const { count } = await applyScope(
+      context.supabase
+        .from("listings")
+        .select("id", { count: "exact", head: true })
+        .is("lat", null),
+    );
+
+    return {
+      scanned: pending.length,
+      located,
+      remaining: count ?? 0,
+      cursor: pending.at(-1)?.id ?? null,
+    };
   });
 
 export const adminDeleteListing = createServerFn({ method: "POST" })

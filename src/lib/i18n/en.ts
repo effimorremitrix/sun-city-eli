@@ -149,6 +149,8 @@ export const en: Dict = {
     viewMap: "Map",
     mapOpenListing: "View listing",
     mapNoLocation: "No properties with an exact location to show on the map yet.",
+    mapNoLocationAdminHint:
+      "Manager? You can auto-fill locations for existing listings in the admin area.",
     mapMissingCount: (n: number) =>
       `${n} properties are not on the map — they have no exact location.`,
     noResultsTitle: "No properties match these filters",

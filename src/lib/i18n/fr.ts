@@ -152,6 +152,8 @@ export const fr: Dict = {
     viewMap: "Carte",
     mapOpenListing: "Voir l'annonce",
     mapNoLocation: "Aucun bien avec une localisation précise à afficher sur la carte.",
+    mapNoLocationAdminHint:
+      "Gestionnaire ? Complétez automatiquement la localisation des biens existants dans l'espace d'administration.",
     mapMissingCount: (n: number) =>
       `${n} biens ne sont pas sur la carte — ils n'ont pas de localisation précise.`,
     noResultsTitle: "Aucun bien ne correspond à ces filtres",
