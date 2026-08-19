@@ -205,6 +205,70 @@ export const adminSetSiteActive = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** מצב "הדף /sun-city הוא הדף הראשי" — קריאה (מנהל ראשי בלבד) */
+export const adminGetHomeRedirect = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ enabled: boolean }> => {
+    const { assertSuperAdmin } = await import("@/lib/admin.server");
+    await assertSuperAdmin(context);
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: site, error: siteError } = await supabaseAdmin
+      .from("sites")
+      .select("id")
+      .eq("slug", OFFICE_SLUG)
+      .maybeSingle();
+    if (siteError) throw new Error(siteError.message);
+    if (!site) return { enabled: false };
+
+    const { data: content, error } = await supabaseAdmin
+      .from("site_content")
+      .select("settings")
+      .eq("site_id", site.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    const settings = (content?.settings ?? {}) as Record<string, unknown>;
+    return { enabled: settings["homeRedirect"] === true };
+  });
+
+/** הפעלה/כיבוי של ההפניה הקבועה מ-"/" אל /sun-city (מנהל ראשי בלבד) */
+export const adminSetHomeRedirect = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { enabled: boolean }) => ({ enabled: Boolean(input.enabled) }))
+  .handler(async ({ data, context }) => {
+    const { assertSuperAdmin } = await import("@/lib/admin.server");
+    await assertSuperAdmin(context);
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: site, error: siteError } = await supabaseAdmin
+      .from("sites")
+      .select("id")
+      .eq("slug", OFFICE_SLUG)
+      .maybeSingle();
+    if (siteError) throw new Error(siteError.message);
+    if (!site) throw new Error("רשומת אתר המשרד לא נמצאה");
+
+    // קריאה-מיזוג-upsert כדי לשמר מפתחות עתידיים אחרים ב-settings
+    const { data: content, error: readError } = await supabaseAdmin
+      .from("site_content")
+      .select("settings")
+      .eq("site_id", site.id)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    const settings = {
+      ...((content?.settings ?? {}) as Record<string, unknown>),
+      homeRedirect: data.enabled,
+    };
+
+    const { error } = await supabaseAdmin
+      .from("site_content")
+      .upsert({ site_id: site.id, settings }, { onConflict: "site_id" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?$/;
 
 type AgentSiteInput = {

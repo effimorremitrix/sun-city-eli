@@ -1,11 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { HomePage, HomeError, HomeNotFound, loadHomeData } from "@/components/site/HomePage";
+import {
+  HomePage,
+  HomeError,
+  HomeNotFound,
+  loadHomeDataOrRedirect,
+} from "@/components/site/HomePage";
 import { headForLocale } from "@/lib/i18n/seo";
 
 /** הדף הראשי ב-fr. ראוט סטטי בכוונה — ראו ההסבר ב-HomePage.tsx */
 export const Route = createFileRoute("/fr/")({
   head: () => headForLocale("fr"),
-  loader: loadHomeData,
+  loader: () => loadHomeDataOrRedirect("fr"),
   component: Homefr,
   errorComponent: () => <HomeError lang="fr" />,
   notFoundComponent: () => <HomeNotFound lang="fr" />,

@@ -1,7 +1,12 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ExternalLink, Link2, Power } from "lucide-react";
-import { adminSetSiteActive } from "@/lib/users.functions";
+import { ExternalLink, Home, Link2, Power } from "lucide-react";
+import {
+  adminGetHomeRedirect,
+  adminSetHomeRedirect,
+  adminSetSiteActive,
+} from "@/lib/users.functions";
 import { OFFICE_SLUG } from "@/lib/site-data";
 import type { ManagedSite } from "@/lib/admin.server";
 
@@ -22,6 +27,29 @@ export default function AdminSitesPanel({ sites, onChanged }: Props) {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+
+  const getHomeRedirect = useServerFn(adminGetHomeRedirect);
+  const setHomeRedirect = useServerFn(adminSetHomeRedirect);
+  const homeRedirect = useQuery({
+    queryKey: ["admin-home-redirect"],
+    queryFn: () => getHomeRedirect(),
+  });
+  const [homeBusy, setHomeBusy] = useState(false);
+  const [homeConfirm, setHomeConfirm] = useState(false);
+
+  const toggleHomeRedirect = async () => {
+    setHomeBusy(true);
+    setErr(null);
+    try {
+      await setHomeRedirect({ data: { enabled: !homeRedirect.data?.enabled } });
+      await homeRedirect.refetch();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "הפעולה נכשלה");
+    } finally {
+      setHomeBusy(false);
+      setHomeConfirm(false);
+    }
+  };
 
   const toggle = async (site: ManagedSite) => {
     setBusyId(site.id);
@@ -66,6 +94,69 @@ export default function AdminSitesPanel({ sites, onChanged }: Props) {
           {err}
         </p>
       )}
+
+      {/* מתג "הדף /sun-city הוא הדף הראשי" — הפניה קבועה מ-"/" אל דף המשרד */}
+      <div className="mt-4 rounded-xl border border-border p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <span className="inline-flex items-center gap-1.5 font-bold text-primary">
+              <Home className="size-4" aria-hidden="true" />
+              <span dir="ltr">/sun-city</span> כדף הראשי (הסתרת דף הבית)
+            </span>
+          </div>
+
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+              homeRedirect.data?.enabled
+                ? "bg-whatsapp/15 text-whatsapp"
+                : "bg-destructive/10 text-destructive"
+            }`}
+          >
+            {homeRedirect.isLoading ? "טוען…" : homeRedirect.data?.enabled ? "פעיל" : "כבוי"}
+          </span>
+
+          {homeConfirm ? (
+            <span className="inline-flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={homeBusy}
+                onClick={() => void toggleHomeRedirect()}
+                className="rounded-xl bg-destructive px-2.5 py-1.5 text-xs font-bold text-destructive-foreground disabled:opacity-60"
+              >
+                {homeBusy
+                  ? "מעדכן…"
+                  : homeRedirect.data?.enabled
+                    ? "אישור כיבוי ההפניה"
+                    : "אישור הפעלת ההפניה"}
+              </button>
+              <button
+                type="button"
+                disabled={homeBusy}
+                onClick={() => setHomeConfirm(false)}
+                className="text-xs font-bold text-muted-foreground underline"
+              >
+                ביטול
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              disabled={homeBusy || homeRedirect.isLoading}
+              onClick={() => setHomeConfirm(true)}
+              className="inline-flex items-center gap-1 rounded-xl border border-destructive/40 px-2.5 py-1.5 text-xs font-bold text-destructive disabled:opacity-60"
+            >
+              <Power className="size-3.5" aria-hidden="true" />
+              {homeRedirect.data?.enabled ? "כיבוי ההפניה" : "הפעלת ההפניה"}
+            </button>
+          )}
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          כשהאפשרות פעילה, דף הבית <span dir="ltr">"/"</span> (וגם <span dir="ltr">/en</span>{" "}
+          <span dir="ltr">/fr</span> <span dir="ltr">/ru</span>) מפנה בהפניה קבועה (301) אל{" "}
+          <span dir="ltr">/sun-city</span>, והכתובת הקנונית במנועי החיפוש עוברת אל{" "}
+          <span dir="ltr">/sun-city</span>. כיבוי מחזיר את המצב לקדמותו מיידית — בלי דיפלוי.
+        </p>
+      </div>
 
       <ul className="mt-4 divide-y divide-border">
         {sites.map((s) => {

@@ -19,7 +19,17 @@ import { listPublicListings, listPublicAgents } from "@/lib/listings.functions";
 import { listPublicSoldProperties, type SoldProperty } from "@/lib/sold.functions";
 import { localizeListing, type Listing } from "@/lib/listings";
 import { RESERVED_AGENT_SLUGS } from "@/lib/reserved-slugs";
-import { DEFAULT_LOCALE, DICTS, LangProvider, isLocale, useLang, type Locale } from "@/lib/i18n";
+import {
+  DEFAULT_LOCALE,
+  DICTS,
+  LOCALE_META,
+  LangProvider,
+  isLocale,
+  useLang,
+  type Locale,
+} from "@/lib/i18n";
+import { SITE_URL, headForLocale } from "@/lib/i18n/seo";
+import { OFFICE_SLUG } from "@/lib/site-data";
 import type { PublicAgentRow } from "@/lib/agents.server";
 
 /** גוזר את שפת העמוד מפרמטר הנתיב האופציונלי {-$lang} */
@@ -57,14 +67,24 @@ export const Route = createFileRoute("/{-$lang}/$agentSlug")({
     return { live, listings, agents, sold };
   },
   head: ({ loaderData, params }) => {
+    const lang = langFromParam(params.lang);
+    const slug = params.agentSlug.toLowerCase();
+    if (slug === OFFICE_SLUG) {
+      // כשהדגל homeRedirect דולק /sun-city הוא הכתובת הקנונית; כשכבוי — הקנוני הוא "/"
+      return loaderData?.live.settings.homeRedirect
+        ? headForLocale(lang, { slug: OFFICE_SLUG })
+        : headForLocale(lang);
+    }
     const name = loaderData?.live.business.agentName || loaderData?.live.business.name || "";
     const title = `${name} | Sun City Netanya`;
+    const self = `${SITE_URL}${lang === "he" ? "" : LOCALE_META[lang].path}/${slug}`;
     return {
       meta: [
         { title },
         { property: "og:title", content: title },
         { property: "og:type", content: "profile" },
       ],
+      links: [{ rel: "canonical", href: self }],
     };
   },
   component: AgentPage,
