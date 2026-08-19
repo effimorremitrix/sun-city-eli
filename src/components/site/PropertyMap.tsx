@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
+import { Link } from "@tanstack/react-router";
 import type * as LeafletNS from "leaflet";
 import { formatListingPrice, listingImage, type Listing } from "@/lib/listings";
 import { SITE_CONFIG } from "@/lib/site-data";
 import { mapValue, useLang } from "@/lib/i18n";
+import { useAuth } from "@/hooks/useAuth";
 
 /* ============================================================
  * מפת הנכסים — כל נכס כנעץ, ריחוף פותח חלון עם פרטי המודעה.
@@ -21,6 +23,24 @@ type Props = {
 const FALLBACK_CENTER: [number, number] = [SITE_CONFIG.coords.lat, SITE_CONFIG.coords.lng];
 
 const escapeHtml = (v: string) => v.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+/**
+ * רמז למנהל כשאף נכס לא ממוקם: קישור להשלמת המיקומים באזור הניהול.
+ * קומפוננטה נפרדת כדי ש-useAuth (בדיקת התחברות מול השרת) ירוץ רק במצב
+ * הריק הזה, ולא בכל טעינה של המפה הציבורית.
+ */
+function AdminBackfillHint() {
+  const { t } = useLang();
+  const { user } = useAuth();
+  if (!user?.isAdmin && !user?.isAgent) return null;
+  return (
+    <p className="mt-2 text-sm">
+      <Link to="/account" search={{ tab: "listings" }} className="font-semibold underline">
+        {t.properties.mapNoLocationAdminHint}
+      </Link>
+    </p>
+  );
+}
 
 export function PropertyMap({ listings, onOpen }: Props) {
   const { lang, t } = useLang();
@@ -116,6 +136,7 @@ export function PropertyMap({ listings, onOpen }: Props) {
     return (
       <div className="soft-card mt-4 p-6 text-center">
         <p className="font-bold text-primary">{t.properties.mapNoLocation}</p>
+        {listings.length > 0 && <AdminBackfillHint />}
       </div>
     );
   }

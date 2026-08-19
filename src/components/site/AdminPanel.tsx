@@ -235,6 +235,50 @@ export function AdminPanel({ tab }: { tab: AdminTabKey }) {
     }
   };
 
+  // נכסים בלי קואורדינטות — שנשמרו לפני הוספת המפה או שהגיאוקוד פספס
+  const withoutCoords = (listings.data ?? []).filter((l) => l.lat == null || l.lng == null).length;
+
+  const runBackfill = () =>
+    run(async () => {
+      setCoordsMsg(null);
+      // batches קטנים בלולאה: כל קריאת שרת קצרה מספיק כדי לא להיחתך בטיימאאוט,
+      // וה-cursor ממשיך מעבר לכתובות שלא אותרו
+      let after: string | null = null;
+      let scanned = 0;
+      let located = 0;
+      let remaining = 0;
+      for (let i = 0; i < 40; i++) {
+        const res = (await backfillCoords({ data: { limit: 8, after } })) as {
+          scanned: number;
+          located: number;
+          remaining: number;
+          cursor: string | null;
+        };
+        scanned += res.scanned;
+        located += res.located;
+        remaining = res.remaining;
+        after = res.cursor;
+        setCoordsMsg(`נסרקו ${scanned} נכסים, אותרו ${located} מיקומים…`);
+        if (!res.scanned || !res.cursor) break;
+      }
+      setCoordsMsg(
+        `נסרקו ${scanned} נכסים, אותרו ${located} מיקומים.` +
+          (remaining > 0
+            ? ` ${remaining} נכסים נותרו ללא מיקום — אפשר לדייק את הכתובת או להזין קואורדינטות ידנית.`
+            : ""),
+      );
+    }, "השלמת המיקומים הסתיימה");
+
+  // השלמה אוטומטית בכניסה לטאב הנכסים — פעם אחת לסשן, כדי לא להפגיז את
+  // Nominatim שוב ושוב בכתובות שממילא לא אותרו
+  useEffect(() => {
+    if (tab !== "listings" || !withoutCoords || busy) return;
+    if (sessionStorage.getItem("coords-backfill-ran")) return;
+    sessionStorage.setItem("coords-backfill-ran", "1");
+    void runBackfill();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, withoutCoords, busy]);
+
   const submitListing = () =>
     run(async () => {
       const res = (await saveListing({
@@ -604,43 +648,27 @@ export function AdminPanel({ tab }: { tab: AdminTabKey }) {
           <h2 className="text-lg font-extrabold text-primary">הנכסים במסד הנתונים</h2>
 
           {/* מיקום למפה: הנכסים שנשמרו לפני הוספת המפה עדיין בלי קואורדינטות */}
-          {(() => {
-            const withoutCoords = (listings.data ?? []).filter(
-              (l) => l.lat == null || l.lng == null,
-            ).length;
-            if (!withoutCoords) return null;
-            return (
-              <div className="mt-3 rounded-xl border border-border p-3">
-                <p className="text-sm text-muted-foreground">
-                  {withoutCoords} נכסים עדיין בלי מיקום ולכן אינם מוצגים על המפה באתר.
-                </p>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() =>
-                    run(async () => {
-                      setCoordsMsg(null);
-                      const res = (await backfillCoords({ data: { limit: 25 } })) as {
-                        scanned: number;
-                        located: number;
-                      };
-                      setCoordsMsg(`נסרקו ${res.scanned} נכסים, אותרו ${res.located} מיקומים.`);
-                    }, "השלמת המיקומים הסתיימה")
-                  }
-                  className="mt-2 rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground disabled:opacity-60"
-                >
-                  השלמת מיקומים (עד 25 נכסים)
-                </button>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  האיתור מתבצע מול OpenStreetMap בקצב של נכס אחד לשנייה, ולכן הפעולה עשויה להימשך
-                  כחצי דקה.
-                </p>
-                {coordsMsg && (
-                  <p className="mt-1 text-xs font-semibold text-primary">{coordsMsg}</p>
-                )}
-              </div>
-            );
-          })()}
+          {withoutCoords > 0 && (
+            <div className="mt-3 rounded-xl border border-border p-3">
+              <p className="text-sm text-muted-foreground">
+                {withoutCoords} נכסים עדיין בלי מיקום ולכן אינם מוצגים על המפה באתר. ההשלמה מופעלת
+                אוטומטית בכניסה לכאן; אפשר גם להפעיל ידנית.
+              </p>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={runBackfill}
+                className="mt-2 rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground disabled:opacity-60"
+              >
+                השלמת מיקומים
+              </button>
+              <p className="mt-1 text-xs text-muted-foreground">
+                האיתור מתבצע מול OpenStreetMap בקצב של נכס אחד לשנייה, ולכן הפעולה עשויה להימשך כמה
+                דקות כשיש הרבה נכסים.
+              </p>
+              {coordsMsg && <p className="mt-1 text-xs font-semibold text-primary">{coordsMsg}</p>}
+            </div>
+          )}
 
           {listings.isLoading && <p className="mt-2 text-sm text-muted-foreground">טוען נכסים…</p>}
           <ul className="mt-3 grid gap-3">

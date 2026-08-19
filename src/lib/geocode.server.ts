@@ -2,8 +2,8 @@
  * גיאוקוד כתובות — כתובת חופשית לקואורדינטות, לתצוגת המפה.
  *
  * המקור: Nominatim של OpenStreetMap (חינמי, בלי מפתח). מדיניות השימוש שלהם
- * מחייבת User-Agent מזהה ולכל היותר בקשה אחת לשנייה — ולכן כאן יש גם
- * geocodeMany שמכבד את הקצב.
+ * מחייבת זיהוי (User-Agent או Referer) ולכל היותר בקשה אחת לשנייה —
+ * מי שמריץ כמה בקשות ברצף אחראי להמתין GEOCODE_MIN_INTERVAL_MS ביניהן.
  *
  * כלל ברזל: כשלא נמצאה כתובת — מחזירים null. לא מנחשים קואורדינטה משוערת,
  * כי נעץ במקום הלא נכון גרוע יותר מנכס שלא מופיע על המפה.
@@ -44,11 +44,17 @@ function queriesFor({ address, neighborhood, city }: GeocodeInput): string[] {
 async function lookup(query: string): Promise<Coords | null> {
   const url = `${ENDPOINT}?format=json&limit=1&countrycodes=il&q=${encodeURIComponent(query)}`;
   try {
+    // Referer לצד ה-User-Agent: יש סביבות ריצה שמוחקות User-Agent מותאם,
+    // ו-Nominatim מסתפק באחד מהשניים לזיהוי
     const res = await fetch(url, {
-      headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
+      headers: {
+        "User-Agent": USER_AGENT,
+        Referer: "https://sun-city.company",
+        Accept: "application/json",
+      },
     });
     if (!res.ok) {
-      console.error("geocode failed", res.status, query);
+      console.error("geocode failed", res.status, query, (await res.text()).slice(0, 200));
       return null;
     }
     const rows = (await res.json()) as Array<{ lat?: string; lon?: string }>;
@@ -71,16 +77,4 @@ export async function geocodeListing(input: GeocodeInput): Promise<Coords | null
     if (hit) return hit;
   }
   return null;
-}
-
-/** גיאוקוד לרשימה, בקצב שמדיניות Nominatim מתירה (בקשה אחת לשנייה) */
-export async function geocodeMany<T extends GeocodeInput & { id: string }>(
-  items: T[],
-): Promise<Array<{ id: string; coords: Coords | null }>> {
-  const out: Array<{ id: string; coords: Coords | null }> = [];
-  for (const [i, item] of items.entries()) {
-    if (i > 0) await new Promise((r) => setTimeout(r, GEOCODE_MIN_INTERVAL_MS));
-    out.push({ id: item.id, coords: await geocodeListing(item) });
-  }
-  return out;
 }
