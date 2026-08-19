@@ -70,7 +70,9 @@ function SoldPoster({ item }: { item: SoldProperty }) {
   const ringId = `sold-ring-${item.id}`;
   const stampId = `sold-stamp-${item.id}`;
   // חותמת ארוכה (למשל "ПРОДАНО") מוקטנת כדי להישאר בגבולות הפוסטר
-  const stampSize = Math.min(82, Math.round(330 / (0.62 * t.sold.stamp.length)));
+  const stampSize = Math.min(82, Math.round(300 / (0.62 * t.sold.stamp.length)));
+  // גם סיומת ארוכה ("агентством Sun City") מוקטנת כדי להישאר בתוך הפס
+  const suffixSize = Math.min(20, Math.round(210 / (0.6 * t.sold.stampSuffix.length)));
 
   return (
     <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-border bg-white shadow-lift">
@@ -169,15 +171,17 @@ function SoldPoster({ item }: { item: SoldProperty }) {
           {t.sold.stamp}
         </text>
 
-        {/* 'ע"י סאן סיטי' — על פס קרם בהטיה קלה */}
-        <g transform={`rotate(-2 ${CX} 344)`}>
-          <rect x={CX - 132} y={326} width={264} height={36} rx={12} fill="#F3EAD3" />
+        {/* 'ע"י סאן סיטי' — על פס קרם. באותה הטיה כמו חותמת ה"נמכר" (סרטים
+            מקבילים = מרווח קבוע), וגבוה ומוצר מספיק כדי שסרט הכתובת בפינה
+            לא יטפס עליו ויסתיר את הטקסט. */}
+        <g transform={`rotate(-3 ${CX} 331)`}>
+          <rect x={CX - 116} y={316} width={232} height={30} rx={11} fill="#F3EAD3" />
           <text
             x={CX}
-            y={352}
+            y={337}
             textAnchor="middle"
             className="font-display"
-            fontSize={22}
+            fontSize={suffixSize}
             fontWeight={800}
             fill="#23283B"
           >
@@ -196,8 +200,9 @@ function SoldPoster({ item }: { item: SoldProperty }) {
         className="absolute bottom-[3%] left-[4%] h-[17%] w-auto object-contain"
       />
 
-      {/* הכתובת — סרט צהוב נטוי בפינה הימנית-תחתונה, מתעדכן פר נכס */}
-      <div className="absolute bottom-[4.5%] right-[4%] max-w-[58%] -rotate-2 skew-x-[-8deg] rounded-md border-b-4 border-[#B97B00] bg-gradient-to-b from-[#FFCE45] to-[#F0A400] px-4 py-1.5 shadow-md">
+      {/* הכתובת — סרט צהוב נטוי בפינה הימנית-תחתונה, מתעדכן פר נכס.
+          נמוך ודק מספיק כדי לא לחפוף את פס "ע"י סאן סיטי" שמעליו. */}
+      <div className="absolute bottom-[2.5%] right-[4%] max-w-[58%] -rotate-2 skew-x-[-8deg] rounded-md border-b-4 border-[#B97B00] bg-gradient-to-b from-[#FFCE45] to-[#F0A400] px-4 py-1 shadow-md">
         <p className="skew-x-[8deg] truncate font-display text-sm font-extrabold text-[#1F2430] sm:text-base">
           {item.address}
         </p>
