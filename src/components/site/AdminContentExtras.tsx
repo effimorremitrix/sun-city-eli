@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Trash2, Video } from "lucide-react";
 import { saveSiteContent } from "@/lib/site.functions";
 import type { LiveFaqItem, LiveTestimonial } from "@/lib/site-live";
 import { DICTS } from "@/lib/i18n";
+import { acceptFor } from "@/lib/media";
+import { VIDEO_TYPES, uploadSiteMedia } from "@/lib/upload-media";
 
 const newId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -42,6 +44,26 @@ export function AdminContentExtras({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  /** מזהה הממליץ שסרטון שלו נמצא כרגע בהעלאה — משבית את שאר כפתורי ההעלאה */
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+
+  /** העלאת קובץ סרטון (mp4/webm) לתיקיית testimonials וכתיבת הכתובת לשדה הקישור */
+  const handleVideoUpload = async (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // איפוס — בחירה חוזרת של אותו קובץ תפעיל שוב onChange
+    if (!file) return;
+    setErr(null);
+    setUploadingId(id);
+    try {
+      const url = await uploadSiteMedia(file, "testimonials", VIDEO_TYPES);
+      // עדכון פונקציונלי: ההעלאה אסינכרונית והרשימה עלולה להשתנות בינתיים
+      setItems((prev) => prev.map((x) => (x.id === id ? { ...x, videoUrl: url } : x)));
+    } catch (uploadErr) {
+      setErr(uploadErr instanceof Error ? uploadErr.message : "העלאת הסרטון נכשלה");
+    } finally {
+      setUploadingId(null);
+    }
+  };
 
   useEffect(() => {
     setItems(testimonials ?? []);
@@ -120,7 +142,8 @@ export function AdminContentExtras({
       <h2 className="text-lg font-extrabold text-primary">ממליצים ושאלות נפוצות</h2>
       <p className="mt-1 text-xs text-muted-foreground">
         התוכן כאן מחליף את הממליצים והשאלות הקבועים של האתר. רשימה ריקה = האתר חוזר לתוכן הקבוע. לכל
-        ממליץ אפשר לצרף קישור לסרטון המלצה (YouTube או קישור ישיר).
+        ממליץ אפשר לצרף סרטון המלצה — העלאת קובץ (MP4/WebM עד 50MB), קישור YouTube או כתובת ישירה.
+        העלאה ממלאת את שדה הקישור, והכול נשמר רק בלחיצה על שמירה.
       </p>
 
       {msg && (
@@ -207,23 +230,43 @@ export function AdminContentExtras({
                     }
                   />
                 </label>
-                <label className="block sm:col-span-2">
+                <div className="block sm:col-span-2">
                   <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                    קישור לסרטון המלצה (אופציונלי)
+                    סרטון המלצה (אופציונלי) — העלאת קובץ או קישור
                   </span>
-                  <input
-                    className="field"
-                    dir="ltr"
-                    placeholder="https://www.youtube.com/watch?v=..."
-                    value={t.videoUrl ?? ""}
-                    maxLength={300}
-                    onChange={(e) =>
-                      setItems(
-                        items.map((x) => (x.id === t.id ? { ...x, videoUrl: e.target.value } : x)),
-                      )
-                    }
-                  />
-                </label>
+                  <div className="flex gap-2">
+                    <input
+                      className="field"
+                      dir="ltr"
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      value={t.videoUrl ?? ""}
+                      maxLength={300}
+                      onChange={(e) =>
+                        setItems(
+                          items.map((x) =>
+                            x.id === t.id ? { ...x, videoUrl: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    />
+                    {/* העלאה ב-<label> עוטף — לחיצה טבעית שפותחת את בורר הקבצים */}
+                    <label
+                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-primary/30 px-3 text-xs font-bold text-primary ${
+                        uploadingId ? "cursor-default opacity-60" : "cursor-pointer"
+                      }`}
+                    >
+                      <Video className="size-4 text-sun" aria-hidden="true" />
+                      {uploadingId === t.id ? "מעלה…" : "העלאת סרטון"}
+                      <input
+                        type="file"
+                        accept={acceptFor(VIDEO_TYPES)}
+                        className="hidden"
+                        disabled={uploadingId !== null}
+                        onChange={(e) => void handleVideoUpload(t.id, e)}
+                      />
+                    </label>
+                  </div>
+                </div>
               </div>
               {rowButtons(
                 () => setItems(moveItem(items, i, -1)),

@@ -1,26 +1,7 @@
 import { useRef, useState } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { acceptFor, fileExt, fileMimeType, isVideoUrl } from "@/lib/media";
-
-const BUCKET = "site-media";
-const MAX_SIZE = 5 * 1024 * 1024;
-const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
-const RASTER_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const SVG_TYPE = "image/svg+xml";
-const VIDEO_TYPES = ["video/mp4", "video/webm"];
-
-/** מזהה אקראי לשם הקובץ; נופל לגיבוי בדפדפנים ישנים בלי crypto.randomUUID */
-const randomId = (): string => {
-  try {
-    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-      return crypto.randomUUID();
-    }
-  } catch {
-    /* נופלים לגיבוי למטה */
-  }
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-};
+import { acceptFor, isVideoUrl } from "@/lib/media";
+import { RASTER_TYPES, SVG_TYPE, VIDEO_TYPES, uploadSiteMedia } from "@/lib/upload-media";
 
 type Props = {
   label: string;
@@ -62,36 +43,9 @@ export default function AdminImageField({
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
     setErr(null);
-
-    // סוג הקובץ מהדפדפן, ואם ריק (נפוץ ל-SVG בווינדוס) — נגזר מהסיומת
-    const type = fileMimeType(file);
-    if (!allowed.includes(type)) {
-      const kinds = ["JPG, PNG, WebP", allowSvg ? "SVG" : "", allowVideo ? "MP4, WebM" : ""]
-        .filter(Boolean)
-        .join(", ");
-      setErr(`סוגי קבצים נתמכים: ${kinds}`);
-      return;
-    }
-    const isVideo = type.startsWith("video/");
-    if (file.size > (isVideo ? MAX_VIDEO_SIZE : MAX_SIZE)) {
-      setErr(isVideo ? "הסרטון גדול מדי (עד 50MB)" : "הקובץ גדול מדי (עד 5MB)");
-      return;
-    }
-
     setBusy(true);
     try {
-      const ext = fileExt(file.name) || "jpg";
-      const path = `${folder}/${randomId()}.${ext}`;
-      const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
-        // contentType מפורש לפי הסוג שנגזר — כדי שהעלאת SVG עם file.type ריק לא תיפסל
-        contentType: type,
-        upsert: false,
-      });
-      if (error) throw new Error(error.message);
-      // ה-bucket ציבורי — נשמרת כתובת קבועה שאינה פוקעת (כתובות חתומות ישנות
-      // ממשיכות לעבוד עד לפקיעתן)
-      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      onChange(data.publicUrl);
+      onChange(await uploadSiteMedia(file, folder, allowed));
     } catch (e) {
       setErr(e instanceof Error ? e.message : "העלאת הקובץ נכשלה");
     } finally {
