@@ -13,7 +13,7 @@ import {
 } from "@/lib/account.functions";
 import { claimAdminRole } from "@/lib/site.functions";
 import { adminScoutNewCount } from "@/lib/scout.functions";
-import { respondToNotification } from "@/lib/leads.functions";
+import { adminLeadsAttentionCount, respondToNotification } from "@/lib/leads.functions";
 import { CLIENT_RESPONSES, type ClientResponse } from "@/lib/leads";
 import { formatListingPrice } from "@/lib/listings";
 import { neighborhoods } from "@/lib/site-data";
@@ -31,6 +31,7 @@ type TabKey = "overview" | AdminTabKey;
 const TAB_KEYS: TabKey[] = [
   "overview",
   "listings",
+  "leads",
   "sold",
   "scout",
   "content",
@@ -151,6 +152,7 @@ function AccountPage() {
   const updateProfile = useServerFn(updateMyProfile);
   const claim = useServerFn(claimAdminRole);
   const fetchScoutCount = useServerFn(adminScoutNewCount);
+  const fetchLeadsAttention = useServerFn(adminLeadsAttentionCount);
 
   const account = useQuery({ queryKey: ["my-account"], queryFn: () => fetchAccount() });
   const [form, setForm] = useState<ProfileForm>(emptyProfile);
@@ -182,6 +184,14 @@ function AccountPage() {
     enabled: isSuperAdmin,
   });
   const newCount = scoutCount.data?.count ?? 0;
+
+  // תגית תשומת-לב לטאב הלידים: משימות באיחור + לידים חדשים שטרם טופלו
+  const leadsAttention = useQuery({
+    queryKey: ["leads-attention-count"],
+    queryFn: () => fetchLeadsAttention(),
+    enabled: isManager,
+  });
+  const attentionCount = leadsAttention.data?.count ?? 0;
 
   const run = async (fn: () => Promise<unknown>, okMsg: string) => {
     setBusy(true);
@@ -286,6 +296,7 @@ function AccountPage() {
             [
               ["overview", "החשבון שלי"],
               ["listings", "נכסים"],
+              ["leads", attentionCount > 0 ? `לידים (${attentionCount})` : "לידים"],
               ["sold", "נמכרו"],
               ...(isSuperAdmin
                 ? ([["scout", newCount > 0 ? `סוכן סריקה (${newCount})` : "סוכן סריקה"]] as Array<

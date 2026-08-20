@@ -23,6 +23,7 @@ import { AdminPublish } from "@/components/site/AdminPublish";
 import { AdminSold } from "@/components/site/AdminSold";
 import AdminUsage from "@/components/site/AdminUsage";
 import AdminScout from "@/components/site/AdminScout";
+import AdminLeads from "@/components/site/AdminLeads";
 import AdminListingImages from "@/components/site/AdminListingImages";
 import AdminImageField from "@/components/site/AdminImageField";
 import AdminSitesPanel from "@/components/site/AdminSitesPanel";
@@ -30,7 +31,7 @@ import { AdminContentExtras } from "@/components/site/AdminContentExtras";
 import { TabHelp } from "@/components/site/AdminGuide";
 
 export type AdminTabKey =
-  "listings" | "sold" | "scout" | "content" | "publish" | "agents" | "clients" | "usage";
+  "listings" | "leads" | "sold" | "scout" | "content" | "publish" | "agents" | "clients" | "usage";
 
 type ListingForm = {
   id?: string;
@@ -396,6 +397,19 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
       {tab === "clients" && isSuperAdmin && <AdminUsers audience="clients" />}
       {tab === "usage" && isSuperAdmin && <AdminUsage />}
       {tab === "scout" && isSuperAdmin && <AdminScout />}
+      {tab === "leads" &&
+        (selectedSiteId ? (
+          <AdminLeads
+            siteId={selectedSiteId}
+            isSuperAdmin={isSuperAdmin}
+            listings={listings.data ?? []}
+            sites={site.data?.sites ?? []}
+          />
+        ) : (
+          <p className="mt-6 rounded-xl bg-secondary p-4 text-sm text-muted-foreground">
+            לא נמצאה רשומת אתר במסד הנתונים — לא ניתן לנהל לידים.
+          </p>
+        ))}
       {tab === "sold" &&
         (selectedSiteId ? (
           <AdminSold siteId={selectedSiteId} />
