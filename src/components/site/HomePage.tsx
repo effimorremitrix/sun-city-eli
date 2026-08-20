@@ -1,6 +1,5 @@
 import { Header } from "@/components/site/Header";
 import { Hero } from "@/components/site/Hero";
-import { Team } from "@/components/site/Team";
 import { PropertySection } from "@/components/site/PropertySection";
 import { SellerSection } from "@/components/site/SellerSection";
 import { BuyerSection } from "@/components/site/BuyerSection";
@@ -15,12 +14,11 @@ import { redirect } from "@tanstack/react-router";
 import { SiteLiveProvider, localizeLive, type LiveSite } from "@/lib/site-live";
 import { OFFICE_SLUG } from "@/lib/site-data";
 import { getPublicSite } from "@/lib/site.functions";
-import { listPublicListings, listPublicAgents } from "@/lib/listings.functions";
+import { listPublicListings } from "@/lib/listings.functions";
 import { listPublicSoldProperties, type SoldProperty } from "@/lib/sold.functions";
 import { localizeListing, type Listing } from "@/lib/listings";
 import { DICTS, LangProvider, useLang, type Locale } from "@/lib/i18n";
 import { headForLocale } from "@/lib/i18n/seo";
-import type { PublicAgentRow } from "@/lib/agents.server";
 
 /* ============================================================
  * הדף הראשי, משותף לכל השפות.
@@ -35,19 +33,20 @@ import type { PublicAgentRow } from "@/lib/agents.server";
 export type HomeData = {
   live: LiveSite;
   listings: Listing[];
-  agents: PublicAgentRow[];
   sold: SoldProperty[];
 };
 
-/** נתוני הדף הראשי — כלל הנכסים, הסוכנים והמכירות של כל הסוכנים */
+/**
+ * נתוני הדף הראשי — כלל הנכסים והמכירות של כל הסוכנים. רשימת הסוכנים אינה
+ * נטענת כאן: מדור הצוות מוצג רק בדפים האישיים, והדף הראשי לא זקוק לה.
+ */
 export async function loadHomeData(): Promise<HomeData> {
-  const [live, listings, agents, sold] = await Promise.all([
+  const [live, listings, sold] = await Promise.all([
     getPublicSite(),
     listPublicListings(),
-    listPublicAgents(),
     listPublicSoldProperties({ data: {} }),
   ]);
-  return { live, listings, agents, sold };
+  return { live, listings, sold };
 }
 
 /** נתוני הדף הראשי — או הפניה קבועה (301) אל /sun-city כשהדגל homeRedirect דולק */
@@ -73,8 +72,10 @@ export function HomePage({ data, lang }: { data: HomeData; lang: Locale }) {
 
 function HomeContent({ data }: { data: HomeData }) {
   const { lang, t } = useLang();
-  const { live, listings, agents, sold } = data;
-  const localizedLive = localizeLive(live, lang, t);
+  const { live, listings, sold } = data;
+  // isHome: מסמן לתפריט, לפוטר ולמדורים שזהו הדומיין הראשי — שם מדור הצוות
+  // לא מוצג כלל. בדפים האישיים של הסוכנים הוא נשאר.
+  const localizedLive = { ...localizeLive(live, lang, t), isHome: true };
   const localizedListings = listings.map((l) => localizeListing(l, lang));
   const listingsUpdatedAt = listings.reduce<string | null>(
     (max, l) => (!max || l.updated_at > max ? l.updated_at : max),
@@ -87,7 +88,6 @@ function HomeContent({ data }: { data: HomeData }) {
         <Header />
         <main>
           <Hero />
-          <Team agents={agents} />
           <PropertySection listings={localizedListings} updatedAt={listingsUpdatedAt} />
           <ItemsSection />
           <SellerSection />

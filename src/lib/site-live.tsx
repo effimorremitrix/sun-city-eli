@@ -110,6 +110,12 @@ export type LiveSite = {
   settings: LiveSettings;
   /** האם נמצאה רשומת אתר במסד (false בדף של slug לא קיים) */
   found: boolean;
+  /**
+   * האם הרינדור הוא עמוד הבית "/" (ולא דף אישי של סוכן). שדה תצוגה שנקבע
+   * בראוט ולא מגיע מהמסד: ב-"/" נטענת רשומת המשרד, ולכן ה-slug זהה לזה של
+   * /sun-city ואי אפשר להבחין ביניהם לפיו.
+   */
+  isHome: boolean;
 };
 
 export type LiveSettings = {
@@ -156,6 +162,7 @@ export const DEFAULT_LIVE: LiveSite = {
   slug: null,
   settings: { homeRedirect: false },
   found: false,
+  isHome: false,
 };
 
 /** ערך מספרי מהמסד — מחרוזת ריקה, null או ערך לא מספרי הופכים ל-null */
@@ -215,6 +222,8 @@ export function mergeLive(raw: unknown): LiveSite {
     slug: data.slug ?? null,
     settings: { homeRedirect: data.settings?.homeRedirect === true },
     found: raw != null,
+    // ברירת המחדל היא "דף אישי"; עמוד הבית מדליק את הדגל בעצמו
+    isHome: false,
   };
 }
 

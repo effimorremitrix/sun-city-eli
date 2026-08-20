@@ -43,25 +43,34 @@ export type ScoutCandidate = {
 /** רף ציון התאמה — מועמד מתחתיו נפסל (רשת ביטחון מעל הסינון הקשיח) */
 export const MIN_MATCH_SCORE = 60;
 
-/** דומיינים שמותר לקבל מהם מועמדים */
+/**
+ * המארח כפי שהוא מופיע במפות שלמטה — בלי תחיליות www/m. תוצאות אמיתיות
+ * מגיעות גם מהאתר הנייד (למשל m.homeless.co.il), ולכן כל בדיקת מארח עוברת
+ * דרך הנרמול הזה.
+ */
+const bareHost = (hostname: string) => hostname.replace(/^(www\.|m\.)/, "");
+
+/** דומיינים שמותר לקבל מהם מועמדים (מארח מנורמל → שם האתר בעברית) */
 const ALLOWED_HOSTS: Record<string, string> = {
   "yad2.co.il": "יד2",
-  "www.yad2.co.il": "יד2",
   "madlan.co.il": "מדלן",
-  "www.madlan.co.il": "מדלן",
   "homeless.co.il": "הומלס",
-  "www.homeless.co.il": "הומלס",
   "komo.co.il": "קומו",
-  "www.komo.co.il": "קומו",
   "winwin.co.il": "וין וין",
-  "www.winwin.co.il": "וין וין",
   "nadlan.gov.il": "רשות המיסים",
-  "www.nadlan.gov.il": "רשות המיסים",
   "facebook.com": "פייסבוק",
-  "www.facebook.com": "פייסבוק",
-  "m.facebook.com": "פייסבוק",
   "instagram.com": "אינסטגרם",
-  "www.instagram.com": "אינסטגרם",
+};
+
+/** המקורות שנבחרים בפרופיל → הדומיינים שלהם (מארח מנורמל) */
+const SOURCE_HOSTS: Record<string, string[]> = {
+  yad2: ["yad2.co.il"],
+  madlan: ["madlan.co.il"],
+  homeless: ["homeless.co.il"],
+  komo: ["komo.co.il"],
+  winwin: ["winwin.co.il"],
+  facebook: ["facebook.com"],
+  instagram: ["instagram.com"],
 };
 
 const SITE_QUERY: Record<string, string> = {
@@ -75,6 +84,13 @@ const SITE_QUERY: Record<string, string> = {
   instagram: "site:instagram.com",
 };
 
+/** הדומיינים שאליהם מוגבלת הסריקה של הפרופיל — ריק = בלי הגבלה */
+export function profileHosts(sources: string[]): string[] {
+  const hosts = new Set<string>();
+  for (const s of sources) for (const h of SOURCE_HOSTS[s] ?? []) hosts.add(h);
+  return [...hosts];
+}
+
 /**
  * זיהוי עמוד מודעה בודדת (ולא עמוד תוצאות חיפוש/רשימה) — פר אתר.
  * מודעה שנפסלת כאן היא כמעט תמיד קישור כללי לעמוד חיפוש.
@@ -82,7 +98,8 @@ const SITE_QUERY: Record<string, string> = {
 const AD_PATH_RE: Record<string, RegExp> = {
   "yad2.co.il": /\/(realestate\/item|item)\//,
   "madlan.co.il": /\/(listings|bulletin|לוח)\//,
-  "homeless.co.il": /(details|item|prop)/i,
+  // הומלס: עמוד מודעה הוא /sale/viewad,123456.aspx (וגם באתר הנייד)
+  "homeless.co.il": /(viewad|details|item|prop)/i,
   "komo.co.il": /(ad|item|מודעה)/i,
   "winwin.co.il": /(item|ad|prop)/i,
   "facebook.com": /\/(groups\/[^/]+\/(posts|permalink)|marketplace\/item)\//,
@@ -96,8 +113,7 @@ function looksLikeAdPage(url: URL): boolean {
   const path = url.pathname + url.search;
   if (url.pathname === "/" || url.pathname === "") return false;
   if (SEARCH_PAGE_RE.test(path)) return false;
-  const bareHost = url.hostname.replace(/^(www\.|m\.)/, "");
-  const re = AD_PATH_RE[bareHost];
+  const re = AD_PATH_RE[bareHost(url.hostname)];
   // אתר בלי תבנית מוכרת: מסתפקים בכך שאינו עמוד חיפוש
   return re ? re.test(path) : true;
 }
@@ -205,23 +221,35 @@ export function hardCriteriaViolation(
   return null;
 }
 
+/** מודעה שנפסלה בסינון — נאסף כדי שלוח הניהול יוכל להסביר סריקה ריקה */
+export type RejectedCandidate = { url: string; reason: string };
+
 /**
  * ניקוי קשיח: מועמד תקין רק אם יש לו URL אמיתי מדומיין מוכר וכותרת,
  * והוא עומד בכל קריטריוני הפרופיל (hardCriteriaViolation).
  * כשקיימות תוצאות חיפוש אמיתיות (grounded) — ה-URL חייב להיות מעוגן בהן,
  * כדי שלא יומצאו קישורים; בנוסף נפסלים עמודי תוצאות-חיפוש כלליים.
+ *
+ * `rejected` (אופציונלי) מקבל את הסיבות לפסילה — בלעדיו סריקה שחזרה ריקה
+ * נראית בלוח הניהול כמו סריקה מוצלחת בלי מודעות.
  */
 export function sanitizeCandidates(
   raw: unknown,
   profile: ScoutProfile,
   neighborhoods: string[],
   groundedUrls: Set<string> = new Set(),
+  rejected: RejectedCandidate[] = [],
 ): ScoutCandidate[] {
   const list = Array.isArray((raw as { candidates?: unknown[] })?.candidates)
     ? ((raw as { candidates: unknown[] }).candidates as unknown[])
     : [];
   const out: ScoutCandidate[] = [];
   const seen = new Set<string>();
+  // אכיפה קשיחה של האתרים שנבחרו בפרופיל: מודעה מאתר אחר נפסלת
+  const allowedHosts = new Set(profileHosts(profile.sources));
+  const drop = (url: string, reason: string) => {
+    rejected.push({ url, reason });
+  };
 
   // אינדקס לפי host+pathname — הלינק מהמודל לפעמים שונה רק בפרמטרים
   const groundedByPath = new Set<string>();
@@ -245,20 +273,37 @@ export function sanitizeCandidates(
       continue;
     }
     if (url.protocol !== "https:" && url.protocol !== "http:") continue;
-    const site = ALLOWED_HOSTS[url.hostname];
-    if (!site) continue;
+    const host = bareHost(url.hostname);
+    const site = ALLOWED_HOSTS[host];
+    if (!site) {
+      drop(url.href, `אתר לא מוכר (${url.hostname})`);
+      continue;
+    }
+    if (allowedHosts.size > 0 && !allowedHosts.has(host)) {
+      drop(url.href, `${site} — מחוץ לאתרים שנבחרו בפרופיל`);
+      continue;
+    }
     // רק עמודי מודעה בודדים — לא עמודי חיפוש/מפה
-    if (!looksLikeAdPage(url)) continue;
+    if (!looksLikeAdPage(url)) {
+      drop(url.href, "קישור לעמוד חיפוש ולא למודעה");
+      continue;
+    }
     // עיגון בתוצאות חיפוש אמיתיות — מוודא שהמודל לא המציא קישור
     if (groundedUrls.size > 0) {
-      const key = url.hostname.replace(/^(www\.|m\.)/, "") + url.pathname;
-      if (!groundedUrls.has(url.href) && !groundedByPath.has(key)) continue;
+      const key = host + url.pathname;
+      if (!groundedUrls.has(url.href) && !groundedByPath.has(key)) {
+        drop(url.href, "הקישור לא הופיע בתוצאות החיפוש");
+        continue;
+      }
     }
     if (seen.has(url.href)) continue;
     seen.add(url.href);
 
     const title = s(c["title"], 160);
-    if (!title) continue;
+    if (!title) {
+      drop(url.href, "למודעה אין כותרת");
+      continue;
+    }
 
     const deal =
       c["deal_type"] === "מכירה" || c["deal_type"] === "השכרה" ? (c["deal_type"] as string) : null;
@@ -286,7 +331,11 @@ export function sanitizeCandidates(
     };
 
     // מועמד שסותר את קריטריוני הפרופיל נפסל — ואינו נספר במכסה
-    if (hardCriteriaViolation(cand, profile, neighborhoods) !== null) continue;
+    const violation = hardCriteriaViolation(cand, profile, neighborhoods);
+    if (violation !== null) {
+      drop(url.href, violation);
+      continue;
+    }
 
     out.push(cand);
     if (out.length >= 12) break;
@@ -318,7 +367,11 @@ function buildUserPrompt(p: ScoutProfile): string {
     .map((x) => SITE_QUERY[x])
     .filter(Boolean)
     .join(" OR ");
-  const scope = sites ? `חפש בעיקר ב: ${sites}` : 'חפש באתרי הנדל"ן המרכזיים בישראל';
+  // האתרים שנבחרו נאכפים גם ב-allowed_domains של כלי החיפוש; הניסוח כאן
+  // תואם לכך, כדי שהמודל לא יבזבז חיפושים על אתרים שממילא ייחסמו
+  const scope = sites
+    ? `חפש אך ורק ב: ${sites} — מודעה מאתר אחר לא תתקבל`
+    : 'חפש באתרי הנדל"ן המרכזיים בישראל';
 
   return `${scope}
 מצא מודעות נדל"ן עדכניות שמתאימות לקריטריונים הבאים:
@@ -337,7 +390,7 @@ export async function runWebPropertySearch(
   neighborhoods: string[],
   userId: string | null = null,
   feature = "admin_scout",
-): Promise<{ candidates: ScoutCandidate[]; searches: number }> {
+): Promise<{ candidates: ScoutCandidate[]; searches: number; rejected: RejectedCandidate[] }> {
   const { AI_MODEL, logAiUsage } = await import("@/lib/ai-usage.server");
   const apiKey = process.env["ANTHROPIC_API_KEY"];
   if (!apiKey) {
@@ -350,6 +403,17 @@ export async function runWebPropertySearch(
     });
     throw new Error("סוכן הסריקה אינו זמין כרגע (חסר מפתח API)");
   }
+
+  /* אכיפת האתרים שנבחרו כבר בשלב החיפוש: "site:" בתוך הפרומפט הוא רמז
+   * שהמודל חופשי להתעלם ממנו, ואילו allowed_domains מגביל את מנוע החיפוש
+   * עצמו — כך "הומלס בלבד" באמת מחזיר מודעות מהומלס. */
+  const allowedDomains = profileHosts(profile.sources);
+  const searchTool: Record<string, unknown> = {
+    type: "web_search_20250305",
+    name: "web_search",
+    max_uses: 6,
+  };
+  if (allowedDomains.length) searchTool["allowed_domains"] = allowedDomains;
 
   let res: Response;
   try {
@@ -364,7 +428,7 @@ export async function runWebPropertySearch(
         model: AI_MODEL,
         max_tokens: 4000,
         system: SYSTEM_PROMPT,
-        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 6 }],
+        tools: [searchTool],
         messages: [{ role: "user", content: buildUserPrompt(profile) }],
       }),
     });
@@ -439,24 +503,33 @@ export async function runWebPropertySearch(
     .join("\n")
     .trim();
 
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
+  // גדרות קוד (```json) נפוצות בתשובה שמלווה בטקסט — מסירים לפני הפענוח
+  const fenced = text.replace(/```(?:json)?/gi, "");
+  const start = fenced.indexOf("{");
+  const end = fenced.lastIndexOf("}");
+  const rejected: RejectedCandidate[] = [];
   let parsed: unknown = {};
   try {
-    parsed = JSON.parse(start >= 0 && end > start ? text.slice(start, end + 1) : text);
+    parsed = JSON.parse(start >= 0 && end > start ? fenced.slice(start, end + 1) : fenced);
   } catch {
+    // כישלון פענוח אינו "אפס תוצאות" — מדווחים אותו כדי שלא ייראה כסריקה תקינה
+    rejected.push({ url: "", reason: "המודל לא החזיר JSON תקין" });
     parsed = {};
   }
 
-  const candidates = sanitizeCandidates(parsed, profile, neighborhoods, groundedUrls);
+  const candidates = sanitizeCandidates(parsed, profile, neighborhoods, groundedUrls, rejected);
 
   // אימות עדין שהעמודים חיים: פוסל רק 404/410 (חסימת בוטים אינה פסילה)
   const verdicts = await Promise.all(candidates.map((c) => verifyCandidateUrl(c.source_url)));
-  const live = candidates.filter((_, i) => verdicts[i] !== "gone");
+  const live = candidates.filter((c, i) => {
+    if (verdicts[i] === "gone") rejected.push({ url: c.source_url, reason: "המודעה כבר לא קיימת" });
+    return verdicts[i] !== "gone";
+  });
 
   return {
     candidates: live,
     searches: json.usage?.server_tool_use?.web_search_requests ?? 0,
+    rejected,
   };
 }
 

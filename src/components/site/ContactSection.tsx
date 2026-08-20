@@ -197,7 +197,7 @@ export function ContactSection() {
 }
 
 export function Footer() {
-  const { business } = useLive();
+  const { business, isHome } = useLive();
   const { t, lang } = useLang();
   // הדפים המשפטיים קיימים בעברית ובאנגלית בלבד. גולש עברי מקבל את הנוסח העברי,
   // וכל שאר השפות מופנות לנוסח האנגלי דרך ?lang=en.
@@ -259,11 +259,14 @@ export function Footer() {
                 {t.footer.madlan}
               </a>
             </li>
-            <li>
-              <a href="#team" className="underline">
-                {t.footer.team}
-              </a>
-            </li>
+            {/* מדור הצוות מוצג רק בדפים האישיים של הסוכנים */}
+            {!isHome && (
+              <li>
+                <a href="#team" className="underline">
+                  {t.footer.team}
+                </a>
+              </li>
+            )}
 
             <li>
               <Link to="/accessibility" className="underline">
