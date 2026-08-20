@@ -13,6 +13,8 @@ import {
 } from "@/lib/account.functions";
 import { claimAdminRole } from "@/lib/site.functions";
 import { adminScoutNewCount } from "@/lib/scout.functions";
+import { respondToNotification } from "@/lib/leads.functions";
+import { CLIENT_RESPONSES, type ClientResponse } from "@/lib/leads";
 import { formatListingPrice } from "@/lib/listings";
 import { neighborhoods } from "@/lib/site-data";
 import { formatUpdated } from "@/lib/site-live";
@@ -145,6 +147,7 @@ function AccountPage() {
   const saveProfile = useServerFn(saveMySearchProfile);
   const removeProfile = useServerFn(deleteMySearchProfile);
   const markRead = useServerFn(markNotificationRead);
+  const respond = useServerFn(respondToNotification);
   const updateProfile = useServerFn(updateMyProfile);
   const claim = useServerFn(claimAdminRole);
   const fetchScoutCount = useServerFn(adminScoutNewCount);
@@ -436,6 +439,35 @@ function AccountPage() {
                         {formatUpdated(n.created_at)}
                       </p>
                       {n.reason && <p className="mt-1 text-xs text-muted-foreground">{n.reason}</p>}
+                      {/* תגובה מהירה — יוצרת משימת Follow-up אצל הסוכן המטפל */}
+                      {n.response ? (
+                        <p className="mt-2 rounded-lg bg-secondary p-2 text-xs font-semibold text-primary">
+                          קיבלנו את התגובה שלך (
+                          {CLIENT_RESPONSES[n.response as ClientResponse] ?? n.response}) — הסוכן
+                          יחזור אליך בהקדם.
+                        </p>
+                      ) : (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {(
+                            Object.entries(CLIENT_RESPONSES) as Array<[ClientResponse, string]>
+                          ).map(([key, label]) => (
+                            <button
+                              key={key}
+                              type="button"
+                              disabled={busy}
+                              className="rounded-xl bg-sun px-3 py-1.5 text-xs font-bold text-sun-foreground disabled:opacity-50"
+                              onClick={() =>
+                                run(
+                                  () => respond({ data: { notificationId: n.id, response: key } }),
+                                  "קיבלנו! הסוכן יחזור אליך בהקדם.",
+                                )
+                              }
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       <div className="mt-2 flex gap-3 text-sm">
                         <Link to="/" hash="properties" className="underline">
                           לצפייה באתר
