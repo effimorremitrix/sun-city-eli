@@ -37,8 +37,10 @@ import {
 } from "@/lib/listings";
 
 import { aiSearchListings, type AiSearchResult } from "@/lib/ai-search.functions";
+import { useServerFn } from "@tanstack/react-start";
 import { useLive } from "@/lib/site-live";
 import { isValidIsraeliPhone } from "@/lib/leads";
+import { createPublicLead } from "@/lib/leads.functions";
 import { mapValue, useLang } from "@/lib/i18n";
 import { PropertyMap } from "@/components/site/PropertyMap";
 import { Reveal } from "./Reveal";
@@ -457,6 +459,8 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
 
 function PropertyModal({ property: p, onClose }: { property: Listing; onClose: () => void }) {
   const { lang, dir, t } = useLang();
+  const { siteId } = useLive();
+  const createLead = useServerFn(createPublicLead);
   const [form, setForm] = useState({ name: "", phone: "" });
   const [err, setErr] = useState<string | null>(null);
   // מדיה: תמונות וסרטונים שהועלו; אחרת נפילה לתמונה חיצונית/מקומית
@@ -482,6 +486,21 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
     if (!form.name.trim()) return setErr(t.properties.errName);
     if (!isValidIsraeliPhone(form.phone)) return setErr(t.misc.phoneError);
     setErr(null);
+    // קליטה שקטה למודול הלידים — כולל הנכס שבגללו הלקוח פנה
+    try {
+      void createLead({
+        data: {
+          siteId,
+          name: form.name,
+          phone: form.phone,
+          message: `התעניינות בנכס: ${p.title}`,
+          source: "התעניינות בנכס",
+          listingId: p.id,
+        },
+      }).catch(() => {});
+    } catch {
+      /* קליטת ליד היא Best-effort */
+    }
     openWa(
       t.properties.waInterested(p.agent?.name ?? business.name, {
         title: p.title,

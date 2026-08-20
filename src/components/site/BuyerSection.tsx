@@ -1,13 +1,16 @@
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Users } from "lucide-react";
 import { business, neighborhoods, openWa } from "@/lib/site-data";
 import { isValidIsraeliPhone } from "@/lib/leads";
+import { createPublicLead } from "@/lib/leads.functions";
 import { useLang } from "@/lib/i18n";
 import { useLive } from "@/lib/site-live";
 
 export function BuyerSection() {
   const { t } = useLang();
-  const { business: live } = useLive();
+  const { business: live, siteId } = useLive();
+  const createLead = useServerFn(createPublicLead);
   const [form, setForm] = useState({ name: "", phone: "", budget: "", rooms: "", area: "" });
   const [err, setErr] = useState<string | null>(null);
 
@@ -19,6 +22,20 @@ export function BuyerSection() {
     if (!form.name.trim()) return setErr(t.buyers.errName);
     if (!isValidIsraeliPhone(form.phone)) return setErr(t.misc.phoneError);
     setErr(null);
+    // קליטה שקטה למודול הלידים — לפני פתיחת הוואטסאפ, בלי לחסום את הגולש
+    try {
+      void createLead({
+        data: {
+          siteId,
+          name: form.name,
+          phone: form.phone,
+          message: `מחפש/ת נכס: תקציב ${form.budget || "-"}, חדרים ${form.rooms || "-"}, אזור ${form.area || "-"}`,
+          source: "טופס קונים",
+        },
+      }).catch(() => {});
+    } catch {
+      /* קליטת ליד היא Best-effort */
+    }
     openWa(
       t.buyers.waMsg(live.name, {
         name: form.name,

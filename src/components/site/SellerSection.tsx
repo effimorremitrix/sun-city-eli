@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { ClipboardList, Home, FileCheck2 } from "lucide-react";
 import { openWa } from "@/lib/site-data";
 import { isValidIsraeliPhone } from "@/lib/leads";
+import { createPublicLead } from "@/lib/leads.functions";
 import { useLang } from "@/lib/i18n";
 import { useLive } from "@/lib/site-live";
 
@@ -9,7 +11,8 @@ const stepIcons = [ClipboardList, Home, FileCheck2];
 
 export function SellerSection() {
   const { t } = useLang();
-  const { business } = useLive();
+  const { business, siteId } = useLive();
+  const createLead = useServerFn(createPublicLead);
   const [form, setForm] = useState({ name: "", phone: "", address: "", rooms: "" });
   const [err, setErr] = useState<string | null>(null);
 
@@ -19,6 +22,20 @@ export function SellerSection() {
     if (!isValidIsraeliPhone(form.phone)) return setErr(t.misc.phoneError);
     if (!form.address.trim()) return setErr(t.sellers.errAddress);
     setErr(null);
+    // קליטה שקטה למודול הלידים — לפני פתיחת הוואטסאפ, בלי לחסום את הגולש
+    try {
+      void createLead({
+        data: {
+          siteId,
+          name: form.name,
+          phone: form.phone,
+          message: `מוכר/ת נכס: ${form.address}${form.rooms ? `, ${form.rooms} חדרים` : ""}`,
+          source: "טופס מוכרים",
+        },
+      }).catch(() => {});
+    } catch {
+      /* קליטת ליד היא Best-effort */
+    }
     // הפנייה מגיעה לוואטסאפ של סוכן הדף הנוכחי (בדף הראשי — של המשרד)
     openWa(
       t.sellers.waMsg(business.name, {
