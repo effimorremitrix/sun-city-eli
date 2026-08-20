@@ -33,6 +33,9 @@ export type NotificationRow = {
   reason: string | null;
   read_at: string | null;
   email_sent_at: string | null;
+  /* תגובת הלקוח על ההתראה — 'interested' / 'wants_tour' / 'talk_to_me' */
+  response: string | null;
+  response_at: string | null;
   created_at: string;
   listing: Listing | null;
 };
@@ -64,7 +67,7 @@ export const getMyAccount = createServerFn({ method: "GET" })
       supabase
         .from("listing_notifications")
         .select(
-          `id, reason, read_at, email_sent_at, created_at, listing:listing_id(${LISTING_COLUMNS})`,
+          `id, reason, read_at, email_sent_at, response, response_at, created_at, listing:listing_id(${LISTING_COLUMNS})`,
         )
         .eq("user_id", userId)
         .order("created_at", { ascending: false })

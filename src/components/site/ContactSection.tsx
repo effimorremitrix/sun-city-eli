@@ -1,15 +1,18 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { MapPin, Phone, Mail, Clock, MessageCircle } from "lucide-react";
 import { SITE_CONFIG, mapsEmbedUrl, mapsUrl, wazeUrl, waProps, openWa } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
 import logoIcon from "@/assets/sun-city-logo-icon.svg";
 import { isValidIsraeliPhone } from "@/lib/leads";
+import { createPublicLead } from "@/lib/leads.functions";
 import { useLang } from "@/lib/i18n";
 
 export function ContactSection() {
-  const { business } = useLive();
+  const { business, siteId } = useLive();
   const { t } = useLang();
+  const createLead = useServerFn(createPublicLead);
   const [form, setForm] = useState({ name: "", phone: "", topic: "", message: "" });
   const [err, setErr] = useState<string | null>(null);
 
@@ -18,6 +21,20 @@ export function ContactSection() {
     if (!form.name.trim()) return setErr(t.contact.errName);
     if (!isValidIsraeliPhone(form.phone)) return setErr(t.misc.phoneError);
     setErr(null);
+    // קליטה שקטה למודול הלידים — לפני פתיחת הוואטסאפ, בלי לחסום את הגולש
+    try {
+      void createLead({
+        data: {
+          siteId,
+          name: form.name,
+          phone: form.phone,
+          message: [form.topic, form.message].filter(Boolean).join(" — "),
+          source: "טופס יצירת קשר",
+        },
+      }).catch(() => {});
+    } catch {
+      /* קליטת ליד היא Best-effort */
+    }
     openWa(
       t.contact.waMsg(business.name, {
         name: form.name,

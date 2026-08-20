@@ -195,6 +195,14 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
     emailsPending = result.pending;
     waSent = result.waSent;
 
+    // מודול הלידים: כל לקוח רשום שהותאם מקבל כרטיס ליד ואירוע התאמה בציר הזמן
+    try {
+      const { syncListingMatchesToLeads } = await import("@/lib/leads.server");
+      await syncListingMatchesToLeads(listingId, siteId, fields.title);
+    } catch (e) {
+      console.error("syncListingMatchesToLeads failed", e instanceof Error ? e.message : e);
+    }
+
     // התראה לסוכן ולמנהל הראשי — כשל כאן לא מפיל את השמירה
     try {
       await notifyAgentOfMatches(minimal, siteId, result.recipients, `${siteUrl}/#properties`);
