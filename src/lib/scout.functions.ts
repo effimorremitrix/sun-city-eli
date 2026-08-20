@@ -27,10 +27,18 @@ export type ScoutCandidateRow = {
   created_at: string;
 };
 
-export type ScoutProfileRow = ScoutProfile & { created_at: string; updated_at: string };
+export type ScoutProfileRow = ScoutProfile & {
+  created_at: string;
+  updated_at: string;
+  /* סיכום הסריקה האחרונה — נשמר על שורת הפרופיל כדי שיישרוד רענון דף */
+  last_run_found: number | null;
+  last_run_inserted: number | null;
+  last_run_skipped: number | null;
+  last_run_note: string | null;
+};
 
 const PROFILE_COLUMNS =
-  "id,label,deal_type,city,neighborhoods,min_price,max_price,min_rooms,min_size,needs_mamad,needs_elevator,needs_parking,needs_balcony,sources,notes,is_active,last_run_at,created_at,updated_at";
+  "id,label,deal_type,city,neighborhoods,min_price,max_price,min_rooms,min_size,needs_mamad,needs_elevator,needs_parking,needs_balcony,sources,notes,is_active,last_run_at,last_run_found,last_run_inserted,last_run_skipped,last_run_note,created_at,updated_at";
 
 const CANDIDATE_COLUMNS =
   "id,scout_profile_id,source_site,source_url,title,deal_type,price,rooms,size_sqm,neighborhood,address,has_mamad,has_elevator,has_parking,has_balcony,raw_summary,match_score,match_reason,status,created_listing_id,created_at";
@@ -148,22 +156,29 @@ export const adminDeleteScoutProfile = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** רשימת מועמדים לפי סטטוס */
+/** רשימת מועמדים לפי סטטוס, ואופציונלית לפי פרופיל הסריקה שמצא אותם */
 export const adminListScoutCandidates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { status?: string }) => {
+  .inputValidator((input: { status?: string; profileId?: string | null }) => {
     const s = input?.status;
-    return { status: s === "approved" || s === "rejected" || s === "new" ? s : "new" };
+    return {
+      status: s === "approved" || s === "rejected" || s === "new" ? s : "new",
+      profileId: str(input?.profileId, 60),
+    };
   })
   .handler(async ({ data, context }): Promise<ScoutCandidateRow[]> => {
     const { assertSuperAdmin } = await import("@/lib/admin.server");
     await assertSuperAdmin(context);
-    const { data: rows, error } = await context.supabase
+    let q = context.supabase
       .from("scout_candidates")
       .select(CANDIDATE_COLUMNS)
-      .eq("status", data.status)
-      .order("match_score", { ascending: false })
+      .eq("status", data.status);
+    if (data.profileId) q = q.eq("scout_profile_id", data.profileId);
+    // המיון לפי מועד: מועמד שנוסף בסריקה האחרונה חייב להופיע בראש הרשימה.
+    // מיון לפי ציון היה קובר אותו מתחת למאה השורות של מועמדים ותיקים.
+    const { data: rows, error } = await q
       .order("created_at", { ascending: false })
+      .order("match_score", { ascending: false })
       .limit(100);
     if (error) throw new Error(error.message);
     return (rows ?? []) as unknown as ScoutCandidateRow[];
@@ -193,8 +208,10 @@ export const adminRunScout = createServerFn({ method: "POST" })
     const { assertSuperAdmin } = await import("@/lib/admin.server");
     await assertSuperAdmin(context);
 
-    let q = context.supabase.from("scout_profiles").select(PROFILE_COLUMNS).eq("is_active", true);
-    if (data.profileId) q = q.eq("id", data.profileId);
+    // סריקה של פרופיל מסוים היא בקשה מפורשת של המנהל, ולכן רצה גם כשהפרופיל
+    // כבוי (הדגל is_active קובע רק מה נסרק אוטומטית). סריקה כללית — רק פעילים.
+    let q = context.supabase.from("scout_profiles").select(PROFILE_COLUMNS);
+    q = data.profileId ? q.eq("id", data.profileId) : q.eq("is_active", true);
     const { data: profiles, error } = await q;
     if (error) throw new Error(error.message);
     if (!profiles || profiles.length === 0) {
@@ -202,7 +219,12 @@ export const adminRunScout = createServerFn({ method: "POST" })
         scanned: 0,
         found: 0,
         inserted: 0,
-        errors: ["אין פרופיל סריקה פעיל. הגדירו קריטריונים והפעילו אותם"],
+        errors: [
+          data.profileId
+            ? "פרופיל הסריקה לא נמצא"
+            : "אין פרופיל סריקה פעיל. הגדירו קריטריונים והפעילו אותם",
+        ],
+        profiles: [],
       };
     }
 

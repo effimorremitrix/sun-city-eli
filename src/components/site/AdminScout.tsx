@@ -12,6 +12,7 @@ import {
   type ScoutProfileRow,
   type ScoutCandidateRow,
 } from "@/lib/scout.functions";
+import type { ScoutProfileRunSummary } from "@/lib/scout-run.server";
 import { neighborhoods } from "@/lib/site-data";
 
 const SOURCES: Array<[string, string]> = [
@@ -25,6 +26,10 @@ const SOURCES: Array<[string, string]> = [
   ["facebook", "פייסבוק (קבוצות ציבוריות)"],
   ["instagram", "אינסטגרם (פוסטים ציבוריים)"],
 ];
+
+const SOURCE_LABELS = new Map(SOURCES);
+/** שם האתר בעברית לתצוגה ("homeless" → "הומלס") */
+const sourceLabel = (key: string) => SOURCE_LABELS.get(key) ?? key;
 
 const STATUSES: Array<[string, string]> = [
   ["new", "מועמדים חדשים"],
@@ -135,23 +140,37 @@ export function AdminScout() {
 
   const [form, setForm] = useState<Form>(emptyForm);
   const [status, setStatusTab] = useState("new");
+  /** null = כל הפרופילים; אחרת מזהה הפרופיל שמסננים לפיו את המועמדים */
+  const [profileFilter, setProfileFilter] = useState<string | null>(null);
+  const [runSummary, setRunSummary] = useState<ScoutProfileRunSummary[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
 
   const profiles = useQuery({ queryKey: ["scout-profiles"], queryFn: () => listProfiles() });
   const candidates = useQuery({
-    queryKey: ["scout-candidates", status],
-    queryFn: () => listCandidates({ data: { status } }),
+    queryKey: ["scout-candidates", status, profileFilter],
+    queryFn: () => listCandidates({ data: { status, profileId: profileFilter } }),
   });
+
+  /**
+   * שם הפרופיל שמצא את המועמד — ה-FK מתאפס כשהפרופיל נמחק. כל עוד רשימת
+   * הפרופילים בטעינה מחזירים null (התג לא מוצג) ולא "נמחק" שגוי.
+   */
+  const profileLabel = (id: string | null): string | null => {
+    if (!profiles.data) return null;
+    if (!id) return "פרופיל שנמחק";
+    return profiles.data.find((p) => p.id === id)?.label ?? "פרופיל שנמחק";
+  };
 
   const run = async (fn: () => Promise<unknown>, okMsg: string) => {
     setBusy(true);
     setErr("");
     setMsg("");
     try {
-      await fn();
-      setMsg(okMsg);
+      // פעולה שמחזירה מחרוזת מספרת בעצמה מה קרה (למשל סיכום סריקה)
+      const result = await fn();
+      setMsg(typeof result === "string" ? result : okMsg);
       await qc.invalidateQueries({ queryKey: ["scout-profiles"] });
       await qc.invalidateQueries({ queryKey: ["scout-candidates"] });
       await qc.invalidateQueries({ queryKey: ["scout-new-count"] });
@@ -191,15 +210,26 @@ export function AdminScout() {
 
   const doRun = (profileId?: string) =>
     run(async () => {
+      setRunSummary(null);
       const r = (await runScout({ data: { profileId: profileId ?? null } })) as {
         scanned: number;
         found: number;
         inserted: number;
         errors: string[];
+        profiles: ScoutProfileRunSummary[];
       };
+      setRunSummary(r.profiles ?? []);
       if (r.errors?.length) throw new Error(r.errors.join(" | "));
       setStatusTab("new");
-      return r;
+      // אחרי סריקה של פרופיל מסוים — הרשימה מסוננת אליו, כדי לראות מיד מה נוסף
+      setProfileFilter(profileId ?? null);
+      const scope =
+        profileId && r.profiles?.length === 1
+          ? `סריקה לפי "${r.profiles[0]!.label}"`
+          : `סריקה לפי ${r.scanned} פרופילים`;
+      return r.inserted > 0
+        ? `${scope} הושלמה — ${r.inserted} מועמדים חדשים נוספו לרשימה`
+        : `${scope} הושלמה — לא נוספו מועמדים חדשים. הפירוט למטה מסביר למה`;
     }, "הסריקה הושלמה — בדקו את רשימת המועמדים");
 
   const input = "mt-1 w-full rounded-xl border border-primary/25 bg-background px-3 py-2 text-sm";
@@ -210,10 +240,10 @@ export function AdminScout() {
       <section className="soft-card p-5">
         <h2 className="text-lg font-extrabold text-primary">סוכן סריקת נכסים</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          הסוכן סורק את האינטרנט (יד2, מדלן ואתרי נדל"ן נוספים) ומציע נכסים שמתאימים לקריטריונים
-          שלך. כל מועמד מגיע עם קישור למודעת המקור — אין נתונים מומצאים, ושדה חסר מוצג כ"אין מידע".
-          מועמדים שסותרים את הקריטריונים או עם ציון התאמה נמוך מסוננים אוטומטית ואינם נשמרים. שום
-          נכס לא מתפרסם באתר ללא אישור שלך.
+          הסוכן סורק את האתרים שסימנת בכל פרופיל (ורק אותם) ומציע נכסים שמתאימים לקריטריונים שלך. כל
+          מועמד מגיע עם קישור למודעת המקור ועם שם הפרופיל שמצא אותו — אין נתונים מומצאים, ושדה חסר
+          מוצג כ"אין מידע". מועמדים שסותרים את הקריטריונים או עם ציון התאמה נמוך מסוננים אוטומטית
+          ואינם נשמרים, והסיבה מופיעה בסיכום הסריקה. שום נכס לא מתפרסם באתר ללא אישור שלך.
         </p>
         {msg && (
           <p className="mt-3 rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">
@@ -228,13 +258,44 @@ export function AdminScout() {
             {err}
           </p>
         )}
+        {/* פירוט הסריקה האחרונה — לכל פרופיל בשמו, כולל הסיבות לפסילה.
+            בלעדיו סריקה שחזרה ריקה נראית זהה לסריקה שהביאה נכסים. */}
+        {runSummary && runSummary.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {runSummary.map((p) => (
+              <div key={p.id} className="rounded-xl border border-primary/15 p-3">
+                <p className="text-sm font-bold text-primary">
+                  {p.label}
+                  {p.sources.length > 0 && (
+                    <span className="font-normal text-muted-foreground">
+                      {" "}
+                      · {p.sources.map(sourceLabel).join(", ")}
+                    </span>
+                  )}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  נמצאו {p.found} מודעות מתאימות · נשמרו {p.inserted} מועמדים חדשים · {p.duplicates}{" "}
+                  כבר היו ברשימה · {p.filtered} נפסלו בסינון
+                </p>
+                {p.reasons.length > 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    סיבות הפסילה: {p.reasons.join(" · ")}
+                  </p>
+                )}
+                {p.error && (
+                  <p className="mt-1 text-xs font-semibold text-destructive">{p.error}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
         <button
           type="button"
           disabled={busy}
           onClick={() => doRun()}
           className="mt-4 rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground disabled:opacity-60"
         >
-          {busy ? "סורק…" : "סרוק עכשיו"}
+          {busy ? "סורק…" : "סרוק את כל הפרופילים הפעילים"}
         </button>
       </section>
 
@@ -429,11 +490,25 @@ export function AdminScout() {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {p.deal_type} · {p.city}
-                    {p.neighborhoods?.length ? ` · ${p.neighborhoods.join(", ")}` : ""} ·{" "}
+                    {p.neighborhoods?.length ? ` · ${p.neighborhoods.join(", ")}` : ""}
+                    {p.min_rooms ? ` · מ-${p.min_rooms} חדרים` : ""} ·{" "}
                     {p.max_price ? `עד ${p.max_price.toLocaleString("he-IL")} ₪` : "בלי תקרת מחיר"}{" "}
-                    · עדכון אחרון:{" "}
-                    {p.last_run_at ? new Date(p.last_run_at).toLocaleString("he-IL") : "אין מידע"}
+                    · {p.sources?.length ? p.sources.map(sourceLabel).join(", ") : "כל האתרים"}
                   </p>
+                  {/* סיכום הסריקה האחרונה מהמסד — נשאר גלוי גם אחרי רענון הדף
+                      וגם עבור הסריקה האוטומטית הלילית */}
+                  <p className="text-xs text-muted-foreground">
+                    סריקה אחרונה:{" "}
+                    {p.last_run_at ? new Date(p.last_run_at).toLocaleString("he-IL") : "אין מידע"}
+                    {p.last_run_at && p.last_run_found != null
+                      ? ` · ${p.last_run_found} נמצאו · ${p.last_run_inserted ?? 0} נשמרו · ${
+                          p.last_run_skipped ?? 0
+                        } לא נשמרו`
+                      : ""}
+                  </p>
+                  {p.last_run_note && (
+                    <p className="text-xs text-muted-foreground">{p.last_run_note}</p>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -494,6 +569,27 @@ export function AdminScout() {
           </div>
         </div>
 
+        {/* סינון לפי הפרופיל שמצא את המועמדים */}
+        {(profiles.data?.length ?? 0) > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="סינון לפי פרופיל">
+            {[{ id: null, label: "כל הפרופילים" }, ...(profiles.data ?? [])].map((p) => (
+              <button
+                key={p.id ?? "all"}
+                type="button"
+                aria-pressed={profileFilter === p.id}
+                onClick={() => setProfileFilter(p.id)}
+                className={
+                  profileFilter === p.id
+                    ? "rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground"
+                    : "rounded-full border border-primary/30 px-3 py-1 text-xs font-bold text-primary"
+                }
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {candidates.isLoading && (
           <p className="mt-4 text-sm text-muted-foreground">טוען מועמדים…</p>
         )}
@@ -513,9 +609,17 @@ export function AdminScout() {
                   </p>
                   <AmenityChips c={c} />
                 </div>
-                <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-primary">
-                  {c.source_site} · התאמה {c.match_score}%
-                </span>
+                <div className="flex flex-wrap justify-end gap-1.5">
+                  {/* מאיזה פרופיל שמור הגיע המועמד */}
+                  {profileLabel(c.scout_profile_id) && (
+                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                      {profileLabel(c.scout_profile_id)}
+                    </span>
+                  )}
+                  <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-primary">
+                    {c.source_site} · התאמה {c.match_score}%
+                  </span>
+                </div>
               </div>
 
               {c.match_reason && <p className="mt-2 text-sm text-foreground">{c.match_reason}</p>}

@@ -13,10 +13,13 @@ const scrollTo = (id: string) => {
 };
 
 export function Header() {
-  const { business } = useLive();
+  const { business, isHome } = useLive();
   const { user, logout } = useAuth();
   const { t } = useLang();
   const [open, setOpen] = useState(false);
+
+  // בדומיין הראשי אין מדור צוות, ולכן גם אין קישור אליו בתפריט
+  const navLinks = isHome ? t.nav.links.filter((l) => l.id !== "team") : t.nav.links;
 
   const go = (id: string) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -68,7 +71,7 @@ export function Header() {
             ולכן טלפון ואזור אישי מוצגים כאייקונים, והטקסט חוזר בעברית בלבד מ-xl
             (rtl:) — בשפות הלטיניות התוויות הארוכות לא נכנסות בשום רוחב. */}
         <nav aria-label={t.nav.mainNavAria} className="hidden items-center gap-3 lg:flex xl:gap-4">
-          {t.nav.links.map((l) => (
+          {navLinks.map((l) => (
             <a
               key={l.id}
               href={`#${l.id}`}
@@ -162,7 +165,7 @@ export function Header() {
             <li className="border-b border-border/70 py-3">
               <SocialLinks size="size-8" />
             </li>
-            {t.nav.links.map((l) => (
+            {navLinks.map((l) => (
               <li key={l.id}>
                 <a
                   href={`#${l.id}`}

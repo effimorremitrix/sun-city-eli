@@ -533,6 +533,10 @@ export type Database = {
           is_active: boolean
           label: string
           last_run_at: string | null
+          last_run_found: number | null
+          last_run_inserted: number | null
+          last_run_note: string | null
+          last_run_skipped: number | null
           max_price: number | null
           min_price: number | null
           min_rooms: number | null
@@ -554,6 +558,10 @@ export type Database = {
           is_active?: boolean
           label?: string
           last_run_at?: string | null
+          last_run_found?: number | null
+          last_run_inserted?: number | null
+          last_run_note?: string | null
+          last_run_skipped?: number | null
           max_price?: number | null
           min_price?: number | null
           min_rooms?: number | null
@@ -575,6 +583,10 @@ export type Database = {
           is_active?: boolean
           label?: string
           last_run_at?: string | null
+          last_run_found?: number | null
+          last_run_inserted?: number | null
+          last_run_note?: string | null
+          last_run_skipped?: number | null
           max_price?: number | null
           min_price?: number | null
           min_rooms?: number | null
