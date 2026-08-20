@@ -58,7 +58,6 @@ export type Database = {
           ad_account_id: string | null
           connected_at: string
           connected_by: string | null
-          ig_user_id: string | null
           page_access_token: string
           page_id: string
           page_name: string
@@ -68,7 +67,6 @@ export type Database = {
           ad_account_id?: string | null
           connected_at?: string
           connected_by?: string | null
-          ig_user_id?: string | null
           page_access_token: string
           page_id: string
           page_name: string
@@ -78,7 +76,6 @@ export type Database = {
           ad_account_id?: string | null
           connected_at?: string
           connected_by?: string | null
-          ig_user_id?: string | null
           page_access_token?: string
           page_id?: string
           page_name?: string
@@ -437,10 +434,6 @@ export type Database = {
           created_at: string
           created_listing_id: string | null
           deal_type: string | null
-          has_balcony: boolean | null
-          has_elevator: boolean | null
-          has_mamad: boolean | null
-          has_parking: boolean | null
           id: string
           match_reason: string | null
           match_score: number
@@ -462,10 +455,6 @@ export type Database = {
           created_at?: string
           created_listing_id?: string | null
           deal_type?: string | null
-          has_balcony?: boolean | null
-          has_elevator?: boolean | null
-          has_mamad?: boolean | null
-          has_parking?: boolean | null
           id?: string
           match_reason?: string | null
           match_score?: number
@@ -487,10 +476,6 @@ export type Database = {
           created_at?: string
           created_listing_id?: string | null
           deal_type?: string | null
-          has_balcony?: boolean | null
-          has_elevator?: boolean | null
-          has_mamad?: boolean | null
-          has_parking?: boolean | null
           id?: string
           match_reason?: string | null
           match_score?: number
