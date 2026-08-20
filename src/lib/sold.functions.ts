@@ -22,6 +22,11 @@ const COLUMNS =
 
 const BUCKET = "listing-images";
 const SIGNED_TTL = 60 * 60 * 24 * 7; // שבוע
+/**
+ * תקרת התצוגה הציבורית של מדור "נמכר על ידינו" — בלם ביצועים (חתימת כתובת לכל
+ * תמונה, וכל הפריטים מרונדרים בקרוסלה), ולא מגבלה על מספר הנכסים שאפשר להוסיף.
+ */
+const PUBLIC_LIMIT = 60;
 
 type RawRow = {
   id: string;
@@ -74,7 +79,7 @@ export const listPublicSoldProperties = createServerFn({ method: "GET" })
       .order("sort_order", { ascending: true })
       .order("sold_at", { ascending: false });
 
-    const { data: rows, error } = await query.limit(24);
+    const { data: rows, error } = await query.limit(PUBLIC_LIMIT);
     if (error) {
       console.error("listPublicSoldProperties failed", error.message);
       return [];
