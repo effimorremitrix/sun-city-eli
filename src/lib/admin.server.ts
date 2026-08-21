@@ -143,6 +143,7 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
   let emailsSent = 0;
   let emailsPending = 0;
   let waSent = 0;
+  let waPending = 0;
   let facebookPosted = false;
 
   if (fields.is_published && listingId) {
@@ -194,6 +195,7 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
     emailsSent = result.sent;
     emailsPending = result.pending;
     waSent = result.waSent;
+    waPending = result.waPending;
 
     // מודול הלידים: כל לקוח רשום שהותאם מקבל כרטיס ליד ואירוע התאמה בציר הזמן
     try {
@@ -235,5 +237,14 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
     }
   }
 
-  return { ok: true, id: listingId, matched, emailsSent, emailsPending, waSent, facebookPosted };
+  return {
+    ok: true,
+    id: listingId,
+    matched,
+    emailsSent,
+    emailsPending,
+    waSent,
+    waPending,
+    facebookPosted,
+  };
 }

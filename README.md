@@ -53,16 +53,107 @@ This project was built with [Lovable](https://lovable.dev). Continue developing 
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.
 - **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
-## משתני סביבה להתראות וואטסאפ (Green API)
+## התראות וואטסאפ — WhatsApp Business API
 
-התראות הוואטסאפ ללקוחות, לסוכנים ולמנהל הראשי נשלחות דרך ספק חיצוני. ללא הגדרה —
-המערכת ממשיכה לעבוד רגיל (התראות באתר ובמייל בלבד):
+התראות הוואטסאפ ללקוחות, לסוכנים ולמנהל הראשי נשלחות דרך הערוץ הרשמי של מטא.
+ללא ספק מוגדר — המערכת ממשיכה לעבוד רגיל (התראות באתר ובמייל בלבד).
+
+שני ספקים נתמכים, לבחירה ב-`WHATSAPP_PROVIDER`:
+
+- `greenapi-waba` — אינסטנס מסוג **WABA** ב-[green-api.com](https://green-api.com) (לא האינסטנס עם ה-QR).
+- `meta` — [Meta WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api) ישירות.
+
+> האינסטנס הישן מסוג Standard (חיבור בסריקת QR) **אינו נתמך יותר**. הוא למעשה
+> WhatsApp Web מאוטומט: מטא לא מכירה בו כערוץ עסקי, וכל שליחה יזומה חושפת את
+> מספר המשרד לחסימה.
+
+### שליחה יזומה = תבנית מאושרת בלבד
+
+בערוץ הרשמי אי אפשר לשלוח טקסט חופשי ביוזמת העסק למי שלא כתב לנו ב-24 השעות
+האחרונות. כל שלוש ההתראות של האתר הן יזומות, ולכן כולן נשלחות כתבניות מאושרות
+מראש שאליהן מוזרקים פרמטרים. הנוסחים וסדר הפרמטרים מוגדרים ב-
+`src/lib/whatsapp-templates.ts` — זה מקור האמת, ומשם מעתיקים את הגוף למסך
+ההגשה.
+
+שלוש התבניות (שפה `he`):
+
+| מפתח                 | שם במטא                  | קטגוריה   | מתי נשלחת                             |
+| -------------------- | ------------------------ | --------- | ------------------------------------- |
+| `new_listing_client` | `sun_city_new_listing`   | MARKETING | לקוח שפרופיל החיפוש שלו תואם לנכס חדש |
+| `agent_matches`      | `sun_city_agent_matches` | UTILITY   | לסוכן שפרסם את הנכס                   |
+| `admin_copy`         | `sun_city_admin_copy`    | UTILITY   | עותק למספר המשרד הראשי                |
+
+בעת עריכת נוסח יש לשמור על כללי מטא: הגוף לא מתחיל ולא מסתיים במשתנה, אין שני
+משתנים צמודים, המספור רציף מ-`{{1}}`, ופרמטר לא יכול להכיל שורה חדשה, טאב או
+4 רווחים רצופים (הנרמול ב-`sanitizeParam` דואג לצד הקוד).
+
+### משתני סביבה
+
+הסודות עצמם נשמרים בלוח משתני הסביבה של Lovable/Cloudflare, לא בקובץ בריפו.
 
 ```
-WHATSAPP_PROVIDER=greenapi
-GREEN_API_ID=<instance id>
-GREEN_API_TOKEN=<api token>
+WHATSAPP_PROVIDER=greenapi-waba        # או: meta — ריק = no-op שקט
+WA_TEMPLATE_LANG=he                    # אופציונלי, meta בלבד
+
+# מזהי התבניות — ב-GREEN-API זה ה-templateId (UUID), במטא זה שם התבנית
+WA_TEMPLATE_NEW_LISTING=<id>
+WA_TEMPLATE_AGENT_MATCHES=<id>
+WA_TEMPLATE_ADMIN_COPY=<id>
+
+# greenapi-waba
+GREEN_API_ID=<idInstance>
+GREEN_API_TOKEN=<apiTokenInstance>
+GREEN_API_BASE_URL=https://xxxx.api.greenapi.com   # ה-ApiUrl המדויק של האינסטנס
+
+# meta
+META_WABA_PHONE_NUMBER_ID=<phone number id>
+META_WABA_TOKEN=<system user token קבוע>
+META_WABA_ID=<waba id>                 # לרשימת התבניות/אבחון בלבד
+META_GRAPH_VERSION=v25.0               # אופציונלי
+
+# אבחון (אופציונלי, אפשר להסיר אחרי העלייה לאוויר)
+WHATSAPP_DEBUG_SECRET=<מחרוזת אקראית>
 ```
 
-ההקמה חד-פעמית: פותחים חשבון ב-green-api.com, סורקים QR עם מספר הוואטסאפ של
-המשרד, ומעתיקים את פרטי ה-instance למשתני הסביבה.
+`META_WABA_*` הם משתנים נפרדים מ-`META_APP_ID` / `META_APP_SECRET` של אפליקציית
+הפייסבוק — אלה שני דברים שונים ואין לערבב ביניהם.
+
+### הקמה חד-פעמית
+
+**מטא (`meta`)**
+
+1. Meta Business Manager — אימות העסק, הוספת מספר השליחה ואימותו, ושמירת ה-`phone_number_id` וה-WABA ID.
+2. Business Settings → System Users — יצירת משתמש מערכת, שיוך נכס ה-WABA, והנפקת טוקן **קבוע** עם `whatsapp_business_messaging` ו-`whatsapp_business_management`.
+3. WhatsApp Manager → Message Templates — יצירת שלוש התבניות (הדבקת הגוף מ-`whatsapp-templates.ts`, שפה עברית, קטגוריה, מילוי ערכי הדוגמה) והמתנה לאישור.
+4. הזנת **שמות** התבניות ב-`WA_TEMPLATE_*`.
+
+**GREEN-API (`greenapi-waba`)**
+
+1. יצירת אינסטנס מסוג **WABA** והשלמת תהליך ה-embedded signup מול מטא.
+2. העתקת `idInstance`, `apiTokenInstance` וה-`ApiUrl` המדויק של האינסטנס.
+3. יצירת אותן שלוש תבניות בקונסולה (הן עוברות לאישור מטא בכל מקרה).
+4. שליפת ה-UUID של כל תבנית (ראו אבחון למטה) והזנתו ב-`WA_TEMPLATE_*`.
+
+> **חשוב לדעת לפני ההקמה:** מספר שנרשם כמספר שליחה של WABA **לא יכול לשמש יותר
+> באפליקציית הוואטסאפ הרגילה**. מומלץ לרשום מספר נפרד להתראות ולהשאיר את מספר
+> המשרד שבקישורי ה-`wa.me` באתר על האפליקציה הרגילה.
+
+### אבחון
+
+הנתיב `/api/public/whatsapp-check` מוגן בכותרת `x-wa-secret` ורץ בסביבה עם
+משתני הסביבה האמיתיים:
+
+```sh
+# מה מוגדר, ומה מצב האישור של התבניות אצל הספק
+curl -H "x-wa-secret: $WHATSAPP_DEBUG_SECRET" https://<site>/api/public/whatsapp-check
+
+# שליחת בדיקה אחת עם ערכי הדוגמה של התבנית
+curl -X POST -H "x-wa-secret: $WHATSAPP_DEBUG_SECRET" -H "content-type: application/json" \
+  -d '{"to":"0501234567","key":"new_listing_client"}' \
+  https://<site>/api/public/whatsapp-check
+```
+
+הערה: `waSent` בהודעת השמירה של נכס אומר שהספק **קיבל** את ההודעה, לא שהיא
+נמסרה — אין באתר webhook נכנס, ולכן כשל מסירה (מספר שאינו בוואטסאפ, לקוח
+שחסם) אינו נראה. תבנית שטרם אושרה או מזהה שגוי כן ייספרו כ"נכשלו" בהודעת
+השמירה ויירשמו ללוג עם קוד השגיאה של הספק.

@@ -730,7 +730,7 @@ function AccountPage() {
                       ["needs_parking", "חניה"],
                       ["needs_balcony", "מרפסת"],
                       ["notify_email", "לקבל התראות במייל"],
-                      ["notify_whatsapp", "לקבל התראות בוואטסאפ"],
+                      ["notify_whatsapp", 'לקבל התראות בוואטסאפ מסאן סיטי נדל"ן'],
                       ["is_active", "פרופיל פעיל"],
                     ] as Array<[keyof ProfileForm, string]>
                   ).map(([key, label]) => (
