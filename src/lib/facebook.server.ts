@@ -1,5 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import { graphBase, graphVersion } from "@/lib/meta-graph.server";
+
 /**
  * אינטגרציית פייסבוק לכל אתר סוכן:
  * - פרסום אוטומטי לעמוד העסקי (Graph API, הרשאת pages_manage_posts)
@@ -9,8 +11,6 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  *
  * page_access_token נשמר ב-facebook_connections ונקרא אך ורק בשרת.
  */
-
-const GRAPH = "https://graph.facebook.com/v21.0";
 
 function env(name: string): string | null {
   const v = process.env[name];
@@ -66,13 +66,15 @@ export function facebookAuthUrl(siteId: string, userId: string): string {
       "pages_manage_posts,pages_read_engagement,ads_management,business_management,instagram_basic,instagram_content_publish",
     response_type: "code",
   });
-  return `https://www.facebook.com/v21.0/dialog/oauth?${params}`;
+  // דיאלוג ה-OAuth יושב על www.facebook.com ולא על graph.facebook.com, אבל
+  // ממוספר באותה גרסה — ולכן graphVersion() ולא graphBase().
+  return `https://www.facebook.com/${graphVersion()}/dialog/oauth?${params}`;
 }
 
 /* ---------------------- קריאות Graph ---------------------- */
 
 async function graph<T>(path: string, params: Record<string, string>, method = "GET"): Promise<T> {
-  const url = new URL(`${GRAPH}${path}`);
+  const url = new URL(`${graphBase()}${path}`);
   let body: string | null = null;
   if (method === "GET") {
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
