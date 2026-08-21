@@ -126,155 +126,6 @@ export type Database = {
           },
         ]
       }
-      lead_events: {
-        Row: {
-          actor_user_id: string | null
-          created_at: string
-          event_type: string
-          id: string
-          lead_id: string
-          listing_id: string | null
-          metadata: Json
-          note: string | null
-          site_id: string
-        }
-        Insert: {
-          actor_user_id?: string | null
-          created_at?: string
-          event_type: string
-          id?: string
-          lead_id: string
-          listing_id?: string | null
-          metadata?: Json
-          note?: string | null
-          site_id: string
-        }
-        Update: {
-          actor_user_id?: string | null
-          created_at?: string
-          event_type?: string
-          id?: string
-          lead_id?: string
-          listing_id?: string | null
-          metadata?: Json
-          note?: string | null
-          site_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lead_events_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_events_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_events_site_id_fkey"
-            columns: ["site_id"]
-            isOneToOne: false
-            referencedRelation: "sites"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      leads: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          email: string | null
-          full_name: string
-          id: string
-          listing_id: string | null
-          next_action: string | null
-          next_follow_up_at: string | null
-          notes: string | null
-          phone: string | null
-          phone_normalized: string | null
-          reminder_email_sent_at: string | null
-          reminder_whatsapp_sent_at: string | null
-          score: number | null
-          search_profile_id: string | null
-          site_id: string
-          source: string
-          status: string
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          email?: string | null
-          full_name: string
-          id?: string
-          listing_id?: string | null
-          next_action?: string | null
-          next_follow_up_at?: string | null
-          notes?: string | null
-          phone?: string | null
-          phone_normalized?: string | null
-          reminder_email_sent_at?: string | null
-          reminder_whatsapp_sent_at?: string | null
-          score?: number | null
-          search_profile_id?: string | null
-          site_id: string
-          source?: string
-          status?: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          email?: string | null
-          full_name?: string
-          id?: string
-          listing_id?: string | null
-          next_action?: string | null
-          next_follow_up_at?: string | null
-          notes?: string | null
-          phone?: string | null
-          phone_normalized?: string | null
-          reminder_email_sent_at?: string | null
-          reminder_whatsapp_sent_at?: string | null
-          score?: number | null
-          search_profile_id?: string | null
-          site_id?: string
-          source?: string
-          status?: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "leads_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leads_search_profile_id_fkey"
-            columns: ["search_profile_id"]
-            isOneToOne: false
-            referencedRelation: "search_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leads_site_id_fkey"
-            columns: ["site_id"]
-            isOneToOne: false
-            referencedRelation: "sites"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       listing_images: {
         Row: {
           created_at: string
@@ -321,12 +172,9 @@ export type Database = {
           created_at: string
           email_sent_at: string | null
           id: string
-          lead_id: string | null
           listing_id: string
           read_at: string | null
           reason: string | null
-          response: string | null
-          response_at: string | null
           search_profile_id: string | null
           updated_at: string
           user_id: string
@@ -336,12 +184,9 @@ export type Database = {
           created_at?: string
           email_sent_at?: string | null
           id?: string
-          lead_id?: string | null
           listing_id: string
           read_at?: string | null
           reason?: string | null
-          response?: string | null
-          response_at?: string | null
           search_profile_id?: string | null
           updated_at?: string
           user_id: string
@@ -351,25 +196,15 @@ export type Database = {
           created_at?: string
           email_sent_at?: string | null
           id?: string
-          lead_id?: string | null
           listing_id?: string
           read_at?: string | null
           reason?: string | null
-          response?: string | null
-          response_at?: string | null
           search_profile_id?: string | null
           updated_at?: string
           user_id?: string
           whatsapp_sent_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "listing_notifications_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "listing_notifications_listing_id_fkey"
             columns: ["listing_id"]
