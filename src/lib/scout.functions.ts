@@ -38,7 +38,7 @@ export type ScoutProfileRow = ScoutProfile & {
 };
 
 const PROFILE_COLUMNS =
-  "id,label,deal_type,city,neighborhoods,min_price,max_price,min_rooms,min_size,needs_mamad,needs_elevator,needs_parking,needs_balcony,sources,notes,is_active,last_run_at,last_run_found,last_run_inserted,last_run_skipped,last_run_note,created_at,updated_at";
+  "id,label,deal_type,city,neighborhoods,min_price,max_price,min_rooms,max_rooms,min_size,needs_mamad,needs_elevator,needs_parking,needs_balcony,sources,notes,is_active,last_run_at,last_run_found,last_run_inserted,last_run_skipped,last_run_note,created_at,updated_at";
 
 const CANDIDATE_COLUMNS =
   "id,scout_profile_id,source_site,source_url,title,deal_type,price,rooms,size_sqm,neighborhood,address,has_mamad,has_elevator,has_parking,has_balcony,raw_summary,match_score,match_reason,status,created_listing_id,created_at";
@@ -65,6 +65,7 @@ export type ScoutProfileInput = {
   min_price: number | null;
   max_price: number | null;
   min_rooms: number | null;
+  max_rooms: number | null;
   min_size: number | null;
   needs_mamad: boolean;
   needs_elevator: boolean;
@@ -97,6 +98,7 @@ function parseProfileInput(input: unknown): ScoutProfileInput {
     min_price: num(i["min_price"]),
     max_price: num(i["max_price"]),
     min_rooms: num(i["min_rooms"]),
+    max_rooms: num(i["max_rooms"]),
     min_size: num(i["min_size"]),
     needs_mamad: i["needs_mamad"] === true,
     needs_elevator: i["needs_elevator"] === true,
@@ -174,12 +176,13 @@ export const adminListScoutCandidates = createServerFn({ method: "POST" })
       .select(CANDIDATE_COLUMNS)
       .eq("status", data.status);
     if (data.profileId) q = q.eq("scout_profile_id", data.profileId);
-    // המיון לפי מועד: מועמד שנוסף בסריקה האחרונה חייב להופיע בראש הרשימה.
-    // מיון לפי ציון היה קובר אותו מתחת למאה השורות של מועמדים ותיקים.
+    // סריקה ישירה מכניסה מאות מודעות בבת אחת, ולכן המיון הראשי הוא לפי
+    // ציון ההתאמה — מיון לפי מועד היה מציף את הרשימה במאות שורות מאותה
+    // סריקה בסדר שרירותי. הגבול מספיק לסריקה מלאה של עיר שלמה.
     const { data: rows, error } = await q
-      .order("created_at", { ascending: false })
       .order("match_score", { ascending: false })
-      .limit(100);
+      .order("created_at", { ascending: false })
+      .limit(500);
     if (error) throw new Error(error.message);
     return (rows ?? []) as unknown as ScoutCandidateRow[];
   });

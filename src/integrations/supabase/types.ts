@@ -703,6 +703,7 @@ export type Database = {
           last_run_note: string | null
           last_run_skipped: number | null
           max_price: number | null
+          max_rooms: number | null
           min_price: number | null
           min_rooms: number | null
           min_size: number | null
@@ -728,6 +729,7 @@ export type Database = {
           last_run_note?: string | null
           last_run_skipped?: number | null
           max_price?: number | null
+          max_rooms?: number | null
           min_price?: number | null
           min_rooms?: number | null
           min_size?: number | null
@@ -753,6 +755,7 @@ export type Database = {
           last_run_note?: string | null
           last_run_skipped?: number | null
           max_price?: number | null
+          max_rooms?: number | null
           min_price?: number | null
           min_rooms?: number | null
           min_size?: number | null

@@ -167,8 +167,10 @@ export const aiSearchListings = createServerFn({ method: "POST" })
               neighborhoods: filters.neighborhoods ?? [],
               min_price: filters.min_price ?? null,
               max_price: filters.max_price ?? null,
-              // בסריקת הרשת "חדרים מדויק" משמש כמינימום; הבקשה המקורית נשלחת בהערות
+              // "3 חדרים" הוא בקשה למספר מדויק, ולכן הוא נשלח כמינימום וגם
+              // כמקסימום — הלוחות מקבלים minRooms/maxRooms ומסננים בעצמם
               min_rooms: filters.rooms ?? filters.min_rooms ?? null,
+              max_rooms: filters.rooms ?? filters.max_rooms ?? null,
               min_size: filters.min_size ?? null,
               needs_mamad: Boolean(filters.needs_mamad),
               needs_elevator: Boolean(filters.needs_elevator),
@@ -182,6 +184,8 @@ export const aiSearchListings = createServerFn({ method: "POST" })
             [...neighborhoods],
             userId,
             `${WEB_FEATURE}_api`,
+            // הלקוח מקבל רשימה קצרה ומדורגת; הרשימה המלאה שמורה לסוכן האדמין
+            { limit: 30 },
           );
           web = {
             status: "ok",
