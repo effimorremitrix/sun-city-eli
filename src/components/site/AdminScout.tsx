@@ -15,19 +15,27 @@ import {
 import type { ScoutProfileRunSummary } from "@/lib/scout-run.server";
 import { neighborhoods } from "@/lib/site-data";
 
+/**
+ * שני סוגי מקורות, והתווית אומרת במפורש למה לצפות:
+ * יד2 וקומו נסרקים ישירות מהלוח עצמו ומחזירים את כל התוצאות; שאר האתרים
+ * חוסמים סריקה אוטומטית, ולכן מהם מגיעות רק מודעות שחיפוש ה-AI מצא.
+ */
 const SOURCES: Array<[string, string]> = [
-  ["yad2", "יד2"],
-  ["madlan", "מדלן"],
-  ["homeless", "הומלס"],
-  ["komo", "קומו"],
-  ["winwin", "וין וין"],
+  ["yad2", "יד2 (סריקה מלאה)"],
+  ["komo", "קומו (סריקה מלאה)"],
+  ["madlan", "מדלן (חיפוש AI)"],
+  ["homeless", "הומלס (חיפוש AI)"],
+  ["winwin", "וין וין (חיפוש AI)"],
   // מיטב-המאמץ: פייסבוק/אינסטגרם חסמו את ה-API לקבוצות, לכן נמצאים
   // רק פוסטים ציבוריים שמאונדקסים במנועי החיפוש (מיעוט קטן מהקבוצות)
   ["facebook", "פייסבוק (קבוצות ציבוריות)"],
   ["instagram", "אינסטגרם (פוסטים ציבוריים)"],
 ];
 
-const SOURCE_LABELS = new Map(SOURCES);
+/** שם האתר לבדו, בלי הסבר סוג הסריקה — לשורות סיכום קצרות */
+const SOURCE_LABELS = new Map(
+  SOURCES.map(([key, label]) => [key, label.replace(/\s*\(.*\)$/, "")]),
+);
 /** שם האתר בעברית לתצוגה ("homeless" → "הומלס") */
 const sourceLabel = (key: string) => SOURCE_LABELS.get(key) ?? key;
 
@@ -46,6 +54,7 @@ type Form = {
   min_price: string;
   max_price: string;
   min_rooms: string;
+  max_rooms: string;
   min_size: string;
   needs_mamad: boolean;
   needs_elevator: boolean;
@@ -64,6 +73,7 @@ const emptyForm: Form = {
   min_price: "",
   max_price: "",
   min_rooms: "",
+  max_rooms: "",
   min_size: "",
   needs_mamad: false,
   needs_elevator: false,
@@ -83,6 +93,7 @@ const toForm = (p: ScoutProfileRow): Form => ({
   min_price: p.min_price == null ? "" : String(p.min_price),
   max_price: p.max_price == null ? "" : String(p.max_price),
   min_rooms: p.min_rooms == null ? "" : String(p.min_rooms),
+  max_rooms: p.max_rooms == null ? "" : String(p.max_rooms),
   min_size: p.min_size == null ? "" : String(p.min_size),
   needs_mamad: p.needs_mamad,
   needs_elevator: p.needs_elevator,
@@ -96,6 +107,15 @@ const toForm = (p: ScoutProfileRow): Form => ({
 const num = (v: string) => (v.trim() === "" ? null : Number(v));
 const nis = (n: number | null) => (n == null ? "אין מידע" : `${n.toLocaleString("he-IL")} ₪`);
 const val = (n: number | null, suffix = "") => (n == null ? "אין מידע" : `${n}${suffix}`);
+
+/** תיאור טווח החדרים בשורת הפרופיל: "4 חדרים", "מ-3 חדרים", "עד 5 חדרים" */
+const roomsLabel = (min: number | null, max: number | null): string => {
+  if (min == null && max == null) return "";
+  if (min != null && max != null) {
+    return min === max ? ` · ${min} חדרים` : ` · ${min}-${max} חדרים`;
+  }
+  return min != null ? ` · מ-${min} חדרים` : ` · עד ${max} חדרים`;
+};
 
 const toggle = (arr: string[], v: string) =>
   arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
@@ -195,6 +215,7 @@ export function AdminScout() {
             min_price: num(form.min_price),
             max_price: num(form.max_price),
             min_rooms: num(form.min_rooms),
+            max_rooms: num(form.max_rooms),
             min_size: num(form.min_size),
             needs_mamad: form.needs_mamad,
             needs_elevator: form.needs_elevator,
@@ -277,6 +298,14 @@ export function AdminScout() {
                   נמצאו {p.found} מודעות מתאימות · נשמרו {p.inserted} מועמדים חדשים · {p.duplicates}{" "}
                   כבר היו ברשימה · {p.filtered} נפסלו בסינון
                 </p>
+                {/* הכיסוי מול הלוח עצמו — התשובה לשאלה "למה פחות מבאתר" */}
+                {p.sites.map((site) => (
+                  <p key={site.site} className="mt-1 text-xs text-muted-foreground">
+                    {site.site}: {site.total} תוצאות בלוח · נסרקו {site.fetched} · תואמות{" "}
+                    {site.matched}
+                    {site.error ? ` · ${site.error}` : ""}
+                  </p>
+                ))}
                 {p.reasons.length > 0 && (
                   <p className="mt-1 text-xs text-muted-foreground">
                     סיבות הפסילה: {p.reasons.join(" · ")}
@@ -364,6 +393,19 @@ export function AdminScout() {
               className={input}
               value={form.min_rooms}
               onChange={(e) => setForm({ ...form, min_rooms: e.target.value })}
+            />
+          </div>
+          <div>
+            {/* מינימום ומקסימום זהים = "בדיוק X חדרים", החיפוש הנפוץ בלוחות */}
+            <label className={label} htmlFor="scout-rooms-max">
+              מקסימום חדרים
+            </label>
+            <input
+              id="scout-rooms-max"
+              inputMode="decimal"
+              className={input}
+              value={form.max_rooms}
+              onChange={(e) => setForm({ ...form, max_rooms: e.target.value })}
             />
           </div>
           <div>
@@ -491,7 +533,7 @@ export function AdminScout() {
                   <p className="text-xs text-muted-foreground">
                     {p.deal_type} · {p.city}
                     {p.neighborhoods?.length ? ` · ${p.neighborhoods.join(", ")}` : ""}
-                    {p.min_rooms ? ` · מ-${p.min_rooms} חדרים` : ""} ·{" "}
+                    {roomsLabel(p.min_rooms, p.max_rooms)} ·{" "}
                     {p.max_price ? `עד ${p.max_price.toLocaleString("he-IL")} ₪` : "בלי תקרת מחיר"}{" "}
                     · {p.sources?.length ? p.sources.map(sourceLabel).join(", ") : "כל האתרים"}
                   </p>

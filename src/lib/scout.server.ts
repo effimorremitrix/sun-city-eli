@@ -1,4 +1,14 @@
-/** סוכן סריקת נכסים ל-ADMIN — מחפש באינטרנט מודעות אמיתיות ומחזיר מועמדים עם קישור מקור */
+/**
+ * סוכן סריקת נכסים ל-ADMIN — מחזיר מועמדים אמיתיים עם קישור מקור.
+ *
+ * שני מסלולים:
+ * 1. לוחות שאפשר לסרוק ישירות (יד2, קומו) — קריאה ל-API/לעמודי החיפוש שלהם,
+ *    עם עימוד מלא. זה המסלול שמחזיר את *כל* התוצאות שהלוח מציג.
+ * 2. לוחות שחוסמים סריקה אוטומטית (מדלן, הומלס, וין וין, פייסבוק) — חיפוש
+ *    אינטרנט של Claude, שמוצא רק מה שמנועי החיפוש הספיקו לאנדקס.
+ */
+
+import { normalizeHebrew } from "@/lib/yad2.server";
 
 export type ScoutProfile = {
   id: string;
@@ -9,6 +19,7 @@ export type ScoutProfile = {
   min_price: number | null;
   max_price: number | null;
   min_rooms: number | null;
+  max_rooms: number | null;
   min_size: number | null;
   needs_mamad: boolean;
   needs_elevator: boolean;
@@ -169,9 +180,17 @@ function b(v: unknown): boolean | null {
   return v === true ? true : v === false ? false : null;
 }
 
-/** התאמת שכונות סובלנית-לכתיב: שוויון או הכלה לאחד הכיוונים */
-const hoodMatches = (hood: string, list: string[]): boolean =>
-  list.some((h) => hood === h || hood.includes(h) || h.includes(hood));
+/**
+ * התאמת שכונות סובלנית-לכתיב: שוויון או הכלה לאחד הכיוונים, אחרי נרמול
+ * כתיב מלא/חסר — באתר שלנו "קריית השרון" ובלוחות "קרית השרון".
+ */
+const hoodMatches = (hood: string, list: string[]): boolean => {
+  const normalized = normalizeHebrew(hood);
+  return list.some((raw) => {
+    const h = normalizeHebrew(raw);
+    return normalized === h || normalized.includes(h) || h.includes(normalized);
+  });
+};
 
 /**
  * הסינון הקשיח: מחזיר סיבת פסילה בעברית, או null כשהמועמד עומד בכל
@@ -190,6 +209,9 @@ export function hardCriteriaViolation(
   }
   if (p.min_rooms != null && (c.rooms == null || c.rooms < p.min_rooms)) {
     return c.rooms == null ? "מספר החדרים לא צוין" : `${c.rooms} חדרים — פחות מהנדרש`;
+  }
+  if (p.max_rooms != null && (c.rooms == null || c.rooms > p.max_rooms)) {
+    return c.rooms == null ? "מספר החדרים לא צוין" : `${c.rooms} חדרים — יותר מהנדרש`;
   }
   if (p.min_price != null && (c.price == null || c.price < p.min_price)) {
     return c.price == null ? "המחיר לא צוין" : "המחיר נמוך מהמינימום";
@@ -239,6 +261,7 @@ export function sanitizeCandidates(
   neighborhoods: string[],
   groundedUrls: Set<string> = new Set(),
   rejected: RejectedCandidate[] = [],
+  limit = 12,
 ): ScoutCandidate[] {
   const list = Array.isArray((raw as { candidates?: unknown[] })?.candidates)
     ? ((raw as { candidates: unknown[] }).candidates as unknown[])
@@ -338,7 +361,7 @@ export function sanitizeCandidates(
     }
 
     out.push(cand);
-    if (out.length >= 12) break;
+    if (out.length >= limit) break;
   }
   return out;
 }
@@ -352,7 +375,12 @@ function buildUserPrompt(p: ScoutProfile): string {
   }
   if (p.min_price) parts.push(`מחיר מינימלי: ${p.min_price} ש"ח`);
   if (p.max_price) parts.push(`מחיר מקסימלי: ${p.max_price} ש"ח`);
-  if (p.min_rooms) parts.push(`מינימום חדרים: ${p.min_rooms}`);
+  if (p.min_rooms && p.max_rooms && p.min_rooms === p.max_rooms) {
+    parts.push(`מספר חדרים: ${p.min_rooms} בדיוק`);
+  } else {
+    if (p.min_rooms) parts.push(`מינימום חדרים: ${p.min_rooms}`);
+    if (p.max_rooms) parts.push(`מקסימום חדרים: ${p.max_rooms}`);
+  }
   if (p.min_size) parts.push(`מינימום מ"ר: ${p.min_size}`);
   const needs = [
     p.needs_mamad ? 'ממ"ד' : null,
@@ -381,16 +409,188 @@ ${parts.join("\n")}
 בצע כמה חיפושים לפי הצורך, ואז החזר JSON רק עם מודעות שעומדות בכל הקריטריונים, כולל ה-URL המדויק של עמוד המודעה. אם אין כאלה — החזר {"candidates":[]}. מועמדים עם match_score נמוך מ-${MIN_MATCH_SCORE} מסוננים אוטומטית.`;
 }
 
+/** לוחות שיש להם מנוע סריקה ישיר — לא עוברים דרך חיפוש האינטרנט של Claude */
+const DIRECT_SOURCES = new Set(["yad2", "komo"]);
+
+/** מה קרה בסריקה של לוח אחד — כדי שלוח הניהול יראה כיסוי ולא רק תוצאה */
+export type SiteRunReport = {
+  site: string;
+  /** כמה תוצאות הלוח מדווח שיש לשאילתה (המספר שהגולש רואה) */
+  total: number;
+  /** כמה מודעות הצלחנו לסרוק בפועל */
+  fetched: number;
+  /** כמה מהן עברו את הסינון הקשיח */
+  matched: number;
+  error: string | null;
+};
+
+export type WebPropertySearchResult = {
+  candidates: ScoutCandidate[];
+  searches: number;
+  rejected: RejectedCandidate[];
+  sites: SiteRunReport[];
+};
+
+/** תקציב עמודי פיד לסריקת יד2 של פרופיל אחד, מתחלק בין השכונות */
+const YAD2_PAGE_BUDGET = 24;
+/** מעל זה מוותרים על פילוח לשכונות וסורקים את כל העיר */
+const MAX_HOOD_QUERIES = 4;
+
+/**
+ * מסנן מועמדים מסריקה ישירה: אותו סינון קשיח, בלי בדיקת עיגון או URL.
+ *
+ * הבדל אחד מהותי בשכונות: בסינון של מודל שפה שכונה היא טקסט חופשי, ולכן
+ * שם שאינו מזוהה ברשימה הקנונית לא פוסל (יכול להיות וריאנט כתיב). כאן
+ * השכונה מגיעה משדה מובנה של הלוח עצמו, ולכן שם שאינו תואם לפרופיל הוא
+ * באמת שכונה אחרת — ומודעה כזו נפסלת גם אם השם אינו ברשימה שלנו.
+ */
+function acceptDirect(
+  candidates: ScoutCandidate[],
+  profile: ScoutProfile,
+  neighborhoods: string[],
+  rejected: RejectedCandidate[],
+): ScoutCandidate[] {
+  const out: ScoutCandidate[] = [];
+  const seen = new Set<string>();
+  for (const c of candidates) {
+    if (seen.has(c.source_url)) continue;
+    seen.add(c.source_url);
+
+    if (profile.neighborhoods.length && c.neighborhood) {
+      if (!hoodMatches(c.neighborhood, profile.neighborhoods)) {
+        rejected.push({ url: c.source_url, reason: `שכונה ${c.neighborhood} מחוץ לפרופיל` });
+        continue;
+      }
+    }
+
+    const violation = hardCriteriaViolation(c, profile, neighborhoods);
+    if (violation !== null) {
+      rejected.push({ url: c.source_url, reason: violation });
+      continue;
+    }
+    out.push(c);
+  }
+  return out;
+}
+
+const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
+/** סורק את יד2 ישירות — שכונה-שכונה כשהוגדרו שכונות, אחרת כל העיר */
+async function runYad2Source(
+  profile: ScoutProfile,
+  neighborhoods: string[],
+  rejected: RejectedCandidate[],
+): Promise<{ candidates: ScoutCandidate[]; report: SiteRunReport }> {
+  const report: SiteRunReport = { site: "יד2", total: 0, fetched: 0, matched: 0, error: null };
+  try {
+    const { resolveYad2Location, fetchYad2Listings, yad2ItemToCandidate } =
+      await import("@/lib/yad2.server");
+    const dealType = profile.deal_type === "השכרה" ? "rent" : "forsale";
+    // חיפוש פר-שכונה מדויק בהרבה מסינון בדיעבד: שאילתה עירונית מחזירה
+    // אלפי מודעות, ותקציב העמודים היה נגמר הרבה לפני השכונה המבוקשת
+    const hoods = profile.neighborhoods.slice(0, MAX_HOOD_QUERIES);
+    if (profile.neighborhoods.length > MAX_HOOD_QUERIES) {
+      report.error = `נסרקו ${MAX_HOOD_QUERIES} השכונות הראשונות מתוך ${profile.neighborhoods.length}`;
+    }
+    const targets: Array<string | null> = hoods.length ? hoods : [null];
+    const maxPages = Math.max(3, Math.floor(YAD2_PAGE_BUDGET / targets.length));
+
+    const raw: ScoutCandidate[] = [];
+    for (const hood of targets) {
+      const location = await resolveYad2Location(profile.city, hood);
+      if (!location) {
+        rejected.push({ url: "", reason: `יד2 לא מזהה את ${hood ?? profile.city}` });
+        continue;
+      }
+      const found = await fetchYad2Listings(
+        {
+          dealType,
+          location,
+          minRooms: profile.min_rooms,
+          maxRooms: profile.max_rooms,
+          minPrice: profile.min_price,
+          maxPrice: profile.max_price,
+          needsMamad: profile.needs_mamad,
+          needsElevator: profile.needs_elevator,
+          needsParking: profile.needs_parking,
+          needsBalcony: profile.needs_balcony,
+        },
+        { maxPages },
+      );
+      report.total += found.total;
+      report.fetched += found.items.length;
+      for (const item of found.items) raw.push(yad2ItemToCandidate(item, dealType));
+    }
+
+    const accepted = acceptDirect(raw, profile, neighborhoods, rejected);
+    report.matched = accepted.length;
+    return { candidates: accepted, report };
+  } catch (err) {
+    report.error = errorText(err);
+    return { candidates: [], report };
+  }
+}
+
+/**
+ * סורק את קומו ישירות. קומו לא חושף מזהי שכונה, ולכן השאילתה עירונית
+ * והסינון לשכונות נעשה אצלנו — הכמויות שם קטנות, אז זה מספיק.
+ */
+async function runKomoSource(
+  profile: ScoutProfile,
+  neighborhoods: string[],
+  rejected: RejectedCandidate[],
+): Promise<{ candidates: ScoutCandidate[]; report: SiteRunReport }> {
+  const report: SiteRunReport = { site: "קומו", total: 0, fetched: 0, matched: 0, error: null };
+  try {
+    const { fetchKomoListings, komoCardToCandidate } = await import("@/lib/komo.server");
+    const query = {
+      dealType: (profile.deal_type === "השכרה" ? "rent" : "forsale") as "rent" | "forsale",
+      city: profile.city,
+      minRooms: profile.min_rooms,
+      maxRooms: profile.max_rooms,
+      minPrice: profile.min_price,
+      maxPrice: profile.max_price,
+      needsMamad: profile.needs_mamad,
+      needsElevator: profile.needs_elevator,
+      needsParking: profile.needs_parking,
+      needsBalcony: profile.needs_balcony,
+    };
+    const found = await fetchKomoListings(query);
+    report.total = found.total;
+    report.fetched = found.cards.length;
+    if (found.partial) report.error = "העימוד המלא בקומו דורש חשבון — נסרק מה שזמין לאורח";
+
+    const accepted = acceptDirect(
+      found.cards.map((card) => komoCardToCandidate(card, query)),
+      profile,
+      neighborhoods,
+      rejected,
+    );
+    report.matched = accepted.length;
+    return { candidates: accepted, report };
+  } catch (err) {
+    report.error = errorText(err);
+    return { candidates: [], report };
+  }
+}
+
 /**
  * ליבת סריקת האינטרנט — משותפת לסוכן הסריקה של האדמין ולחיפוש החכם
  * של הלקוחות. feature קובע איך האירוע נרשם ב-ai_usage_events.
  */
-export async function runWebPropertySearch(
-  profile: ScoutProfile,
+/**
+ * חיפוש האינטרנט של Claude — המסלול היחיד שזמין ללוחות שחוסמים סריקה
+ * אוטומטית. מוגבל במהותו: המודל מריץ מספר קטן של חיפושים ומחזיר רק מה
+ * שמנוע החיפוש אינדקס, ולכן הוא לעולם לא יחזיר את כל תוצאות הלוח.
+ */
+async function runLlmSources(
+  llmProfile: ScoutProfile,
   neighborhoods: string[],
-  userId: string | null = null,
-  feature = "admin_scout",
-): Promise<{ candidates: ScoutCandidate[]; searches: number; rejected: RejectedCandidate[] }> {
+  userId: string | null,
+  feature: string,
+  rejected: RejectedCandidate[],
+  limit: number,
+): Promise<{ candidates: ScoutCandidate[]; searches: number }> {
   const { AI_MODEL, logAiUsage } = await import("@/lib/ai-usage.server");
   const apiKey = process.env["ANTHROPIC_API_KEY"];
   if (!apiKey) {
@@ -407,7 +607,7 @@ export async function runWebPropertySearch(
   /* אכיפת האתרים שנבחרו כבר בשלב החיפוש: "site:" בתוך הפרומפט הוא רמז
    * שהמודל חופשי להתעלם ממנו, ואילו allowed_domains מגביל את מנוע החיפוש
    * עצמו — כך "הומלס בלבד" באמת מחזיר מודעות מהומלס. */
-  const allowedDomains = profileHosts(profile.sources);
+  const allowedDomains = profileHosts(llmProfile.sources);
   const searchTool: Record<string, unknown> = {
     type: "web_search_20250305",
     name: "web_search",
@@ -429,7 +629,7 @@ export async function runWebPropertySearch(
         max_tokens: 4000,
         system: SYSTEM_PROMPT,
         tools: [searchTool],
-        messages: [{ role: "user", content: buildUserPrompt(profile) }],
+        messages: [{ role: "user", content: buildUserPrompt(llmProfile) }],
       }),
     });
   } catch (err) {
@@ -507,7 +707,6 @@ export async function runWebPropertySearch(
   const fenced = text.replace(/```(?:json)?/gi, "");
   const start = fenced.indexOf("{");
   const end = fenced.lastIndexOf("}");
-  const rejected: RejectedCandidate[] = [];
   let parsed: unknown = {};
   try {
     parsed = JSON.parse(start >= 0 && end > start ? fenced.slice(start, end + 1) : fenced);
@@ -517,7 +716,14 @@ export async function runWebPropertySearch(
     parsed = {};
   }
 
-  const candidates = sanitizeCandidates(parsed, profile, neighborhoods, groundedUrls, rejected);
+  const candidates = sanitizeCandidates(
+    parsed,
+    llmProfile,
+    neighborhoods,
+    groundedUrls,
+    rejected,
+    limit,
+  );
 
   // אימות עדין שהעמודים חיים: פוסל רק 404/410 (חסימת בוטים אינה פסילה)
   const verdicts = await Promise.all(candidates.map((c) => verifyCandidateUrl(c.source_url)));
@@ -526,11 +732,78 @@ export async function runWebPropertySearch(
     return verdicts[i] !== "gone";
   });
 
-  return {
-    candidates: live,
-    searches: json.usage?.server_tool_use?.web_search_requests ?? 0,
-    rejected,
-  };
+  return { candidates: live, searches: json.usage?.server_tool_use?.web_search_requests ?? 0 };
+}
+
+/**
+ * ליבת סריקת האינטרנט — משותפת לסוכן הסריקה של האדמין ולחיפוש החכם
+ * של הלקוחות. feature קובע איך האירוע נרשם ב-ai_usage_events.
+ */
+export async function runWebPropertySearch(
+  profile: ScoutProfile,
+  neighborhoods: string[],
+  userId: string | null = null,
+  feature = "admin_scout",
+  opts: { limit?: number } = {},
+): Promise<WebPropertySearchResult> {
+  const limit = opts.limit ?? 300;
+  const rejected: RejectedCandidate[] = [];
+  const sites: SiteRunReport[] = [];
+  const direct: ScoutCandidate[] = [];
+
+  // מסלול 1 — לוחות שנסרקים ישירות. כל אחד רץ בנפרד כדי שכשל באחד
+  // (חסימה, timeout) לא ימחק את התוצאות של השני.
+  for (const source of profile.sources) {
+    if (!DIRECT_SOURCES.has(source)) continue;
+    const runner = source === "yad2" ? runYad2Source : runKomoSource;
+    const result = await runner(profile, neighborhoods, rejected);
+    direct.push(...result.candidates);
+    sites.push(result.report);
+  }
+  direct.sort((a, b) => b.match_score - a.match_score);
+
+  // מסלול 2 — רק האתרים שאי אפשר לסרוק ישירות מגיעים לחיפוש של Claude.
+  // כשלא נשאר אף אתר כזה לא פונים ל-API בכלל (חוסך עלות וזמן).
+  const llmSources = profile.sources.filter((s) => !DIRECT_SOURCES.has(s));
+  if (!llmSources.length) {
+    return { candidates: direct.slice(0, limit), searches: 0, rejected, sites };
+  }
+
+  let llm: { candidates: ScoutCandidate[]; searches: number } = { candidates: [], searches: 0 };
+  try {
+    llm = await runLlmSources(
+      { ...profile, sources: llmSources },
+      neighborhoods,
+      userId,
+      feature,
+      rejected,
+      Math.min(12, Math.max(0, limit - direct.length)),
+    );
+  } catch (err) {
+    // כשל בחיפוש ה-AI (מפתח חסר, מכסה, שגיאת רשת) לא מוחק מאות מודעות
+    // אמיתיות שכבר נסרקו ישירות מהלוחות — הוא מדווח לצד התוצאות.
+    if (!sites.length) throw err;
+    sites.push({
+      site: "חיפוש AI",
+      total: 0,
+      fetched: 0,
+      matched: 0,
+      error: errorText(err),
+    });
+  }
+
+  // המועמדים מהסריקה הישירה קודמים: הם מגיעים מהלוח עצמו ולא מהשערה של
+  // מודל שפה. הדה-דופ שומר על הראשון שנראה עבור כל קישור.
+  const merged: ScoutCandidate[] = [];
+  const seenUrls = new Set<string>();
+  for (const c of [...direct, ...llm.candidates]) {
+    if (seenUrls.has(c.source_url)) continue;
+    seenUrls.add(c.source_url);
+    merged.push(c);
+    if (merged.length >= limit) break;
+  }
+
+  return { candidates: merged, searches: llm.searches, rejected, sites };
 }
 
 /** מריץ סריקת אינטרנט עבור פרופיל של סוכן הסריקה (האדמין) */
