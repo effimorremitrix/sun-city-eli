@@ -1,5 +1,6 @@
 import { sendNotificationEmail, newListingEmailHtml } from "@/lib/email.server";
-import { sendWhatsAppMessage } from "@/lib/whatsapp.server";
+import { sendWhatsAppTemplate } from "@/lib/whatsapp.server";
+import { formatClientList } from "@/lib/whatsapp-templates";
 
 type MinimalListing = {
   id: string;
@@ -20,13 +21,15 @@ export type NotifiedClient = {
 
 const fmtPrice = (v: number | null) => (v == null ? "אין מידע" : `${v.toLocaleString("he-IL")} ₪`);
 
-/** תקציר טקסטואלי של הנכס להודעות וואטסאפ */
-function listingSummary(l: MinimalListing): string {
-  return [
-    l.title,
-    `שכונה: ${l.neighborhood ?? "אין מידע"} · חדרים: ${l.rooms ?? "אין מידע"} · ${l.size_sqm ?? "אין מידע"} מ"ר`,
-    `מחיר: ${fmtPrice(l.price)}`,
-  ].join("\n");
+/** פרטי הנכס כפרמטרים לתבנית וואטסאפ — משותף לשלוש התבניות */
+function listingParams(l: MinimalListing) {
+  return {
+    title: l.title,
+    neighborhood: l.neighborhood,
+    rooms: l.rooms,
+    sizeSqm: l.size_sqm,
+    price: fmtPrice(l.price),
+  };
 }
 
 /**
@@ -50,17 +53,19 @@ export async function sendPendingListingNotifications(
     .or("email_sent_at.is.null,whatsapp_sent_at.is.null");
 
   if (error || !rows?.length) {
-    return { sent: 0, pending: 0, waSent: 0, recipients: [] as NotifiedClient[] };
+    return { sent: 0, pending: 0, waSent: 0, waPending: 0, recipients: [] as NotifiedClient[] };
   }
 
   let sent = 0;
   let pending = 0;
   let waSent = 0;
+  let waPending = 0;
   const recipients: NotifiedClient[] = [];
 
-  const waContact = agent?.phoneTel
-    ? `\nלפרטים ותיאום צפייה — ${agent.name}: https://wa.me/${agent.phoneTel.replace(/\D/g, "")}`
-    : "";
+  // פרמטר בתבנית לא יכול להיות ריק, ולכן גם כשאין טלפון לסוכן יש נוסח חלופי
+  const agentContact = agent?.phoneTel
+    ? `${agent.name}: https://wa.me/${agent.phoneTel.replace(/\D/g, "")}`
+    : "צרו קשר דרך האתר";
 
   for (const row of rows as unknown as Array<{
     id: string;
@@ -99,11 +104,19 @@ export async function sendPendingListingNotifications(
 
     // וואטסאפ — רק ללקוח שביקש וסיפק מספר
     if (!row.whatsapp_sent_at && sp?.notify_whatsapp && sp.whatsapp_phone) {
-      const message = `נכס חדש שמתאים לחיפוש שלך (${sp.label}):\n${listingSummary(listing)}${waContact}\nלצפייה באתר: ${siteUrl}`;
-      const result = await sendWhatsAppMessage(sp.whatsapp_phone, message);
+      const result = await sendWhatsAppTemplate(sp.whatsapp_phone, "new_listing_client", {
+        profileLabel: sp.label,
+        ...listingParams(listing),
+        agentContact,
+        siteUrl,
+      });
       if (result.sent) {
         stamps.whatsapp_sent_at = new Date().toISOString();
         waSent += 1;
+      } else if (result.error) {
+        // skipped הוא ה-no-op המתוכנן (אין ספק / אין מזהה תבנית / טלפון לא תקין)
+        // ולכן נספר כאן רק כשל אמיתי מול הספק — למשל תבנית שטרם אושרה.
+        waPending += 1;
       }
     }
 
@@ -119,7 +132,7 @@ export async function sendPendingListingNotifications(
     });
   }
 
-  return { sent, pending, waSent, recipients };
+  return { sent, pending, waSent, waPending, recipients };
 }
 
 /** תאימות לאחור — הזרימה הישנה של מיילים בלבד */
@@ -148,7 +161,9 @@ export async function notifyAgentOfMatches(
     )
     .join("\n");
 
-  const bodyText = `הנכס שפרסמת הותאם ל-${recipients.length} לקוחות והם קיבלו התראה:\n${listingSummary(listing)}\n\nהלקוחות שקיבלו התראה:\n${clientLines}\n\n${siteUrl}`;
+  // רשימת הלקוחות בשורה אחת — פרמטר בתבנית לא יכול להכיל שורות חדשות
+  const clientsLine = formatClientList(recipients);
+
   const bodyHtml = `<!doctype html><html lang="he" dir="rtl"><body style="font-family:Assistant,Arial,sans-serif;background:#FAF8F5;padding:24px">
   <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:24px">
     <p style="color:#E8A33D;font-weight:700;margin:0">התראות נשלחו ללקוחות</p>
@@ -160,15 +175,17 @@ export async function notifyAgentOfMatches(
   </div></body></html>`;
 
   let agentNotified = false;
+  let siteName = 'סאן סיטי נדל"ן';
 
   // הסוכן בעל הנכס — לפי בעלות ה-site
   if (siteId) {
     try {
       const { data: site } = await supabaseAdmin
         .from("sites")
-        .select("owner_id")
+        .select("owner_id, name")
         .eq("id", siteId)
         .maybeSingle();
+      siteName = (site?.name as string | null) || siteName;
       const ownerId = site?.owner_id as string | undefined;
       if (ownerId) {
         const [{ data: profile }, { data: content }] = await Promise.all([
@@ -187,7 +204,12 @@ export async function notifyAgentOfMatches(
         }
         const agentPhone = business.phoneTel || business.phone;
         if (agentPhone) {
-          const r = await sendWhatsAppMessage(agentPhone, bodyText);
+          const r = await sendWhatsAppTemplate(agentPhone, "agent_matches", {
+            clientCount: recipients.length,
+            ...listingParams(listing),
+            clients: clientsLine,
+            siteUrl,
+          });
           agentNotified = agentNotified || r.sent;
         }
       }
@@ -233,7 +255,15 @@ export async function notifyAgentOfMatches(
           .maybeSingle();
         const mainBusiness = (mainContent?.business ?? {}) as { phoneTel?: string; phone?: string };
         const mainPhone = mainBusiness.phoneTel || mainBusiness.phone;
-        if (mainPhone) await sendWhatsAppMessage(mainPhone, `[עותק מנהל]\n${bodyText}`);
+        if (mainPhone) {
+          await sendWhatsAppTemplate(mainPhone, "admin_copy", {
+            siteName,
+            ...listingParams(listing),
+            clientCount: recipients.length,
+            clients: clientsLine,
+            siteUrl,
+          });
+        }
       }
     }
   } catch (e) {

@@ -336,11 +336,15 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
         emailsSent: number;
         emailsPending: number;
         waSent?: number;
+        waPending?: number;
         facebookPosted?: boolean;
       };
       setForm((f) => ({ ...f, id: res.id }));
+      // waPending נספר רק על כשל אמיתי מול ספק הוואטסאפ (למשל תבנית שטרם
+      // אושרה) — כך תקלת הגדרה מתגלה כבר בשמירה הראשונה ולא נשארת שקטה.
+      const waFailed = res.waPending ? `, נכשלו: ${res.waPending}` : "";
       setMsg(
-        `הנכס נשמר. אפשר להעלות עכשיו תמונות וסרטונים לנכס. נשלחו התראות ל-${res.matched} פרופילי חיפוש (מיילים: ${res.emailsSent}, וואטסאפ: ${res.waSent ?? 0}, ממתינים: ${res.emailsPending}).${res.facebookPosted ? " הנכס פורסם גם לעמוד הפייסבוק." : ""}`,
+        `הנכס נשמר. אפשר להעלות עכשיו תמונות וסרטונים לנכס. נשלחו התראות ל-${res.matched} פרופילי חיפוש (מיילים: ${res.emailsSent}, וואטסאפ: ${res.waSent ?? 0}${waFailed}, ממתינים: ${res.emailsPending}).${res.facebookPosted ? " הנכס פורסם גם לעמוד הפייסבוק." : ""}`,
       );
     }, "הנכס נשמר");
 

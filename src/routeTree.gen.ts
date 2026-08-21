@@ -26,6 +26,7 @@ import { Route as Char123LangChar125IndexRouteImport } from './routes/{-$lang}/i
 import { Route as Char123LangChar125AgentSlugRouteImport } from './routes/{-$lang}/$agentSlug'
 import { Route as ApiFacebookCallbackRouteImport } from './routes/api/facebook/callback'
 import { Route as ApiPublicScoutCronRouteImport } from './routes/api/public/scout-cron'
+import { Route as ApiPublicWhatsappCheckRouteImport } from './routes/api/public/whatsapp-check'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -112,6 +113,11 @@ const ApiPublicScoutCronRoute = ApiPublicScoutCronRouteImport.update({
   path: '/api/public/scout-cron',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicWhatsappCheckRoute = ApiPublicWhatsappCheckRouteImport.update({
+  id: '/api/public/whatsapp-check',
+  path: '/api/public/whatsapp-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedRouteRouteWithChildren
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/{-$lang}/': typeof Char123LangChar125IndexRoute
   '/api/facebook/callback': typeof ApiFacebookCallbackRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
+  '/api/public/whatsapp-check': typeof ApiPublicWhatsappCheckRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedRouteRouteWithChildren
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/{-$lang}': typeof Char123LangChar125IndexRoute
   '/api/facebook/callback': typeof ApiFacebookCallbackRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
+  '/api/public/whatsapp-check': typeof ApiPublicWhatsappCheckRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/{-$lang}/': typeof Char123LangChar125IndexRoute
   '/api/facebook/callback': typeof ApiFacebookCallbackRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
+  '/api/public/whatsapp-check': typeof ApiPublicWhatsappCheckRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/{-$lang}/'
     | '/api/facebook/callback'
     | '/api/public/scout-cron'
+    | '/api/public/whatsapp-check'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/{-$lang}'
     | '/api/facebook/callback'
     | '/api/public/scout-cron'
+    | '/api/public/whatsapp-check'
   id:
     | '__root__'
     | '/_authenticated'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/{-$lang}/'
     | '/api/facebook/callback'
     | '/api/public/scout-cron'
+    | '/api/public/whatsapp-check'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -247,6 +259,7 @@ export interface RootRouteChildren {
   Char123LangChar125IndexRoute: typeof Char123LangChar125IndexRoute
   ApiFacebookCallbackRoute: typeof ApiFacebookCallbackRoute
   ApiPublicScoutCronRoute: typeof ApiPublicScoutCronRoute
+  ApiPublicWhatsappCheckRoute: typeof ApiPublicWhatsappCheckRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -370,6 +383,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicScoutCronRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/whatsapp-check': {
+      id: '/api/public/whatsapp-check'
+      path: '/api/public/whatsapp-check'
+      fullPath: '/api/public/whatsapp-check'
+      preLoaderRoute: typeof ApiPublicWhatsappCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -402,6 +422,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char123LangChar125IndexRoute: Char123LangChar125IndexRoute,
   ApiFacebookCallbackRoute: ApiFacebookCallbackRoute,
   ApiPublicScoutCronRoute: ApiPublicScoutCronRoute,
+  ApiPublicWhatsappCheckRoute: ApiPublicWhatsappCheckRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
