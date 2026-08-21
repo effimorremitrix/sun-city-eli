@@ -180,7 +180,7 @@ export default function AdminLeadDrawer({
 
   const act = (
     action: QuickActionKey,
-    extra?: { listingId?: string; followUpAt?: string; note?: string },
+    extra?: { listingId?: string; followUpAt?: string; note?: string | undefined },
   ) =>
     run(
       () =>
