@@ -13,6 +13,7 @@
  * משתני סביבה — ראו README.
  */
 
+import { graphBase } from "@/lib/meta-graph.server";
 import {
   WA_TEMPLATES,
   buildParams,
@@ -36,12 +37,6 @@ export type WaTemplateInfo = {
   status: string;
   category: string;
 };
-
-/**
- * גרסת Graph לשליחה במטא. מכוון גבוה יותר מ-facebook.server.ts (v21.0), שמגיע
- * לסוף חיים בסביבות אוקטובר 2026; ניתן לעקוף ב-META_GRAPH_VERSION.
- */
-const DEFAULT_GRAPH_VERSION = "v25.0";
 
 const WA_TIMEOUT_MS = 10_000;
 
@@ -85,10 +80,6 @@ async function waFetch(url: string, init: RequestInit): Promise<Response> {
   } finally {
     clearTimeout(timer);
   }
-}
-
-function graphBase(): string {
-  return `https://graph.facebook.com/${env("META_GRAPH_VERSION") ?? DEFAULT_GRAPH_VERSION}`;
 }
 
 function greenApiBase(): string {

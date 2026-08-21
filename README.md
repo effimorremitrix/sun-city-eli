@@ -92,6 +92,9 @@ This project was built with [Lovable](https://lovable.dev). Continue developing 
 הסודות עצמם נשמרים בלוח משתני הסביבה של Lovable/Cloudflare, לא בקובץ בריפו.
 
 ```
+# משותף לכל אינטגרציות מטא (פייסבוק, אינסטגרם, וואטסאפ) — ברירת מחדל v25.0
+META_GRAPH_VERSION=v25.0               # אופציונלי
+
 WHATSAPP_PROVIDER=greenapi-waba        # או: meta — ריק = no-op שקט
 WA_TEMPLATE_LANG=he                    # אופציונלי, meta בלבד
 
@@ -109,7 +112,6 @@ GREEN_API_BASE_URL=https://xxxx.api.greenapi.com   # ה-ApiUrl המדויק של
 META_WABA_PHONE_NUMBER_ID=<phone number id>
 META_WABA_TOKEN=<system user token קבוע>
 META_WABA_ID=<waba id>                 # לרשימת התבניות/אבחון בלבד
-META_GRAPH_VERSION=v25.0               # אופציונלי
 
 # אבחון (אופציונלי, אפשר להסיר אחרי העלייה לאוויר)
 WHATSAPP_DEBUG_SECRET=<מחרוזת אקראית>
