@@ -39,6 +39,7 @@ const TAB_KEYS: TabKey[] = [
   "agents",
   "clients",
   "usage",
+  "guide",
 ];
 
 /** slug של דף מנוהל — לקישור ניהול ישיר (?site=slug) של המנהל הראשי */
@@ -312,6 +313,7 @@ function AccountPage() {
                     ["usage", "שימוש (Usage)"],
                   ] as Array<[TabKey, string]>)
                 : []),
+              ["guide", "מדריך"],
             ] as Array<[TabKey, string]>
           ).map(([key, label]) => (
             <button

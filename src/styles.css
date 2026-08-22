@@ -274,3 +274,87 @@
 .leaflet-container {
   font-family: inherit;
 }
+
+/*
+ * הדפסה / שמירה כ-PDF של המדריך למשתמש.
+ * מסתירים את כל העמוד ומשאירים רק את .guide-print — כך אין צורך לגעת
+ * במעטפת האתר (הדר, תפריטים, כפתורים) כדי לקבל מסמך נקי.
+ * העברית וכיווניות ה-RTL מטופלות על ידי מנוע ההדפסה של הדפדפן עצמו.
+ */
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm 14mm;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .guide-print,
+  .guide-print * {
+    visibility: visible;
+  }
+
+  .guide-print {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    width: 100%;
+    background: #fff;
+    color: #111;
+    font-size: 10.5pt;
+    line-height: 1.6;
+  }
+
+  /* סקשן לא נחתך באמצע בין עמודים */
+  .guide-print-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-block-end: 7mm;
+  }
+
+  .guide-print h1 {
+    font-size: 19pt;
+    font-weight: 800;
+  }
+
+  .guide-print h2 {
+    font-size: 13pt;
+    font-weight: 800;
+    margin-block-end: 1.5mm;
+  }
+
+  .guide-print p {
+    margin-block-end: 1.5mm;
+  }
+
+  /* preflight של Tailwind מאפס רשימות — בהדפסה מחזירים מספור ותבליטים */
+  .guide-print ol {
+    list-style: decimal;
+    padding-inline-start: 6mm;
+    margin-block-start: 1.5mm;
+  }
+
+  .guide-print ul {
+    list-style: disc;
+    padding-inline-start: 5mm;
+    margin-block-start: 1mm;
+  }
+
+  .guide-print li {
+    margin-block-end: 1.2mm;
+  }
+
+  .guide-print-note {
+    border: 1pt solid #999;
+    border-radius: 2mm;
+    padding: 2.5mm 3mm;
+    margin-block-start: 3mm;
+  }
+
+  .guide-print a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
