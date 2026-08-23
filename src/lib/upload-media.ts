@@ -2,9 +2,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { fileExt, fileMimeType } from "@/lib/media";
 
 /**
- * ליבת העלאת מדיה לאזור הניהול — ל-bucket הציבורי site-media.
+ * ליבת העלאת מדיה לאזור הניהול — ל-bucket‏ site-media.
  * מודול נפרד מ-media.ts (שמיובא גם מקומפוננטות ציבוריות): כאן יש תלות
  * בקליינט הדפדפן של Supabase, ולכן לייבא רק מקומפוננטות ניהול.
+ *
+ * site-media הוא bucket *פרטי*, ולכן כל ההעלאות מחזירות כתובת חתומה ולא
+ * כתובת ציבורית. אל תנסו להחליף את זה ב-getPublicUrl: מדיניות הסביבה של
+ * Lovable Cloud חוסמת הפיכת bucket לציבורי, וכתובת ציבורית כאן מחזירה
+ * NoSuchBucket. הרקע המלא ב-20260823120000_site_media_public.sql.
+ * הקריאה פתוחה לכולם דרך המדיניות site_media_public_select על
+ * storage.objects, כך שכתובת חתומה נטענת גם אצל גולש אנונימי.
  */
 
 const BUCKET = "site-media";
@@ -27,7 +34,12 @@ const randomId = (): string => {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 };
 
-/** תוקף הכתובת החתומה שמשמשת כגיבוי — עשר שנים, כדי שלא תפקע בפני המשתמש */
+/**
+ * תוקף הכתובת החתומה — עשר שנים. ארוך בהרבה מה-TTL של listing-images
+ * (שבוע, listing-images.server.ts) ובכוונה: שם הכתובת נחתמת מחדש בכל רינדור
+ * בשרת, וכאן היא *נשמרת* ב-site_content.business ולכן חייבת לשרוד. זה גם
+ * התוקף של ה-logoUrl של sun-city, שנחתם ידנית בזמנו מאותה סיבה.
+ */
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365 * 10;
 
 /**
@@ -53,25 +65,15 @@ export const storageErrorMessage = (raw: string): string => {
 };
 
 /**
- * כתובת קריאה יציבה לקובץ שהועלה. ברירת המחדל היא כתובת ציבורית קבועה, אבל אם
- * ה-bucket אינו ציבורי בפועל היא מחזירה NoSuchBucket והתמונה נשברת בלי שההעלאה
- * עצמה נכשלה — בדיוק התקלה שבגללה נשמרו בעבר כתובות חתומות ידנית. לכן מאמתים
- * את הכתובת, ורק אם היא באמת לא נגישה נופלים לכתובת חתומה ארוכת-טווח.
+ * כתובת קריאה יציבה לקובץ שהועלה — חתומה, לפי מודל ה-bucket הפרטי שמתואר
+ * בראש הקובץ. זורק כשהחתימה נכשלה, במקום להחזיר כתובת שלא תיטען: עדיף
+ * שההעלאה תיכשל בגלוי מאשר שתישמר בשדה כתובת שבורה.
  */
-async function readableUrl(path: string): Promise<string> {
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  const publicUrl = data.publicUrl;
-
-  // מעקף מטמון: תשובת 400 של bucket פרטי עלולה להישמר ב-CDN
-  const reachable = await fetch(`${publicUrl}?v=${Date.now()}`, { method: "HEAD" })
-    .then((r) => r.ok)
-    .catch(() => false);
-  if (reachable) return publicUrl;
-
-  const { data: signed } = await supabase.storage
-    .from(BUCKET)
-    .createSignedUrl(path, SIGNED_URL_TTL);
-  return signed?.signedUrl ?? publicUrl;
+async function signedUrl(path: string): Promise<string> {
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, SIGNED_URL_TTL);
+  if (error) throw new Error(storageErrorMessage(error.message));
+  if (!data?.signedUrl) throw new Error("יצירת כתובת לקובץ שהועלה נכשלה");
+  return data.signedUrl;
 }
 
 /** הודעת "סוגי קבצים נתמכים" לפי רשימת ה-MIME המותרת בשדה */
@@ -87,10 +89,9 @@ const supportedKindsMessage = (allowed: string[]): string => {
 };
 
 /**
- * מוודא ומעלה קובץ ל-site-media ומחזיר כתובת קריאה יציבה — ציבורית כשאפשר,
- * וחתומה ארוכת-טווח כשה-bucket אינו ציבורי (ראו readableUrl).
- * זורק Error עם הודעה בעברית כשסוג הקובץ לא נתמך, הקובץ גדול מדי או
- * שההעלאה נכשלה.
+ * מוודא ומעלה קובץ ל-site-media ומחזיר כתובת חתומה ארוכת-טווח.
+ * זורק Error עם הודעה בעברית כשסוג הקובץ לא נתמך, הקובץ גדול מדי,
+ * ההעלאה נכשלה או שלא ניתן היה לחתום על הכתובת.
  */
 export async function uploadSiteMedia(
   file: File,
@@ -115,5 +116,5 @@ export async function uploadSiteMedia(
   });
   if (error) throw new Error(storageErrorMessage(error.message));
 
-  return readableUrl(path);
+  return signedUrl(path);
 }
