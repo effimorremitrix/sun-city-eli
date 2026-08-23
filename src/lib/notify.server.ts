@@ -1,6 +1,7 @@
 import { sendNotificationEmail, newListingEmailHtml } from "@/lib/email.server";
 import { sendWhatsAppTemplate } from "@/lib/whatsapp.server";
 import { formatClientList } from "@/lib/whatsapp-templates";
+import { OFFICE_SLUG } from "@/lib/site-data";
 
 type MinimalListing = {
   id: string;
@@ -245,7 +246,7 @@ export async function notifyAgentOfMatches(
       const { data: mainSite } = await supabaseAdmin
         .from("sites")
         .select("id")
-        .eq("slug", "sun-city")
+        .eq("slug", OFFICE_SLUG)
         .maybeSingle();
       if (mainSite?.id && mainSite.id !== siteId) {
         const { data: mainContent } = await supabaseAdmin

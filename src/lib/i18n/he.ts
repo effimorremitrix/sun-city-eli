@@ -17,6 +17,7 @@ export const he = {
     links: [
       { id: "properties", label: "נכסים" },
       { id: "sellers", label: "מוכרים דירה" },
+      { id: "sold", label: "נמכרים" },
       { id: "buyers", label: "לקונים" },
       { id: "services", label: "השירותים שלנו" },
       { id: "team", label: "הצוות" },
@@ -414,6 +415,8 @@ export const he = {
 
   footer: {
     logoAlt: 'לוגו סאן סיטי נדל"ן',
+    /** שורת שיוך הצוות, מתחת לסלוגן בפוטר */
+    teamLine: "צוות אלי כליף",
     contactTitle: "פרטי קשר",
     linksTitle: "קישורים",
     linksAria: "קישורים בתחתית העמוד",

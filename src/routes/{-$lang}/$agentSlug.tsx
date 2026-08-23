@@ -29,7 +29,7 @@ import {
   type Locale,
 } from "@/lib/i18n";
 import { SITE_URL, headForLocale } from "@/lib/i18n/seo";
-import { OFFICE_SLUG } from "@/lib/site-data";
+import { LEGACY_SLUG_REDIRECTS, OFFICE_SLUG } from "@/lib/site-data";
 import type { PublicAgentRow } from "@/lib/agents.server";
 
 /** גוזר את שפת העמוד מפרמטר הנתיב האופציונלי {-$lang} */
@@ -44,14 +44,24 @@ const langFromParam = (param: string | undefined): Locale =>
 export const Route = createFileRoute("/{-$lang}/$agentSlug")({
   beforeLoad: ({ params }) => {
     const param = params.lang;
-    if (param == null) return;
     if (param === "he") {
       throw redirect({
         to: "/{-$lang}/$agentSlug",
         params: { lang: undefined, agentSlug: params.agentSlug },
       });
     }
-    if (!isLocale(param)) throw notFound();
+    if (param != null && !isLocale(param)) throw notFound();
+
+    // כתובת ישנה של דף אישי (למשל /sun-city אחרי המעבר ל-/eli-kalif):
+    // הפניה קבועה אל ה-slug הנוכחי, כדי שקישורים ודירוגי חיפוש לא יישברו.
+    const legacy = LEGACY_SLUG_REDIRECTS[params.agentSlug.toLowerCase()];
+    if (legacy) {
+      throw redirect({
+        to: "/{-$lang}/$agentSlug",
+        params: { lang: param, agentSlug: legacy },
+        statusCode: 301,
+      });
+    }
   },
   loader: async ({ params }) => {
     const slug = params.agentSlug.toLowerCase();

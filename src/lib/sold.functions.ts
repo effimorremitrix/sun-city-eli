@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { OFFICE_SLUG } from "@/lib/site-data";
 
 /** דירה שנמכרה — מוצגת במדור "נמכר על ידינו" */
 export type SoldProperty = {
@@ -208,7 +209,7 @@ export const adminMarkListingSold = createServerFn({ method: "POST" })
     // נכסים ישנים בלי site_id שייכים לאתר הראשי (אותה מוסכמה כמו ברשימת הניהול)
     const siteId =
       (listing.site_id as string | null) ??
-      access.sites.filter((s) => s.slug === "sun-city")[0]?.id;
+      access.sites.filter((s) => s.slug === OFFICE_SLUG)[0]?.id;
     if (!siteId || !access.sites.some((s) => s.id === siteId)) throw new Error("Forbidden");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

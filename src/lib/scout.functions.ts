@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { ScoutProfile } from "@/lib/scout.server";
+import { OFFICE_SLUG } from "@/lib/site-data";
 
 export type ScoutCandidateRow = {
   id: string;
@@ -276,7 +277,7 @@ export const adminApproveCandidate = createServerFn({ method: "POST" })
     } else {
       const access = await getManagerAccess(context);
       siteId =
-        (access.sites.filter((s) => s.slug === "sun-city")[0] ?? access.sites[0])?.id ?? null;
+        (access.sites.filter((s) => s.slug === OFFICE_SLUG)[0] ?? access.sites[0])?.id ?? null;
     }
 
     const { data: c, error } = await context.supabase

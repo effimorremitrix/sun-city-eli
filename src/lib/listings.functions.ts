@@ -4,10 +4,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { LISTING_COLUMNS, type Listing } from "@/lib/listings";
 import { listingInputSchema } from "@/lib/listing-schema";
 import type { ManagedSite } from "@/lib/admin.server";
+import { OFFICE_SLUG } from "@/lib/site-data";
 
 /** האם הרשימה כוללת את האתר הראשי — נכסים ישנים בלי site_id שייכים אליו */
 const includesDefaultSite = (sites: ManagedSite[], ids: string[]) =>
-  sites.some((s) => ids.includes(s.id) && s.slug === "sun-city");
+  sites.some((s) => ids.includes(s.id) && s.slug === OFFICE_SLUG);
 
 /* ----------------------- קריאה ציבורית ----------------------- */
 
@@ -96,7 +97,7 @@ export const adminSaveListing = createServerFn({ method: "POST" })
       if (!access.sites.some((s) => s.id === siteId)) throw new Error("Forbidden");
     } else {
       const fallback =
-        access.sites.filter((s) => s.slug === "sun-city")[0] ?? access.sites[0] ?? null;
+        access.sites.filter((s) => s.slug === OFFICE_SLUG)[0] ?? access.sites[0] ?? null;
       siteId = fallback?.id ?? null;
     }
 

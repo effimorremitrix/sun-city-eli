@@ -104,7 +104,7 @@ export type LiveSite = {
   updatedAt: string | null;
   /** מזהה ה-site במסד — null כשאין חיבור למסד */
   siteId: string | null;
-  /** ה-slug הציבורי של הדף ("sun-city" לדף של אלי) */
+  /** ה-slug הציבורי של הדף ("eli-kalif" לדף של אלי) */
   slug: string | null;
   /** הגדרות ניתוב/תצוגה של האתר (site_content.settings) */
   settings: LiveSettings;

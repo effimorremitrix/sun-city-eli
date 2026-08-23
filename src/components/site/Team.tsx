@@ -166,7 +166,9 @@ export function Team({ agents = [], variant = "primary" }: Props) {
           <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {shown.map((c, i) => (
               <li key={c.slug}>
-                <Reveal delay={i * 70}>{agentCard(c)}</Reveal>
+                <Reveal delay={i * 70} className="h-full">
+                  {agentCard(c)}
+                </Reveal>
               </li>
             ))}
           </ul>
