@@ -95,13 +95,13 @@ export default function AdminSitesPanel({ sites, onChanged }: Props) {
         </p>
       )}
 
-      {/* מתג "הדף /sun-city הוא הדף הראשי" — הפניה קבועה מ-"/" אל דף המשרד */}
+      {/* מתג "הדף /eli-kalif הוא הדף הראשי" — הפניה קבועה מ-"/" אל דף המשרד */}
       <div className="mt-4 rounded-xl border border-border p-3">
         <div className="flex flex-wrap items-center gap-2">
           <div className="min-w-0 flex-1">
             <span className="inline-flex items-center gap-1.5 font-bold text-primary">
               <Home className="size-4" aria-hidden="true" />
-              <span dir="ltr">/sun-city</span> כדף הראשי (הסתרת דף הבית)
+              <span dir="ltr">/{OFFICE_SLUG}</span> כדף הראשי (הסתרת דף הבית)
             </span>
           </div>
 
@@ -153,8 +153,8 @@ export default function AdminSitesPanel({ sites, onChanged }: Props) {
         <p className="mt-2 text-xs text-muted-foreground">
           כשהאפשרות פעילה, דף הבית <span dir="ltr">"/"</span> (וגם <span dir="ltr">/en</span>{" "}
           <span dir="ltr">/fr</span> <span dir="ltr">/ru</span>) מפנה בהפניה קבועה (301) אל{" "}
-          <span dir="ltr">/sun-city</span>, והכתובת הקנונית במנועי החיפוש עוברת אל{" "}
-          <span dir="ltr">/sun-city</span>. כיבוי מחזיר את המצב לקדמותו מיידית — בלי דיפלוי.
+          <span dir="ltr">/{OFFICE_SLUG}</span>, והכתובת הקנונית במנועי החיפוש עוברת אל{" "}
+          <span dir="ltr">/{OFFICE_SLUG}</span>. כיבוי מחזיר את המצב לקדמותו מיידית — בלי דיפלוי.
         </p>
       </div>
 

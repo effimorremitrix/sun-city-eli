@@ -14,6 +14,7 @@ import {
   type PropertyCategory,
 } from "@/lib/leads";
 import type { FollowUpBuckets, LeadRecord } from "@/lib/leads.server";
+import { OFFICE_SLUG } from "@/lib/site-data";
 
 /** שורת ליד כפי שמוצגת ב-UI — כולל כותרת הנכס הקשור */
 export type LeadRow = LeadRecord & {
@@ -513,7 +514,7 @@ export const createPublicLead = createServerFn({ method: "POST" })
         const { data: s } = await supabaseAdmin
           .from("sites")
           .select("id")
-          .eq("slug", "sun-city")
+          .eq("slug", OFFICE_SLUG)
           .maybeSingle();
         site = s ?? null;
       }

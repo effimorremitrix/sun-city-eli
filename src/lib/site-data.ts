@@ -143,8 +143,16 @@ export const services = [
 /**
  * ה-slug של האתר הראשי. הוא גם הדף האישי של אלי כליף — הנכסים הוותיקים כולם
  * משויכים אליו, ולכן אין לו דף נפרד. מקור אמת יחיד (agents.server.ts מייצא אותו כ-DEFAULT_SLUG).
+ * הכתובת השתנתה מ-"sun-city" ל-"eli-kalif"; הרשומה במסד היא אותה רשומה
+ * (אותו id), רק ה-slug הוחלף — ראו migration rename_office_slug_eli_kalif.
  */
-export const OFFICE_SLUG = "sun-city";
+export const OFFICE_SLUG = "eli-kalif";
+
+/**
+ * slugים היסטוריים שכבר לא בשימוש. הראוט האישי מפנה מהם בהפניה קבועה (301)
+ * אל היעד, כדי שקישורים ודירוגי חיפוש ישנים לא יישברו.
+ */
+export const LEGACY_SLUG_REDIRECTS: Record<string, string> = { "sun-city": OFFICE_SLUG };
 
 export type Agent = {
   name: string;
@@ -164,7 +172,7 @@ export type Agent = {
 export const team: Agent[] = [
   {
     name: "אלי כליף",
-    slug: "sun-city",
+    slug: OFFICE_SLUG,
     role: 'שותף ובעלים, מומחה נדל"ן דרום נתניה',
     photo: "photo1",
     image: agentEli.url,

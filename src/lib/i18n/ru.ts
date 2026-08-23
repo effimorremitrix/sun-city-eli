@@ -16,6 +16,7 @@ export const ru: Dict = {
     links: [
       { id: "properties", label: "Объекты" },
       { id: "sellers", label: "Продающим" },
+      { id: "sold", label: "Продано" },
       { id: "buyers", label: "Покупателям" },
       { id: "services", label: "Наши услуги" },
       { id: "team", label: "Команда" },
@@ -424,6 +425,7 @@ export const ru: Dict = {
 
   footer: {
     logoAlt: "Логотип агентства недвижимости Sun City",
+    teamLine: "Команда Эли Калифа",
     contactTitle: "Контактные данные",
     linksTitle: "Ссылки",
     linksAria: "Ссылки внизу страницы",

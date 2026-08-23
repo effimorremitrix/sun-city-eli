@@ -20,7 +20,7 @@ export function Services() {
           const Icon = svcIcons[i] ?? BadgeCheck;
           return (
             <li key={s.title}>
-              <Reveal delay={i * 70}>
+              <Reveal delay={i * 70} className="h-full">
                 <article className="soft-card flex h-full flex-col p-5 transition-transform hover:-translate-y-1">
                   <Icon className="size-7 text-sun" aria-hidden="true" />
                   <h3 className="mt-3 text-lg">{s.title}</h3>
@@ -66,7 +66,7 @@ export function WhyUs() {
             const Icon = valIcons[i] ?? Award;
             return (
               <li key={v.title}>
-                <Reveal delay={i * 80}>
+                <Reveal delay={i * 80} className="h-full">
                   <article className="soft-card h-full p-5 transition-transform hover:-translate-y-1">
                     <Icon className="size-7 text-sun" aria-hidden="true" />
                     <h3 className="mt-3 text-xl">{v.title}</h3>

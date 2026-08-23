@@ -16,6 +16,7 @@ export const en: Dict = {
     links: [
       { id: "properties", label: "Properties" },
       { id: "sellers", label: "Selling a Home" },
+      { id: "sold", label: "Sold" },
       { id: "buyers", label: "For Buyers" },
       { id: "services", label: "Our Services" },
       { id: "team", label: "Our Team" },
@@ -423,6 +424,7 @@ export const en: Dict = {
 
   footer: {
     logoAlt: "Sun City Real Estate logo",
+    teamLine: "Eli Kalif Team",
     contactTitle: "Contact details",
     linksTitle: "Links",
     linksAria: "Footer links",

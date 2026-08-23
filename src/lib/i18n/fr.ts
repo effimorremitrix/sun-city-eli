@@ -16,6 +16,7 @@ export const fr: Dict = {
     links: [
       { id: "properties", label: "Biens" },
       { id: "sellers", label: "Vendre un bien" },
+      { id: "sold", label: "Vendus" },
       { id: "buyers", label: "Acheteurs" },
       { id: "services", label: "Nos services" },
       { id: "team", label: "L'équipe" },
@@ -432,6 +433,7 @@ export const fr: Dict = {
 
   footer: {
     logoAlt: "Logo Sun City Immobilier",
+    teamLine: "Équipe Eli Kalif",
     contactTitle: "Coordonnées",
     linksTitle: "Liens",
     linksAria: "Liens de bas de page",

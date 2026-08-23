@@ -72,17 +72,17 @@ export async function getManagerAccess(context: Ctx): Promise<{
 async function ensureDefaultSite(ownerId: string): Promise<ManagedSite[]> {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { SITE_CONFIG } = await import("@/lib/site-data");
+    const { SITE_CONFIG, OFFICE_SLUG } = await import("@/lib/site-data");
 
     const { data: existing } = await supabaseAdmin
       .from("sites")
       .select("id, slug, name, is_active")
-      .eq("slug", "sun-city")
+      .eq("slug", OFFICE_SLUG)
       .maybeSingle();
     if (!existing) {
       const { error } = await supabaseAdmin
         .from("sites")
-        .insert({ slug: "sun-city", name: SITE_CONFIG.name, owner_id: ownerId });
+        .insert({ slug: OFFICE_SLUG, name: SITE_CONFIG.name, owner_id: ownerId });
       if (error) {
         console.error("ensureDefaultSite insert failed", error.message);
         return [];

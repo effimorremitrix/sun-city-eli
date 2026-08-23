@@ -1,8 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { mergeLive, type LiveSite } from "@/lib/site-live";
+import { OFFICE_SLUG } from "@/lib/site-data";
 
-const PUBLIC_SLUG = "sun-city";
+/** ברירת המחדל לקריאה ציבורית ולבחירת ה-site בניהול — אתר המשרד */
+const PUBLIC_SLUG = OFFICE_SLUG;
 
 /* ------------------------- קריאה ציבורית ------------------------- */
 
