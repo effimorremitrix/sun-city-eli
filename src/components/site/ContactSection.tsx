@@ -235,7 +235,7 @@ export function Footer() {
             {business.name}
           </p>
           <p className="mt-1 text-sm text-navy-foreground/75">{business.tagline}</p>
-          <p className="mt-1 text-sm font-bold text-navy-foreground/90">{t.footer.teamLine}</p>
+          <p className="mt-1 text-sm font-bold text-navy-foreground/90">{t.footer.ownerLine}</p>
           {/* קישורי הרשתות החברתיות עברו לראש העמוד (Header) — אייקונים צבעוניים */}
         </div>
 

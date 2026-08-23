@@ -425,7 +425,7 @@ export const ru: Dict = {
 
   footer: {
     logoAlt: "Логотип агентства недвижимости Sun City",
-    teamLine: "Команда Эли Калифа",
+    ownerLine: "Эли Калиф",
     contactTitle: "Контактные данные",
     linksTitle: "Ссылки",
     linksAria: "Ссылки внизу страницы",

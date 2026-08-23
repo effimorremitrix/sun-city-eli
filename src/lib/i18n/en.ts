@@ -424,7 +424,7 @@ export const en: Dict = {
 
   footer: {
     logoAlt: "Sun City Real Estate logo",
-    teamLine: "Eli Kalif Team",
+    ownerLine: "Eli Kalif",
     contactTitle: "Contact details",
     linksTitle: "Links",
     linksAria: "Footer links",

@@ -415,8 +415,8 @@ export const he = {
 
   footer: {
     logoAlt: 'לוגו סאן סיטי נדל"ן',
-    /** שורת שיוך מתחת לסלוגן בפוטר */
-    teamLine: "צוות אלי כליף",
+    /** שם הבעלים, מתחת לסלוגן בפוטר */
+    ownerLine: "אלי כליף",
     contactTitle: "פרטי קשר",
     linksTitle: "קישורים",
     linksAria: "קישורים בתחתית העמוד",
