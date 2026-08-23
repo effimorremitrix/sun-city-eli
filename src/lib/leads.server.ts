@@ -20,6 +20,8 @@ export type LeadRecord = {
   email: string | null;
   source: string;
   status: string;
+  buy_categories: string[];
+  sell_categories: string[];
   notes: string | null;
   next_action: string | null;
   next_follow_up_at: string | null;
@@ -28,7 +30,7 @@ export type LeadRecord = {
 };
 
 export const LEAD_COLUMNS =
-  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,notes,next_action,next_follow_up_at,created_at,updated_at";
+  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at";
 
 /** רישום אירוע בציר הזמן של ליד — נקודת הכניסה היחידה לכתיבת lead_events */
 export async function logLeadEvent(
@@ -62,6 +64,8 @@ export type LeadPatch = Partial<{
   email: string | null;
   source: string;
   status: string;
+  buy_categories: string[];
+  sell_categories: string[];
   notes: string | null;
   next_action: string | null;
   next_follow_up_at: string | null;

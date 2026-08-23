@@ -25,7 +25,7 @@ import {
   type LeadEventRow,
   type QuickActionKey,
 } from "@/lib/leads.functions";
-import { LEAD_SOURCES, LEAD_STATUSES } from "@/lib/leads";
+import { LEAD_SOURCES, LEAD_STATUSES, PROPERTY_CATEGORIES } from "@/lib/leads";
 import type { Listing } from "@/lib/listings";
 
 /** אייקון לכל סוג אירוע בציר הזמן */
@@ -67,6 +67,8 @@ type LeadForm = {
   email: string;
   source: string;
   status: string;
+  buy_categories: string[];
+  sell_categories: string[];
   listing_id: string;
   notes: string;
   next_action: string;
@@ -79,6 +81,8 @@ const emptyForm: LeadForm = {
   email: "",
   source: "ידני",
   status: "ליד חדש",
+  buy_categories: [],
+  sell_categories: [],
   listing_id: "",
   notes: "",
   next_action: "",
@@ -133,6 +137,8 @@ export default function AdminLeadDrawer({
       email: lead.email ?? "",
       source: lead.source,
       status: lead.status,
+      buy_categories: lead.buy_categories ?? [],
+      sell_categories: lead.sell_categories ?? [],
       listing_id: lead.listing_id ?? "",
       notes: lead.notes ?? "",
       next_action: lead.next_action ?? "",
@@ -169,6 +175,8 @@ export default function AdminLeadDrawer({
             email: form.email.trim() || null,
             source: form.source,
             status: form.status,
+            buy_categories: form.buy_categories,
+            sell_categories: form.sell_categories,
             listing_id: form.listing_id || null,
             notes: form.notes.trim() || null,
             next_action: form.next_action.trim() || null,
@@ -177,6 +185,13 @@ export default function AdminLeadDrawer({
         },
       });
     }, "הליד נשמר");
+
+  /** הוספה/הסרה של קטגוריה באחד משני שדות הקטגוריות */
+  const toggleCategory = (field: "buy_categories" | "sell_categories", c: string) =>
+    setForm({
+      ...form,
+      [field]: form[field].includes(c) ? form[field].filter((x) => x !== c) : [...form[field], c],
+    });
 
   const act = (
     action: QuickActionKey,
@@ -430,6 +445,36 @@ export default function AdminLeadDrawer({
                   ))}
                 </select>
               </label>
+              {/* מה הליד מחפש ומה הוא מציע — בחירה מרובה מאותה רשימת קטגוריות */}
+              {(
+                [
+                  ["buy_categories", "מה מחפש לקנות / לשכור"],
+                  ["sell_categories", "מה רוצה למכור"],
+                ] as Array<["buy_categories" | "sell_categories", string]>
+              ).map(([field, label]) => (
+                <fieldset key={field} className="block sm:col-span-2">
+                  <legend className="mb-1 block text-xs font-bold text-muted-foreground">
+                    {label} (אפשר לבחור כמה)
+                  </legend>
+                  <div className="flex flex-wrap gap-2">
+                    {PROPERTY_CATEGORIES.map((c) => (
+                      <button
+                        type="button"
+                        key={c}
+                        onClick={() => toggleCategory(field, c)}
+                        aria-pressed={form[field].includes(c)}
+                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                          form[field].includes(c)
+                            ? "border-sun bg-sun text-sun-foreground"
+                            : "border-border text-foreground"
+                        }`}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+              ))}
               <label className="block">
                 <span className="mb-1 block text-xs font-bold text-muted-foreground">
                   הנכס שבגללו פנה (אם קיים)

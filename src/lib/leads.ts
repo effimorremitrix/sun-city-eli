@@ -50,6 +50,40 @@ export const LEAD_SOURCES = [
 ] as const;
 export type LeadSource = (typeof LEAD_SOURCES)[number];
 
+/**
+ * קטגוריות הנכס שהליד מחפש לקנות/לשכור או רוצה למכור. רשימה סגורה אחת שמשמשת
+ * את שני השדות — ליד יכול לחפש דירה ולמכור בית פרטי, וההבחנה היא בשדה ולא בערך.
+ * כמו status ו-source: text[] במסד עם ולידציה כאן, כך שהוספת קטגוריה בעתיד היא
+ * שינוי קוד ולא מיגרציה.
+ */
+export const PROPERTY_CATEGORIES = [
+  "דירה",
+  "דירת גן",
+  "פנטהאוז",
+  "מיני פנטהאוז",
+  "דופלקס",
+  "בית פרטי / וילה",
+  "דו משפחתי",
+  "קוטג'",
+  "מגרש",
+  "נכס מסחרי",
+  "משרד",
+  "מחסן",
+  "בניין / מגדל",
+  "דיור מוגן",
+] as const;
+export type PropertyCategory = (typeof PROPERTY_CATEGORIES)[number];
+
+export const isPropertyCategory = (v: unknown): v is PropertyCategory =>
+  typeof v === "string" && (PROPERTY_CATEGORIES as readonly string[]).includes(v);
+
+/** ולידציה של קלט מהלקוח: רק ערכים מוכרים, בלי כפילויות, לפי סדר הרשימה */
+export const parseCategories = (v: unknown): PropertyCategory[] => {
+  if (!Array.isArray(v)) return [];
+  const picked = new Set(v.filter(isPropertyCategory));
+  return PROPERTY_CATEGORIES.filter((c) => picked.has(c));
+};
+
 export const LEAD_EVENT_TYPES = [
   "created",
   "contact_again",

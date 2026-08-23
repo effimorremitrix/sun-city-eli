@@ -535,6 +535,7 @@ export const fr: Dict = {
       "רמת אפרים": "Ramat Efraim",
       "רמת פולג": "Ramat Poleg",
       "רמת ידין": "Ramat Yadin",
+      "רמת חן": "Ramat Chen",
       "עיר ימים": "Ir Yamim",
       "פארק ים": "Park Yam",
       "נאות הרצל": "Neot Herzl",

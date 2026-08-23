@@ -27,6 +27,53 @@ const randomId = (): string => {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 };
 
+/** תוקף הכתובת החתומה שמשמשת כגיבוי — עשר שנים, כדי שלא תפקע בפני המשתמש */
+const SIGNED_URL_TTL = 60 * 60 * 24 * 365 * 10;
+
+/**
+ * הודעה בעברית לשגיאת אחסון של Supabase, שמגיעה באנגלית ומוצגת בממשק עברי.
+ * מכוונת לשתי התקלות שבאמת קורות בשטח: חוסר הרשאה (סוכן שאינו מנהל של הדף)
+ * ו-bucket שאינו מוגדר כמצופה.
+ */
+export const storageErrorMessage = (raw: string): string => {
+  const m = raw.toLowerCase();
+  if (m.includes("row-level security") || m.includes("unauthorized") || m.includes("403")) {
+    return "אין לך הרשאה להעלות קבצים לדף הזה. פנה למנהל המערכת.";
+  }
+  if (m.includes("bucket not found") || m.includes("nosuchbucket")) {
+    return "אחסון המדיה של האתר אינו מוגדר. פנה למנהל המערכת.";
+  }
+  if (m.includes("mime type") || m.includes("invalid_mime_type")) {
+    return "סוג הקובץ אינו נתמך באחסון של האתר.";
+  }
+  if (m.includes("exceeded the maximum allowed size") || m.includes("payload too large")) {
+    return "הקובץ גדול מדי.";
+  }
+  return raw || "העלאת הקובץ נכשלה";
+};
+
+/**
+ * כתובת קריאה יציבה לקובץ שהועלה. ברירת המחדל היא כתובת ציבורית קבועה, אבל אם
+ * ה-bucket אינו ציבורי בפועל היא מחזירה NoSuchBucket והתמונה נשברת בלי שההעלאה
+ * עצמה נכשלה — בדיוק התקלה שבגללה נשמרו בעבר כתובות חתומות ידנית. לכן מאמתים
+ * את הכתובת, ורק אם היא באמת לא נגישה נופלים לכתובת חתומה ארוכת-טווח.
+ */
+async function readableUrl(path: string): Promise<string> {
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  const publicUrl = data.publicUrl;
+
+  // מעקף מטמון: תשובת 400 של bucket פרטי עלולה להישמר ב-CDN
+  const reachable = await fetch(`${publicUrl}?v=${Date.now()}`, { method: "HEAD" })
+    .then((r) => r.ok)
+    .catch(() => false);
+  if (reachable) return publicUrl;
+
+  const { data: signed } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(path, SIGNED_URL_TTL);
+  return signed?.signedUrl ?? publicUrl;
+}
+
 /** הודעת "סוגי קבצים נתמכים" לפי רשימת ה-MIME המותרת בשדה */
 const supportedKindsMessage = (allowed: string[]): string => {
   const kinds = [
@@ -40,7 +87,8 @@ const supportedKindsMessage = (allowed: string[]): string => {
 };
 
 /**
- * מוודא ומעלה קובץ ל-site-media ומחזיר כתובת ציבורית קבועה שאינה פוקעת.
+ * מוודא ומעלה קובץ ל-site-media ומחזיר כתובת קריאה יציבה — ציבורית כשאפשר,
+ * וחתומה ארוכת-טווח כשה-bucket אינו ציבורי (ראו readableUrl).
  * זורק Error עם הודעה בעברית כשסוג הקובץ לא נתמך, הקובץ גדול מדי או
  * שההעלאה נכשלה.
  */
@@ -65,8 +113,7 @@ export async function uploadSiteMedia(
     contentType: type,
     upsert: false,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(storageErrorMessage(error.message));
 
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+  return readableUrl(path);
 }

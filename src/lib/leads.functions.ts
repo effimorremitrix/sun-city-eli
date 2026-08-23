@@ -7,9 +7,11 @@ import {
   LEAD_STATUSES,
   isValidIsraeliPhone,
   normalizePhone,
+  parseCategories,
   type ClientResponse,
   type LeadSource,
   type LeadStatus,
+  type PropertyCategory,
 } from "@/lib/leads";
 import type { FollowUpBuckets, LeadRecord } from "@/lib/leads.server";
 
@@ -38,7 +40,7 @@ export type LeadsDashboardCounts = {
 };
 
 const LEAD_ROW_COLUMNS =
-  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,notes,next_action,next_follow_up_at,created_at,updated_at,listing:listing_id(id,title)";
+  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at,listing:listing_id(id,title)";
 
 const str = (v: unknown, max = 200): string | null => {
   const s = typeof v === "string" ? v.trim() : "";
@@ -125,6 +127,8 @@ export type LeadInput = {
   email: string | null;
   source: LeadSource;
   status: LeadStatus;
+  buy_categories: PropertyCategory[];
+  sell_categories: PropertyCategory[];
   listing_id: string | null;
   notes: string | null;
   next_action: string | null;
@@ -149,6 +153,8 @@ function parseLeadInput(input: unknown): { siteId: string; lead: LeadInput } {
       email: str(l["email"], 120),
       source: isSource(l["source"]) ? l["source"] : "ידני",
       status: isStatus(l["status"]) ? l["status"] : "ליד חדש",
+      buy_categories: parseCategories(l["buy_categories"]),
+      sell_categories: parseCategories(l["sell_categories"]),
       listing_id: str(l["listing_id"], 60),
       notes: str(l["notes"], 2000),
       next_action: str(l["next_action"], 300),
