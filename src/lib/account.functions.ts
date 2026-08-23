@@ -48,7 +48,8 @@ export const getMyAccount = createServerFn({ method: "GET" })
     const [
       { data: isAdmin },
       { data: isSuperAdmin },
-      { data: isAgent },
+      { data: hasAgentRole },
+      { data: ownedSites },
       { data: profile },
       { data: profiles },
       { data: notifications },
@@ -56,6 +57,10 @@ export const getMyAccount = createServerFn({ method: "GET" })
       supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
       supabase.rpc("has_role", { _user_id: userId, _role: "super_admin" }),
       supabase.rpc("has_role", { _user_id: userId, _role: "agent" }),
+      // בעלות על אתר היא ההגדרה שבה משתמש getAdminSite (src/lib/admin.server.ts).
+      // בלי הבדיקה הזו סוכן שהאתר שלו הועבר אליו בלי שורה ב-user_roles לא היה
+      // רואה בכלל את טאבי הניהול — ולא היה יכול, למשל, להעלות לוגו.
+      supabase.from("sites").select("id").eq("owner_id", userId).limit(1),
       supabase.from("profiles").select("full_name").eq("id", userId).single(),
       supabase
         .from("search_profiles")
@@ -77,7 +82,7 @@ export const getMyAccount = createServerFn({ method: "GET" })
     return {
       isAdmin: Boolean(isAdmin),
       isSuperAdmin: Boolean(isSuperAdmin),
-      isAgent: Boolean(isAgent),
+      isAgent: Boolean(hasAgentRole) || (ownedSites ?? []).length > 0,
       fullName: profile?.full_name ?? null,
       profiles: (profiles ?? []) as unknown as SearchProfileRow[],
       notifications: (notifications ?? []) as unknown as NotificationRow[],

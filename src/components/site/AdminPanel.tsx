@@ -361,7 +361,19 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
     return <p className="mt-6 text-center text-muted-foreground">טוען…</p>;
   }
 
-  if (!isManager) return null;
+  // אין אתר מנוהל: אדמין תמיד עובר, ולסוכן הכוונה היא שהאתר שלו טרם הועבר לבעלותו.
+  // מסך ריק כאן נראה בדיוק כמו תקלה ("אי אפשר להעלות לוגו"), ולכן מסבירים מה חסר.
+  if (!isManager) {
+    return (
+      <p
+        role="alert"
+        className="mt-6 rounded-xl bg-destructive/10 p-4 text-sm font-semibold text-destructive"
+      >
+        לא משויך אליך דף אישי, ולכן אי אפשר לערוך תוכן או להעלות קבצים. פנה למנהל המערכת כדי שישייך
+        אותך דרך &quot;הוספת סוכן&quot; באזור הניהול.
+      </p>
+    );
+  }
 
   return (
     <div>
