@@ -433,7 +433,7 @@ export const fr: Dict = {
 
   footer: {
     logoAlt: "Logo Sun City Immobilier",
-    ownerLine: "Eli Kalif",
+    teamLine: "Équipe Eli Kalif",
     contactTitle: "Coordonnées",
     linksTitle: "Liens",
     linksAria: "Liens de bas de page",
