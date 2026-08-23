@@ -186,6 +186,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          buy_categories: string[]
           created_at: string
           created_by: string | null
           email: string | null
@@ -201,6 +202,7 @@ export type Database = {
           reminder_whatsapp_sent_at: string | null
           score: number | null
           search_profile_id: string | null
+          sell_categories: string[]
           site_id: string
           source: string
           status: string
@@ -208,6 +210,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          buy_categories?: string[]
           created_at?: string
           created_by?: string | null
           email?: string | null
@@ -223,6 +226,7 @@ export type Database = {
           reminder_whatsapp_sent_at?: string | null
           score?: number | null
           search_profile_id?: string | null
+          sell_categories?: string[]
           site_id: string
           source?: string
           status?: string
@@ -230,6 +234,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          buy_categories?: string[]
           created_at?: string
           created_by?: string | null
           email?: string | null
@@ -245,6 +250,7 @@ export type Database = {
           reminder_whatsapp_sent_at?: string | null
           score?: number | null
           search_profile_id?: string | null
+          sell_categories?: string[]
           site_id?: string
           source?: string
           status?: string
