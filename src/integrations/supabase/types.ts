@@ -323,6 +323,58 @@ export type Database = {
           },
         ];
       };
+      listing_feedback: {
+        Row: {
+          created_at: string;
+          id: string;
+          lead_id: string | null;
+          listing_id: string;
+          reaction: string;
+          site_id: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          lead_id?: string | null;
+          listing_id: string;
+          reaction: string;
+          site_id?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          lead_id?: string | null;
+          listing_id?: string;
+          reaction?: string;
+          site_id?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "listing_feedback_listing_id_fkey";
+            columns: ["listing_id"];
+            isOneToOne: false;
+            referencedRelation: "listings";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "listing_feedback_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "listing_feedback_lead_id_fkey";
+            columns: ["lead_id"];
+            isOneToOne: false;
+            referencedRelation: "leads";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       listing_images: {
         Row: {
           created_at: string;

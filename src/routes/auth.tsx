@@ -33,17 +33,75 @@ function AuthPage() {
   );
 }
 
+/**
+ * כניסה בטלפון (SMS OTP) — מאחורי דגל תצורה: דורשת חיבור ספק SMS (למשל
+ * Twilio Verify) בלוח הבקרה של Supabase דרך Lovable Cloud. עד שהספק מחובר
+ * הדגל כבוי והטאב מוסתר, בלי לגעת בכניסת המייל.
+ */
+const PHONE_AUTH_ENABLED = import.meta.env["VITE_PHONE_AUTH_ENABLED"] === "true";
+
+/** נרמול מספר ישראלי ל-E.164 (‎+9725xxxxxxxx) — הפורמט ש-Supabase דורש */
+const toE164 = (phone: string): string | null => {
+  const digits = phone.replace(/[^\d+]/g, "");
+  if (/^\+9725\d{8}$/.test(digits)) return digits;
+  if (/^05\d{8}$/.test(digits)) return `+972${digits.slice(1)}`;
+  return null;
+};
+
 function AuthContent() {
   const { t, dir } = useLang();
   const navigate = useNavigate();
   const backHref = useBackToSiteHref();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [method, setMethod] = useState<"email" | "phone">("email");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const sendOtp = async () => {
+    setErr(null);
+    setMsg(null);
+    const e164 = toE164(phone);
+    if (!e164) return setErr(t.auth.phoneInvalid);
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ phone: e164 });
+      if (error) throw error;
+      setOtpSent(true);
+      setMsg(t.auth.codeSent);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : t.auth.otpFailed);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    setErr(null);
+    setMsg(null);
+    const e164 = toE164(phone);
+    if (!e164 || otpCode.trim().length < 4) return setErr(t.auth.otpFailed);
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        phone: e164,
+        token: otpCode.trim(),
+        type: "sms",
+      });
+      if (error) throw error;
+      navigate({ to: "/account", replace: true });
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : t.auth.otpFailed);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,80 +143,154 @@ function AuthContent() {
           {mode === "signin" ? t.auth.signinSubtitle : t.auth.signupSubtitle}
         </p>
 
-        <form onSubmit={submit} className="mt-5 grid gap-3" noValidate>
-          {mode === "signup" && (
+        {PHONE_AUTH_ENABLED && (
+          <div className="mt-4 grid grid-cols-2 gap-1 rounded-xl border border-border p-1 text-sm font-bold">
+            <button
+              type="button"
+              aria-pressed={method === "email"}
+              onClick={() => setMethod("email")}
+              className={`rounded-lg py-2 ${method === "email" ? "bg-sun text-sun-foreground" : "text-muted-foreground"}`}
+            >
+              {t.auth.emailTab}
+            </button>
+            <button
+              type="button"
+              aria-pressed={method === "phone"}
+              onClick={() => setMethod("phone")}
+              className={`rounded-lg py-2 ${method === "phone" ? "bg-sun text-sun-foreground" : "text-muted-foreground"}`}
+            >
+              {t.auth.phoneTab}
+            </button>
+          </div>
+        )}
+
+        {PHONE_AUTH_ENABLED && method === "phone" && (
+          <div className="mt-5 grid gap-3">
             <label className="block">
               <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                {t.auth.fullName}
+                {t.auth.phoneLabel}
               </span>
               <input
                 className="field"
-                type="text"
-                autoComplete="name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required={mode === "signup"}
+                type="tel"
+                inputMode="tel"
+                dir="ltr"
+                placeholder={t.auth.phonePlaceholder}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
               />
             </label>
-          )}
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">
-              {t.auth.email}
-            </span>
-            <input
-              className="field"
-              type="email"
-              dir="ltr"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">
-              {t.auth.password}
-            </span>
-            <input
-              className="field"
-              type="password"
-              dir="ltr"
-              autoComplete={mode === "signin" ? "current-password" : "new-password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </label>
+            {otpSent && (
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                  {t.auth.codeLabel}
+                </span>
+                <input
+                  className="field"
+                  type="text"
+                  inputMode="numeric"
+                  dir="ltr"
+                  autoComplete="one-time-code"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                />
+              </label>
+            )}
+            {err && (
+              <p role="alert" className="text-sm font-semibold text-destructive">
+                {err}
+              </p>
+            )}
+            {msg && <p className="text-sm font-semibold text-primary">{msg}</p>}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void (otpSent ? verifyOtp() : sendOtp())}
+              className="mt-1 rounded-xl bg-sun py-3 text-base font-bold text-sun-foreground disabled:opacity-60"
+            >
+              {busy ? t.auth.working : otpSent ? t.auth.verifyCode : t.auth.sendCode}
+            </button>
+          </div>
+        )}
 
-          {err && (
-            <p role="alert" className="text-sm font-semibold text-destructive">
-              {err}
-            </p>
-          )}
-          {msg && <p className="text-sm font-semibold text-primary">{msg}</p>}
+        {(!PHONE_AUTH_ENABLED || method === "email") && (
+          <form onSubmit={submit} className="mt-5 grid gap-3" noValidate>
+            {mode === "signup" && (
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                  {t.auth.fullName}
+                </span>
+                <input
+                  className="field"
+                  type="text"
+                  autoComplete="name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required={mode === "signup"}
+                />
+              </label>
+            )}
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.auth.email}
+              </span>
+              <input
+                className="field"
+                type="email"
+                dir="ltr"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.auth.password}
+              </span>
+              <input
+                className="field"
+                type="password"
+                dir="ltr"
+                autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </label>
 
+            {err && (
+              <p role="alert" className="text-sm font-semibold text-destructive">
+                {err}
+              </p>
+            )}
+            {msg && <p className="text-sm font-semibold text-primary">{msg}</p>}
+
+            <button
+              type="submit"
+              disabled={busy}
+              className="mt-1 rounded-xl bg-sun py-3 text-base font-bold text-sun-foreground disabled:opacity-60"
+            >
+              {busy ? t.auth.working : mode === "signin" ? t.auth.signin : t.auth.signup}
+            </button>
+          </form>
+        )}
+
+        {(!PHONE_AUTH_ENABLED || method === "email") && (
           <button
-            type="submit"
-            disabled={busy}
-            className="mt-1 rounded-xl bg-sun py-3 text-base font-bold text-sun-foreground disabled:opacity-60"
+            type="button"
+            onClick={() => {
+              setMode(mode === "signin" ? "signup" : "signin");
+              setErr(null);
+              setMsg(null);
+            }}
+            className="mt-4 w-full text-sm font-semibold text-primary underline"
           >
-            {busy ? t.auth.working : mode === "signin" ? t.auth.signin : t.auth.signup}
+            {mode === "signin" ? t.auth.toggleToSignup : t.auth.toggleToSignin}
           </button>
-        </form>
+        )}
 
-        <button
-          type="button"
-          onClick={() => {
-            setMode(mode === "signin" ? "signup" : "signin");
-            setErr(null);
-            setMsg(null);
-          }}
-          className="mt-4 w-full text-sm font-semibold text-primary underline"
-        >
-          {mode === "signin" ? t.auth.toggleToSignup : t.auth.toggleToSignin}
-        </button>
-
-        {mode === "signin" && (
+        {(!PHONE_AUTH_ENABLED || method === "email") && mode === "signin" && (
           <button
             type="button"
             disabled={busy}

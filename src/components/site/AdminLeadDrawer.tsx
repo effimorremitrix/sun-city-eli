@@ -26,6 +26,7 @@ import {
   type QuickActionKey,
 } from "@/lib/leads.functions";
 import { LEAD_SOURCES, LEAD_STATUSES, PROPERTY_CATEGORIES } from "@/lib/leads";
+import { adminListLeadFeedback } from "@/lib/feedback.functions";
 import { LeadCriteriaCard } from "@/components/site/LeadCriteria";
 import type { Listing } from "@/lib/listings";
 
@@ -115,6 +116,14 @@ export default function AdminLeadDrawer({
   const detail = useQuery({
     queryKey: ["admin-lead", siteId, leadId],
     queryFn: () => fetchLead({ data: { siteId, leadId: leadId! } }),
+    enabled: leadId != null,
+  });
+
+  // משוב הלקוח על נכסים (❤️/❌/⭐/📞) — מוצג לסוכן בכרטיס
+  const fetchFeedback = useServerFn(adminListLeadFeedback);
+  const feedback = useQuery({
+    queryKey: ["admin-lead-feedback", siteId, leadId],
+    queryFn: () => fetchFeedback({ data: { siteId, leadId: leadId! } }),
     enabled: leadId != null,
   });
 
@@ -388,6 +397,32 @@ export default function AdminLeadDrawer({
 
           {/* מה הלקוח מחפש — הקריטריונים המובנים מהטופס/הפרופיל */}
           {lead && <LeadCriteriaCard lead={lead} />}
+
+          {/* משוב הלקוח על נכסים */}
+          {(feedback.data ?? []).length > 0 && (
+            <div className="rounded-xl border border-border p-3">
+              <p className="text-sm font-extrabold text-primary">משוב הלקוח על נכסים</p>
+              <ul className="mt-2 grid gap-1.5 text-xs">
+                {(feedback.data ?? []).map((f) => (
+                  <li key={f.id} className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-bold">
+                      {f.reaction === "interested"
+                        ? "❤️ מעניין אותי"
+                        : f.reaction === "not_relevant"
+                          ? "❌ לא מתאים"
+                          : f.reaction === "favorite"
+                            ? "⭐ שמר"
+                            : "📞 ביקש שיחה"}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {f.listing?.title ?? "נכס"} ·{" "}
+                      {new Date(f.created_at).toLocaleDateString("he-IL")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* טופס פרטי הליד */}
           {(!leadId || lead) && (

@@ -22,6 +22,7 @@ import { formatUpdated } from "@/lib/site-live";
 import { useAuth } from "@/hooks/useAuth";
 import { useBackToSiteHref } from "@/lib/back-to-site";
 import AccountSettings from "@/components/site/AccountSettings";
+import { PortalExtrasSections } from "@/components/portal/PortalSections";
 import { AdminPanel, type AdminTabKey } from "@/components/site/AdminPanel";
 
 const title = 'האזור האישי | סאן סיטי נדל"ן';
@@ -538,6 +539,9 @@ function AccountContent() {
                     ))}
                   </ul>
                 </section>
+
+                {/* הסוכן המטפל, התאמות עם אחוז התאמה ונכסים שמורים */}
+                <PortalExtrasSections onMessage={setMsg} />
 
                 {/* פרופילי חיפוש */}
                 <section className="soft-card mt-6 p-5">
