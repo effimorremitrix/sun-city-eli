@@ -465,6 +465,8 @@ export const createPublicLead = createServerFn({ method: "POST" })
       website?: string | null;
       /** קריטריוני חיפוש מובנים (טופס הקונים) — עוברים סניטציה בצד השרת */
       criteria?: unknown;
+      /** הסכמת דיוור (מייל/וואטסאפ) — תנאי לקבלת התראות התאמה אוטומטיות */
+      marketingConsent?: boolean;
     }) => ({
       siteId: str(input?.siteId, 60),
       siteSlug: str(input?.siteSlug, 60),
@@ -476,6 +478,7 @@ export const createPublicLead = createServerFn({ method: "POST" })
       listingId: str(input?.listingId, 60),
       website: str(input?.website, 200), // honeypot — אמור להישאר ריק
       criteria: input?.criteria ?? null,
+      marketingConsent: input?.marketingConsent === true,
     }),
   )
   .handler(async ({ data }) => {
@@ -561,6 +564,10 @@ export const createPublicLead = createServerFn({ method: "POST" })
             .update({
               listing_id: data.listingId ?? existing.listing_id,
               ...(criteria ?? {}),
+              // הסכמה רק נדלקת מטופס — הסרה נעשית מול הסוכן/המשרד
+              ...(data.marketingConsent
+                ? { marketing_consent: true, consent_at: new Date().toISOString() }
+                : {}),
             })
             .eq("id", existing.id);
           if (criteria && userId) {
@@ -607,6 +614,9 @@ export const createPublicLead = createServerFn({ method: "POST" })
           source: data.source,
           notes: data.message,
           ...(criteria ?? {}),
+          ...(data.marketingConsent
+            ? { marketing_consent: true, consent_at: new Date().toISOString() }
+            : {}),
         })
         .select("id")
         .single();

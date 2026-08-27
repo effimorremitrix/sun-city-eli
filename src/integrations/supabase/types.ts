@@ -184,8 +184,10 @@ export type Database = {
           city: string | null;
           created_at: string;
           created_by: string | null;
+          consent_at: string | null;
           criteria_extra: Json | null;
           deal_type: string | null;
+          marketing_consent: boolean;
           email: string | null;
           full_name: string;
           id: string;
@@ -224,8 +226,10 @@ export type Database = {
           city?: string | null;
           created_at?: string;
           created_by?: string | null;
+          consent_at?: string | null;
           criteria_extra?: Json | null;
           deal_type?: string | null;
+          marketing_consent?: boolean;
           email?: string | null;
           full_name: string;
           id?: string;
@@ -264,8 +268,10 @@ export type Database = {
           city?: string | null;
           created_at?: string;
           created_by?: string | null;
+          consent_at?: string | null;
           criteria_extra?: Json | null;
           deal_type?: string | null;
+          marketing_consent?: boolean;
           email?: string | null;
           full_name?: string;
           id?: string;
@@ -420,6 +426,7 @@ export type Database = {
         Row: {
           created_at: string;
           email_sent_at: string | null;
+          error: string | null;
           id: string;
           lead_id: string | null;
           listing_id: string;
@@ -429,12 +436,13 @@ export type Database = {
           response_at: string | null;
           search_profile_id: string | null;
           updated_at: string;
-          user_id: string;
+          user_id: string | null;
           whatsapp_sent_at: string | null;
         };
         Insert: {
           created_at?: string;
           email_sent_at?: string | null;
+          error?: string | null;
           id?: string;
           lead_id?: string | null;
           listing_id: string;
@@ -444,12 +452,13 @@ export type Database = {
           response_at?: string | null;
           search_profile_id?: string | null;
           updated_at?: string;
-          user_id: string;
+          user_id?: string | null;
           whatsapp_sent_at?: string | null;
         };
         Update: {
           created_at?: string;
           email_sent_at?: string | null;
+          error?: string | null;
           id?: string;
           lead_id?: string | null;
           listing_id?: string;
@@ -459,7 +468,7 @@ export type Database = {
           response_at?: string | null;
           search_profile_id?: string | null;
           updated_at?: string;
-          user_id?: string;
+          user_id?: string | null;
           whatsapp_sent_at?: string | null;
         };
         Relationships: [
@@ -677,22 +686,28 @@ export type Database = {
       };
       profiles: {
         Row: {
+          consent_at: string | null;
           created_at: string;
           email: string | null;
           full_name: string | null;
           id: string;
+          marketing_consent: boolean;
         };
         Insert: {
+          consent_at?: string | null;
           created_at?: string;
           email?: string | null;
           full_name?: string | null;
           id: string;
+          marketing_consent?: boolean;
         };
         Update: {
+          consent_at?: string | null;
           created_at?: string;
           email?: string | null;
           full_name?: string | null;
           id?: string;
+          marketing_consent?: boolean;
         };
         Relationships: [];
       };
@@ -1177,6 +1192,10 @@ export type Database = {
         Returns: boolean;
       };
       is_site_manager: { Args: never; Returns: boolean };
+      match_listing_to_leads: {
+        Args: { p_listing_id: string };
+        Returns: number;
+      };
       match_listing_to_profiles: {
         Args: { p_listing_id: string };
         Returns: number;

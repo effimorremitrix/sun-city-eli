@@ -1,5 +1,5 @@
 import { DataSource } from "@/components/site/DataSource";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ShieldCheck,
@@ -94,6 +94,18 @@ export function PropertySection({ listings, updatedAt }: Props) {
     () => sortListings(ai ? manual.filter((l) => ai.ids.includes(l.id)) : manual, sort),
     [manual, ai, sort],
   );
+
+  // קישור עמוק לנכס: ?listing=<id> (מהתראות מייל/וואטסאפ ומהאזור האישי)
+  // פותח את חלון פרטי הנכס וגולל אל מדור הנכסים
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("listing");
+    if (!id) return;
+    const listing = listings.find((l) => l.id === id);
+    if (!listing) return;
+    setSelected(listing);
+    document.getElementById("properties")?.scrollIntoView({ behavior: "smooth" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ריצה חד-פעמית בטעינת הרשימה
+  }, [listings.length]);
 
   const runAiSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -781,8 +793,20 @@ function WebCandidates({
     return <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">{w.unavailable}</p>;
   }
 
+  // תקציר הסריקה — שקיפות: כמה נסרק וכמה נפסל (סריקה "ריקה" אינה תקלה)
+  const summaryLine = web.summary
+    ? w.scanSummary(web.summary.scanned, web.candidates.length, web.summary.rejected)
+    : null;
+
   if (web.candidates.length === 0) {
-    return <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">{w.empty}</p>;
+    return (
+      <div className="soft-card mt-6 p-5 text-sm text-muted-foreground">
+        <p>{w.empty}</p>
+        {summaryLine && web.summary && web.summary.scanned > 0 && (
+          <p className="mt-1 text-xs">{summaryLine}</p>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -795,6 +819,7 @@ function WebCandidates({
         {w.subtitle}
         {web.remaining != null && w.remaining(web.remaining)}
       </p>
+      {summaryLine && <p className="mt-1 text-xs text-muted-foreground">{summaryLine}</p>}
       {/* תצוגה טבלאית של המודעות מהרשת */}
       <div className="soft-card mt-4 overflow-x-auto">
         <table className="w-full min-w-[40rem] text-sm">

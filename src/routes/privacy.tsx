@@ -103,7 +103,8 @@ function HeBody() {
           <strong>מתן השירות וניהול החשבון</strong> — ביצוע החוזה מולכם.
         </li>
         <li>
-          <strong>שליחת התראות על נכסים</strong> — הסכמה שנתתם, וניתן לבטלה בכל עת.
+          <strong>שליחת התראות על נכסים במייל ובוואטסאפ</strong> — הסכמה שנתתם (בסימון בטופס או
+          בהפעלת ההתראות באזור האישי), וניתן לבטלה בכל עת מול המשרד או בהגדרות האזור האישי.
         </li>
         <li>
           <strong>מענה לפניות והתאמת נכסים</strong> — אינטרס לגיטימי ופעולות טרום-חוזיות לבקשתכם.
@@ -168,10 +169,13 @@ function HeBody() {
         .
       </p>
 
-      <LegalH2>6. עוגיות</LegalH2>
+      <LegalH2>6. עוגיות ומדידה</LegalH2>
       <p>
-        האתר משתמש רק בעוגיות ובאחסון מקומי הנחוצים לניהול סשן ההתחברות באזור האישי (Supabase Auth).
-        אין באתר עוגיות אנליטיקה, פרסום או מעקב של צד שלישי.
+        האתר משתמש בעוגיות ובאחסון מקומי הנחוצים לניהול סשן ההתחברות באזור האישי (Supabase Auth)
+        ולשמירת העדפות תצוגה (למשל שפה). בנוסף אנחנו מודדים שימוש באתר במערכת עצמית (First-party)
+        בלבד: נשמרים עמודים שנצפו ולחיצות (למשל על וואטסאפ או טלפון) עם מזהה סשן אקראי ומעורבל — בלי
+        שם, בלי טלפון ובלי מעקב חוצה-אתרים. אין באתר עוגיות אנליטיקה, פרסום או מעקב של צד שלישי,
+        ואין Meta Pixel.
       </p>
 
       <LegalH2>7. עם מי המידע משותף</LegalH2>
@@ -355,8 +359,9 @@ function EnBody() {
           contract with you.
         </li>
         <li>
-          <strong>Sending property alerts</strong> — your consent, which you may withdraw at any
-          time.
+          <strong>Sending property alerts by email and WhatsApp</strong> — your consent (given by
+          ticking the form checkbox or enabling alerts in your personal area), which you may
+          withdraw at any time via the agency or your personal-area settings.
         </li>
         <li>
           <strong>Answering enquiries and matching properties</strong> — legitimate interests and
@@ -431,11 +436,14 @@ function EnBody() {
         .
       </p>
 
-      <LegalH2>6. Cookies</LegalH2>
+      <LegalH2>6. Cookies &amp; measurement</LegalH2>
       <p>
-        We use only the cookies and local storage strictly necessary to maintain your signed in
-        session in the personal area (Supabase Auth). There are no analytics, advertising or
-        third-party tracking cookies on this site.
+        We use cookies and local storage necessary to maintain your signed-in session in the
+        personal area (Supabase Auth) and to remember display preferences (such as language). We
+        also measure site usage with a first-party system only: pages viewed and clicks (for example
+        on WhatsApp or phone buttons) are recorded with a random, hashed session identifier — no
+        name, no phone number and no cross-site tracking. There are no analytics, advertising or
+        third-party tracking cookies on this site, and no Meta Pixel.
       </p>
 
       <LegalH2>7. Service providers we share data with</LegalH2>

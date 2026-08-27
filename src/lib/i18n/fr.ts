@@ -114,6 +114,8 @@ export const fr: Dict = {
         "L'analyse du web n'a pas abouti cette fois. Les biens de l'agence sont affichés ci-dessus — réessayez dans un instant.",
       empty:
         "Nous avons analysé le web sans trouver d'annonce supplémentaire correspondante pour le moment. Reformulez, ou laissez vos coordonnées.",
+      scanSummary: (scanned: number, matched: number, rejected: number) =>
+        `${scanned} annonces analysées sur le web : ${matched} correspondent à votre recherche, ${rejected} écartées (prix/détails manquants ou correspondance faible).`,
     },
     kicker: "Biens à Netanya",
     title: "Biens à vendre et à louer",
@@ -514,6 +516,8 @@ export const fr: Dict = {
   misc: {
     noInfo: "Non renseigné",
     phoneError: "Veuillez saisir un numéro de téléphone israélien valide (ex. 050-1234567)",
+    consentMarketing:
+      "J'accepte de recevoir des mises à jour sur des biens correspondants par e-mail et WhatsApp (consentement révocable à tout moment)",
   },
 
   routeErrors: {

@@ -51,6 +51,7 @@ export function BuyerSection() {
   const { business: live, siteId } = useLive();
   const createLead = useServerFn(createPublicLead);
   const [form, setForm] = useState<BuyerForm>(emptyForm);
+  const [consent, setConsent] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
@@ -89,6 +90,7 @@ export function BuyerSection() {
           phone: form.phone,
           message: `מחפש/ת נכס (${form.dealType}): תקציב ${budgetText}, חדרים ${roomsText}, אזור ${areaText}`,
           source: "טופס קונים",
+          marketingConsent: consent,
           criteria: {
             deal_type: form.dealType,
             city: "נתניה",
@@ -371,6 +373,15 @@ export function BuyerSection() {
             </div>
           </details>
         </div>
+        <label className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+          />
+          {t.misc.consentMarketing}
+        </label>
         {err && (
           <p role="alert" className="mt-3 text-sm font-semibold text-destructive">
             {err}

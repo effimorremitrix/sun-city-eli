@@ -177,13 +177,24 @@ async function sendViaMeta(
  * לעולם לא זורק: לולאת ההתראות ב-notify.server.ts אינה עטופה ב-try/catch,
  * וחריגה כאן הייתה קוטעת את שאר הנמענים.
  */
+/** אזהרת תצורה חד-פעמית לתהליך — כדי שחוסר הגדרה לא יישאר שקט לגמרי בלוגים */
+let warnedNoProvider = false;
+
 export async function sendWhatsAppTemplate<K extends WaTemplateKey>(
   to: string,
   key: K,
   values: WaTemplateValues[K],
 ): Promise<WaSendResult> {
   const provider = env("WHATSAPP_PROVIDER");
-  if (!provider) return { sent: false, skipped: "no-whatsapp-provider" };
+  if (!provider) {
+    if (!warnedNoProvider) {
+      warnedNoProvider = true;
+      console.warn(
+        "וואטסאפ לא מוגדר (WHATSAPP_PROVIDER ריק) — התראות וואטסאפ מדולגות בשקט. ראו README, מדור התראות וואטסאפ.",
+      );
+    }
+    return { sent: false, skipped: "no-whatsapp-provider" };
+  }
 
   // האינסטנס הישן (QR) הוסר — מספר שמחובר כך חשוף לחסימה על ידי מטא
   if (provider === "greenapi") {

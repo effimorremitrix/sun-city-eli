@@ -156,6 +156,19 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
     if (matchError) throw new Error(matchError.message);
     matched = Number(count ?? 0);
 
+    // התאמה גם ללידים אנונימיים (טופס "נכס לפי דרישה" עם הסכמת דיוור) —
+    // כשל כאן לא מפיל את השמירה, זה נדבך משלים
+    try {
+      const { data: leadCount, error: leadMatchError } = await context.supabase.rpc(
+        "match_listing_to_leads",
+        { p_listing_id: listingId },
+      );
+      if (leadMatchError) console.error("match_listing_to_leads failed", leadMatchError.message);
+      else matched += Number(leadCount ?? 0);
+    } catch (e) {
+      console.error("match_listing_to_leads failed", e instanceof Error ? e.message : e);
+    }
+
     const minimal = {
       id: listingId,
       title: fields.title,
@@ -166,17 +179,18 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
       description: fields.description,
     };
 
-    // הסוכן המפרסם — לצירוף לינק יצירת קשר בהודעות ללקוחות
+    // הסוכן המפרסם — לצירוף לינק יצירת קשר בהודעות ללקוחות. באותה קריאה
+    // נשלף גם ה-slug של הדף, לבניית קישור עמוק ישירות לנכס.
     let agent: { name: string; phoneTel: string | null } | null = null;
+    let listingUrl = `${siteUrl}/?listing=${listingId}#properties`;
     const siteId = fields.site_id ?? null;
     if (siteId) {
       try {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: content } = await supabaseAdmin
-          .from("site_content")
-          .select("business")
-          .eq("site_id", siteId)
-          .maybeSingle();
+        const [{ data: content }, { data: site }] = await Promise.all([
+          supabaseAdmin.from("site_content").select("business").eq("site_id", siteId).maybeSingle(),
+          supabaseAdmin.from("sites").select("slug").eq("id", siteId).maybeSingle(),
+        ]);
         const business = (content?.business ?? {}) as {
           agentName?: string;
           name?: string;
@@ -186,12 +200,13 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
           name: business.agentName || business.name || "הסוכן",
           phoneTel: business.phoneTel ?? null,
         };
+        if (site?.slug) listingUrl = `${siteUrl}/${site.slug}?listing=${listingId}#properties`;
       } catch {
         agent = null;
       }
     }
 
-    const result = await sendPendingListingNotifications(minimal, `${siteUrl}/#properties`, agent);
+    const result = await sendPendingListingNotifications(minimal, listingUrl, agent);
     emailsSent = result.sent;
     emailsPending = result.pending;
     waSent = result.waSent;
@@ -207,7 +222,7 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
 
     // התראה לסוכן ולמנהל הראשי — כשל כאן לא מפיל את השמירה
     try {
-      await notifyAgentOfMatches(minimal, siteId, result.recipients, `${siteUrl}/#properties`);
+      await notifyAgentOfMatches(minimal, siteId, result.recipients, listingUrl);
     } catch (e) {
       console.error("notifyAgentOfMatches failed", e instanceof Error ? e.message : e);
     }

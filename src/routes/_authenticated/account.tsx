@@ -519,7 +519,14 @@ function AccountContent() {
                           </div>
                         )}
                         <div className="mt-2 flex gap-3 text-sm">
-                          <a href={`${backHref}#properties`} className="underline">
+                          <a
+                            href={
+                              n.listing
+                                ? `${backHref}?listing=${n.listing.id}#properties`
+                                : `${backHref}#properties`
+                            }
+                            className="underline"
+                          >
                             {t.portal.viewOnSite}
                           </a>
                           {!n.read_at && (

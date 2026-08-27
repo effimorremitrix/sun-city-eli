@@ -112,6 +112,8 @@ export const en: Dict = {
         "The web scan didn't succeed this time. The office's properties are shown above — try again in a moment.",
       empty:
         "We scanned the web and found no additional matching listings right now. Try rephrasing, or leave your details and we'll find it for you.",
+      scanSummary: (scanned: number, matched: number, rejected: number) =>
+        `${scanned} listings scanned across the web: ${matched} match your search, ${rejected} were filtered out (missing price/details or low match).`,
     },
     kicker: "Properties in Netanya",
     title: "Properties for Sale & Rent",
@@ -505,6 +507,8 @@ export const en: Dict = {
   misc: {
     noInfo: "No info",
     phoneError: "Please enter a valid Israeli phone number (e.g. 050-1234567)",
+    consentMarketing:
+      "I agree to receive updates about matching properties by email and WhatsApp (you can withdraw consent at any time)",
   },
 
   routeErrors: {
