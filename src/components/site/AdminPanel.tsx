@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getAdminSite, saveSiteContent } from "@/lib/site.functions";
@@ -199,7 +200,22 @@ const nestContentTranslations = (flat: FlatTranslations): LiveTranslations => {
  * siteSlug — קישור ניהול ישיר (?site=slug) שבוחר מראש את הדף המנוהל.
  */
 export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: string | null }) {
+  const navigate = useNavigate();
   const fetchSite = useServerFn(getAdminSite);
+
+  // "הכן ופרסם את הנכס": שמירת הנכס הנבחר ומעבר לטאב הפרסום — שם מחכים
+  // נוסח מוכן, תצוגה מקדימה, בחירת ערוצים ואישור מפורש לפני כל פרסום
+  const goPublish = (listingId: string) => {
+    try {
+      sessionStorage.setItem("publish-listing-id", listingId);
+    } catch {
+      /* אחסון חסום — עדיין עוברים לטאב */
+    }
+    void navigate({
+      to: "/account",
+      search: { tab: "publish", ...(siteSlug ? { site: siteSlug } : {}) },
+    });
+  };
   const fetchListings = useServerFn(adminListListings);
   const saveContent = useServerFn(saveSiteContent);
   const saveListing = useServerFn(adminSaveListing);
@@ -240,7 +256,9 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
   const [form, setForm] = useState<ListingForm>(emptyForm);
   const [coordsMsg, setCoordsMsg] = useState<string | null>(null);
   // פוסט "נמכר" מוכן להעתקה — תוצאת הסימון האחרון (הטקסט ניתן לעריכה לפני העתקה)
-  const [soldPost, setSoldPost] = useState<MarkListingSoldResult | null>(null);
+  const [soldPost, setSoldPost] = useState<(MarkListingSoldResult & { listingId: string }) | null>(
+    null,
+  );
   const [soldPostCopied, setSoldPostCopied] = useState(false);
   // פרסום אוטומטי לאינסטגרם בסימון "נמכר" — כבוי כברירת מחדל: שום דבר לא
   // מתפרסם החוצה בלי בחירה מפורשת
@@ -362,7 +380,7 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
       // אושרה) — כך תקלת הגדרה מתגלה כבר בשמירה הראשונה ולא נשארת שקטה.
       const waFailed = res.waPending ? `, נכשלו: ${res.waPending}` : "";
       setMsg(
-        `הנכס נשמר. אפשר להעלות עכשיו תמונות וסרטונים לנכס. נשלחו התראות ל-${res.matched} פרופילי חיפוש (מיילים: ${res.emailsSent}, וואטסאפ: ${res.waSent ?? 0}${waFailed}, ממתינים: ${res.emailsPending}).${res.facebookPosted ? " הנכס פורסם גם לעמוד הפייסבוק." : ""}`,
+        `הנכס נשמר. אפשר להעלות עכשיו תמונות וסרטונים לנכס. נשלחו התראות ל-${res.matched} פרופילי חיפוש (מיילים: ${res.emailsSent}, וואטסאפ: ${res.waSent ?? 0}${waFailed}, ממתינים: ${res.emailsPending}). להכנת פוסט ופרסום לפייסבוק/אינסטגרם — טאב "פרסום" (שום דבר לא מתפרסם בלי אישור).`,
       );
     }, "הנכס נשמר");
 
@@ -837,6 +855,13 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
                 >
                   פתיחת אינסטגרם
                 </a>
+                <button
+                  type="button"
+                  className="rounded-xl border border-primary/30 px-4 py-2 text-sm font-bold text-primary"
+                  onClick={() => goPublish(soldPost.listingId)}
+                >
+                  פרסום דרך טאב הפרסום
+                </button>
               </div>
             </div>
           )}
@@ -871,6 +896,13 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
                       >
                         עריכה
                       </button>
+                      <button
+                        type="button"
+                        className="font-bold text-primary underline"
+                        onClick={() => goPublish(l.id)}
+                      >
+                        הכנה ופרסום
+                      </button>
                       {l.is_published && (
                         <button
                           type="button"
@@ -888,7 +920,7 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
                               const res = (await markListingSold({
                                 data: { listingId: l.id, autoPostInstagram: autoPostIg },
                               })) as MarkListingSoldResult;
-                              setSoldPost(res);
+                              setSoldPost({ ...res, listingId: l.id });
                               setSoldPostCopied(false);
                             }, 'הנכס סומן כנמכר ונוסף למדור "נמכר על ידינו"');
                           }}

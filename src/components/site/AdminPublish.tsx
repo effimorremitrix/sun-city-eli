@@ -44,7 +44,16 @@ export function AdminPublish({ siteId, listings }: Props) {
     queryFn: () => fetchGroups({ data: { siteId } }),
   });
 
-  const [listingId, setListingId] = useState("");
+  // "הכנה ופרסום" מרשימת הנכסים מגיע לכאן עם הנכס כבר נבחר (sessionStorage)
+  const [listingId, setListingId] = useState(() => {
+    try {
+      const preset = sessionStorage.getItem("publish-listing-id") ?? "";
+      sessionStorage.removeItem("publish-listing-id");
+      return preset;
+    } catch {
+      return "";
+    }
+  });
   const selected = useMemo(
     () => listings.filter((l) => l.id === listingId)[0] ?? null,
     [listings, listingId],
@@ -283,9 +292,11 @@ export function AdminPublish({ siteId, listings }: Props) {
                 קבוצות נדל&quot;ן ומרקטפלייס — פוסט מוכן בלחיצה
               </h3>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                שלב זה ידני במכוון: Meta סגרה את ה-API לפרסום בקבוצות (אפריל 2024) ולמרקטפלייס אין
-                API ציבורי — אף כלי אינו יכול לפרסם לשם אוטומטית. לכן מכינים לכם הכול להעתקה:
-                מעתיקים את הנוסח, פותחים את הקבוצה או את המרקטפלייס, מדביקים ומצרפים את התמונות.
+                שלב זה ידני במכוון: Meta סגרה את ה-API לפרסום בקבוצות (אפריל 2024), למרקטפלייס אין
+                API ציבורי, וגם פרסום לפרופיל אישי אינו אפשרי דרך ה-API — אוטומציה רשמית קיימת רק
+                לעמוד עסקי ולאינסטגרם עסקי. אף כלי אינו יכול לפרסם לשאר הערוצים אוטומטית, ולכן
+                מכינים לכם הכול להעתקה: מעתיקים את הנוסח, פותחים את הקבוצה או את המרקטפלייס, מדביקים
+                ומצרפים את התמונות.
               </p>
 
               <div className="mt-3 flex flex-wrap gap-2">
@@ -398,7 +409,9 @@ export function AdminPublish({ siteId, listings }: Props) {
               </h3>
               <p className="mt-1 text-xs text-muted-foreground">
                 הקמפיין נבנה ב-Ads Manager אך לעולם לא מופעל מכאן — ההפעלה (וההוצאה הכספית) נעשית
-                ידנית בחשבון המודעות שלכם.
+                ידנית בחשבון המודעות שלכם. לידים מטופסי Lead Ads נכנסים אוטומטית לטאב
+                &quot;לידים&quot; עם שם הקמפיין והמודעה (לאחר הגדרת ה-webhook:{" "}
+                <span dir="ltr">/api/meta-leads</span> + META_LEADS_VERIFY_TOKEN).
               </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
                 {(

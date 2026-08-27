@@ -144,7 +144,7 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
   let emailsPending = 0;
   let waSent = 0;
   let waPending = 0;
-  let facebookPosted = false;
+  const facebookPosted = false;
 
   if (fields.is_published && listingId) {
     const { data: count, error: matchError } = await context.supabase.rpc(
@@ -227,29 +227,10 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
       console.error("notifyAgentOfMatches failed", e instanceof Error ? e.message : e);
     }
 
-    // פרסום אוטומטי לפייסבוק — רק לנכס חדש, כשיש חיבור עמוד פעיל לדף.
-    // (אינסטגרם/טיקטוק: אין API ציבורי לפרסום אוטומטי — הפרסום שם נשאר ידני בטאב הפרסום)
-    if (isNew && siteId) {
-      try {
-        const { getConnectionStatus, publishListingToPage } = await import("@/lib/facebook.server");
-        const status = await getConnectionStatus(siteId);
-        if (status.connected) {
-          const details = [
-            `שכונה: ${fields.neighborhood ?? "נתניה"}`,
-            fields.rooms != null ? `${fields.rooms} חדרים` : null,
-            fields.size_sqm != null ? `${fields.size_sqm} מ"ר` : null,
-            fields.price != null ? `מחיר: ${fields.price.toLocaleString("he-IL")} ₪` : null,
-          ]
-            .filter(Boolean)
-            .join(" · ");
-          const message = `🏠 חדש אצלנו! ${fields.title}\n${details}\n${fields.description ?? ""}\n\nלפרטים באתר: ${siteUrl}/#properties`;
-          await publishListingToPage(listingId, message, context.userId, siteUrl);
-          facebookPosted = true;
-        }
-      } catch (e) {
-        console.error("facebook auto-post failed", e instanceof Error ? e.message : e);
-      }
-    }
+    // פרסום לפייסבוק: שום דבר לא מתפרסם אוטומטית — הפרסום נעשה תמיד דרך
+    // טאב "פרסום" (תצוגה מקדימה, עריכה ואישור מפורש). facebookPosted נשאר
+    // false כדי שהודעת השמירה תפנה את המנהל לטאב הפרסום.
+    void isNew;
   }
 
   return {
