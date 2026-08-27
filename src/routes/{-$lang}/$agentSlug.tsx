@@ -102,9 +102,12 @@ export const Route = createFileRoute("/{-$lang}/$agentSlug")({
 });
 
 function RouteNotFound() {
+  // שפת ה-404 לפי הסגמנט בכתובת (/en/... וכו') — לא עברית קבועה
+  const params = Route.useParams();
+  const lang = langFromParam(params.lang);
   return (
-    <main className="mx-auto max-w-lg px-4 py-16 text-center">
-      <h1 className="text-xl font-bold text-primary">{DICTS.he.routeErrors.notFound}</h1>
+    <main dir={lang === "he" ? "rtl" : "ltr"} className="mx-auto max-w-lg px-4 py-16 text-center">
+      <h1 className="text-xl font-bold text-primary">{DICTS[lang].routeErrors.notFound}</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         <a href="/" className="underline">
           Sun City

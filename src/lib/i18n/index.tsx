@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { he, type Dict } from "./he";
 import { en } from "./en";
 import { fr } from "./fr";
@@ -46,6 +46,10 @@ const LangContext = createContext<LangContextValue>({
 });
 
 export function LangProvider({ lang, children }: { lang: Locale; children: ReactNode }) {
+  // הדפים שמחוץ לעץ {-$lang} (התחברות, אזור אישי) זוכרים את השפה האחרונה
+  useEffect(() => {
+    rememberLocale(lang);
+  }, [lang]);
   return (
     <LangContext.Provider value={{ lang, dir: dirFor(lang), t: DICTS[lang] }}>
       {children}
@@ -54,6 +58,39 @@ export function LangProvider({ lang, children }: { lang: Locale; children: React
 }
 
 export const useLang = () => useContext(LangContext);
+
+/* ------------- שפה זכורה — לדפים בלי סגמנט שפה בכתובת ------------- */
+
+const LOCALE_KEY = "suncity:locale";
+
+export function rememberLocale(lang: Locale) {
+  try {
+    localStorage.setItem(LOCALE_KEY, lang);
+  } catch {
+    // אחסון חסום — מוותרים בשקט
+  }
+}
+
+export function getStoredLocale(): Locale {
+  try {
+    const v = localStorage.getItem(LOCALE_KEY);
+    return isLocale(v ?? undefined) ? (v as Locale) : DEFAULT_LOCALE;
+  } catch {
+    return DEFAULT_LOCALE;
+  }
+}
+
+/**
+ * השפה הזכורה, בטוחה ל-SSR: רינדור השרת מחזיר עברית, ואחרי ההידרציה
+ * הערך מתעדכן לשפה שנבחרה לאחרונה באתר הציבורי.
+ */
+export function useStoredLocale(): Locale {
+  const [lang, setLang] = useState<Locale>(DEFAULT_LOCALE);
+  useEffect(() => {
+    setLang(getStoredLocale());
+  }, []);
+  return lang;
+}
 
 /* ---------------------------- עזרי תצוגה ---------------------------- */
 

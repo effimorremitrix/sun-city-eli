@@ -82,12 +82,15 @@ async function releaseWebSearch(reservationId: string): Promise<void> {
  *    של האדמין), מוגבלת במכסה יומית שנאכפת בשרת מול ai_usage_events.
  */
 export const aiSearchListings = createServerFn({ method: "POST" })
-  .inputValidator((input: { query: string; includeWeb?: boolean }) => {
+  .inputValidator((input: { query: string; includeWeb?: boolean; lang?: string }) => {
     const query = String(input?.query ?? "")
       .trim()
       .slice(0, 300);
     if (query.length < 3) throw new Error("נא לתאר מה אתם מחפשים (לפחות 3 תווים)");
-    return { query, includeWeb: input?.includeWeb !== false };
+    const lang = ["he", "en", "fr", "ru"].includes(String(input?.lang))
+      ? String(input?.lang)
+      : "he";
+    return { query, includeWeb: input?.includeWeb !== false, lang };
   })
   .handler(async ({ data }): Promise<AiSearchResult> => {
     const { publicDb } = await import("@/lib/public-db.server");
@@ -119,6 +122,7 @@ export const aiSearchListings = createServerFn({ method: "POST" })
       [...neighborhoods],
       userId,
       streets,
+      data.lang,
     );
 
     // רשת ביטחון דטרמיניסטית: אם המודל לא חילץ אף פילטר אבל הבקשה מכילה רחוב מוכר

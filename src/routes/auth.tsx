@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBackToSiteHref } from "@/lib/back-to-site";
+import { LangProvider, useLang, useStoredLocale } from "@/lib/i18n";
 
 const title = 'כניסה לאזור האישי | סאן סיטי נדל"ן';
 const description =
@@ -22,7 +23,18 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+/** לדף אין סגמנט שפה בכתובת — השפה נלקחת מהבחירה האחרונה באתר הציבורי */
 function AuthPage() {
+  const lang = useStoredLocale();
+  return (
+    <LangProvider lang={lang}>
+      <AuthContent />
+    </LangProvider>
+  );
+}
+
+function AuthContent() {
+  const { t, dir } = useLang();
   const navigate = useNavigate();
   const backHref = useBackToSiteHref();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -53,29 +65,32 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        setMsg("נשלח אימות למייל. לאחר האישור אפשר להתחבר ולהגדיר את הסוכן האישי.");
+        setMsg(t.auth.signupSuccess);
       }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "שגיאה בהתחברות");
+      setErr(e instanceof Error ? e.message : t.auth.signinFailed);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
+    <main
+      dir={dir}
+      className="flex min-h-screen items-center justify-center bg-background px-4 py-12"
+    >
       <div className="soft-card w-full max-w-sm p-6">
-        <h1 className="text-2xl font-extrabold text-primary">האזור האישי</h1>
+        <h1 className="text-2xl font-extrabold text-primary">{t.auth.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {mode === "signin"
-            ? "התחברות עם המייל והסיסמה שלכם"
-            : "הרשמה חינם: סוכן אישי שישלח לכם התראה על כל דירה חדשה שתואמת לדרישות שלכם"}
+          {mode === "signin" ? t.auth.signinSubtitle : t.auth.signupSubtitle}
         </p>
 
         <form onSubmit={submit} className="mt-5 grid gap-3" noValidate>
           {mode === "signup" && (
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted-foreground">שם מלא</span>
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.auth.fullName}
+              </span>
               <input
                 className="field"
                 type="text"
@@ -87,7 +102,9 @@ function AuthPage() {
             </label>
           )}
           <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">אימייל</span>
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">
+              {t.auth.email}
+            </span>
             <input
               className="field"
               type="email"
@@ -99,7 +116,9 @@ function AuthPage() {
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">סיסמה</span>
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">
+              {t.auth.password}
+            </span>
             <input
               className="field"
               type="password"
@@ -123,7 +142,7 @@ function AuthPage() {
             disabled={busy}
             className="mt-1 rounded-xl bg-sun py-3 text-base font-bold text-sun-foreground disabled:opacity-60"
           >
-            {busy ? "רגע…" : mode === "signin" ? "התחברות" : "הרשמה"}
+            {busy ? t.auth.working : mode === "signin" ? t.auth.signin : t.auth.signup}
           </button>
         </form>
 
@@ -136,7 +155,7 @@ function AuthPage() {
           }}
           className="mt-4 w-full text-sm font-semibold text-primary underline"
         >
-          {mode === "signin" ? "אין לי חשבון — הרשמה חינם" : "יש לי חשבון, להתחברות"}
+          {mode === "signin" ? t.auth.toggleToSignup : t.auth.toggleToSignin}
         </button>
 
         {mode === "signin" && (
@@ -147,7 +166,7 @@ function AuthPage() {
               setErr(null);
               setMsg(null);
               if (!email.trim() || !email.includes("@")) {
-                setErr("נא להזין את כתובת המייל שלכם ואז ללחוץ על שכחתי סיסמה");
+                setErr(t.auth.forgotNeedEmail);
                 return;
               }
               setBusy(true);
@@ -156,16 +175,16 @@ function AuthPage() {
                   redirectTo: `${window.location.origin}/reset-password`,
                 });
                 if (error) throw error;
-                setMsg("נשלח קישור לאיפוס סיסמה לכתובת המייל שהזנתם.");
+                setMsg(t.auth.resetSent);
               } catch (e) {
-                setErr(e instanceof Error ? e.message : "שליחת קישור האיפוס נכשלה");
+                setErr(e instanceof Error ? e.message : t.auth.resetFailed);
               } finally {
                 setBusy(false);
               }
             }}
             className="mt-2 w-full text-xs text-muted-foreground underline"
           >
-            שכחתי סיסמה — שליחת קישור איפוס למייל
+            {t.auth.forgot}
           </button>
         )}
 
@@ -173,7 +192,7 @@ function AuthPage() {
           href={backHref}
           className="mt-4 block text-center text-xs text-muted-foreground underline"
         >
-          חזרה לאתר
+          {t.auth.backToSite}
         </a>
       </div>
     </main>

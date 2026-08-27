@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useLang } from "@/lib/i18n";
 
 export default function AccountSettings() {
+  const { t } = useLang();
   const [currentEmail, setCurrentEmail] = useState<string | null>(null);
   const [newEmail, setNewEmail] = useState("");
   const [pw1, setPw1] = useState("");
@@ -20,7 +22,7 @@ export default function AccountSettings() {
     setMsg(null);
     const email = newEmail.trim();
     if (!email || !email.includes("@")) {
-      setErr("נא להזין כתובת מייל תקינה");
+      setErr(t.accountSettings.invalidEmail);
       return;
     }
     setBusy(true);
@@ -28,9 +30,9 @@ export default function AccountSettings() {
       const { error } = await supabase.auth.updateUser({ email });
       if (error) throw error;
       setNewEmail("");
-      setMsg("נשלח מייל אישור לכתובת החדשה. המייל בחשבון יתחלף רק לאחר הלחיצה על הקישור שבמייל.");
+      setMsg(t.accountSettings.emailSent);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "עדכון המייל נכשל");
+      setErr(e instanceof Error ? e.message : t.accountSettings.emailFailed);
     } finally {
       setBusy(false);
     }
@@ -40,11 +42,11 @@ export default function AccountSettings() {
     setErr(null);
     setMsg(null);
     if (pw1.length < 8) {
-      setErr("הסיסמה החדשה צריכה להכיל לפחות 8 תווים");
+      setErr(t.accountSettings.tooShort);
       return;
     }
     if (pw1 !== pw2) {
-      setErr("הסיסמאות אינן תואמות");
+      setErr(t.accountSettings.mismatch);
       return;
     }
     setBusy(true);
@@ -53,9 +55,9 @@ export default function AccountSettings() {
       if (error) throw error;
       setPw1("");
       setPw2("");
-      setMsg("הסיסמה עודכנה בהצלחה.");
+      setMsg(t.accountSettings.passwordUpdated);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "עדכון הסיסמה נכשל");
+      setErr(e instanceof Error ? e.message : t.accountSettings.passwordFailed);
     } finally {
       setBusy(false);
     }
@@ -65,10 +67,10 @@ export default function AccountSettings() {
     <section className="soft-card mt-6 p-5">
       <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
         <KeyRound className="size-5 text-sun" aria-hidden="true" />
-        הגדרות חשבון
+        {t.accountSettings.title}
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        המייל הנוכחי בחשבון:{" "}
+        {t.accountSettings.currentEmail}{" "}
         <span dir="ltr" className="font-bold text-primary">
           {currentEmail ?? "…"}
         </span>
@@ -88,9 +90,11 @@ export default function AccountSettings() {
 
       <div className="mt-4 grid gap-5 md:grid-cols-2">
         <div className="grid gap-2">
-          <h3 className="text-sm font-extrabold text-primary">שינוי כתובת מייל</h3>
+          <h3 className="text-sm font-extrabold text-primary">{t.accountSettings.changeEmail}</h3>
           <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">מייל חדש</span>
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">
+              {t.accountSettings.newEmail}
+            </span>
             <input
               className="field"
               type="email"
@@ -106,17 +110,19 @@ export default function AccountSettings() {
             onClick={updateEmail}
             className="rounded-xl bg-sun py-3 text-sm font-bold text-sun-foreground disabled:opacity-60"
           >
-            עדכון מייל
+            {t.accountSettings.updateEmail}
           </button>
-          <p className="text-xs text-muted-foreground">
-            לאחר השליחה יגיע מייל אישור לכתובת החדשה — רק לחיצה עליו משנה את המייל בחשבון.
-          </p>
+          <p className="text-xs text-muted-foreground">{t.accountSettings.emailNote}</p>
         </div>
 
         <div className="grid gap-2">
-          <h3 className="text-sm font-extrabold text-primary">שינוי סיסמה</h3>
+          <h3 className="text-sm font-extrabold text-primary">
+            {t.accountSettings.changePassword}
+          </h3>
           <label className="block">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">סיסמה חדשה</span>
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">
+              {t.accountSettings.newPassword}
+            </span>
             <input
               className="field"
               type="password"
@@ -128,7 +134,7 @@ export default function AccountSettings() {
           </label>
           <label className="block">
             <span className="mb-1 block text-xs font-bold text-muted-foreground">
-              אימות סיסמה חדשה
+              {t.accountSettings.confirmPassword}
             </span>
             <input
               className="field"
@@ -145,9 +151,9 @@ export default function AccountSettings() {
             onClick={updatePassword}
             className="rounded-xl bg-sun py-3 text-sm font-bold text-sun-foreground disabled:opacity-60"
           >
-            עדכון סיסמה
+            {t.accountSettings.updatePassword}
           </button>
-          <p className="text-xs text-muted-foreground">לפחות 8 תווים.</p>
+          <p className="text-xs text-muted-foreground">{t.accountSettings.minChars}</p>
         </div>
       </div>
     </section>

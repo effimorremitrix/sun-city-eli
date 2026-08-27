@@ -58,7 +58,7 @@ const SORT_KEYS: ListingSortKey[] = ["newest", "priceAsc", "priceDesc", "rooms",
 type Props = { listings: Listing[]; updatedAt: string | null };
 
 export function PropertySection({ listings, updatedAt }: Props) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { business: live } = useLive();
   const [deal, setDeal] = useState("all");
   const [rooms, setRooms] = useState("all");
@@ -100,7 +100,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
     setAiErr(null);
     setAiBusy(true);
     try {
-      const res = await aiSearchListings({ data: { query } });
+      const res = await aiSearchListings({ data: { query, lang } });
       setAi({ ids: res.ids, explanation: res.explanation, filters: res.filters, web: res.web });
       // איפוס הסינון הידני — פילטר ישן שנשאר בתפריטים היה מצמצם בשקט את
       // תוצאות החיפוש החכם (חיתוך בין שתי הרשימות)

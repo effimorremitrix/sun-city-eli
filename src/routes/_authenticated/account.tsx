@@ -15,6 +15,7 @@ import { claimAdminRole } from "@/lib/site.functions";
 import { adminScoutNewCount } from "@/lib/scout.functions";
 import { adminLeadsAttentionCount, respondToNotification } from "@/lib/leads.functions";
 import { CLIENT_RESPONSES, type ClientResponse } from "@/lib/leads";
+import { LangProvider, useLang, useStoredLocale } from "@/lib/i18n";
 import { formatListingPrice } from "@/lib/listings";
 import { neighborhoods } from "@/lib/site-data";
 import { formatUpdated } from "@/lib/site-live";
@@ -142,7 +143,18 @@ const toForm = (p: SearchProfileRow): ProfileForm => ({
 
 const num = (v: string) => (v.trim() === "" ? null : Number(v));
 
+/** לדף אין סגמנט שפה בכתובת — השפה נלקחת מהבחירה האחרונה באתר הציבורי */
 function AccountPage() {
+  const lang = useStoredLocale();
+  return (
+    <LangProvider lang={lang}>
+      <AccountContent />
+    </LangProvider>
+  );
+}
+
+function AccountContent() {
+  const { t, dir } = useLang();
   const { user, logout, refresh } = useAuth();
   const navigate = useNavigate();
   const search = Route.useSearch();
@@ -204,7 +216,7 @@ function AccountPage() {
       setMsg(okMsg);
       await account.refetch();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "הפעולה נכשלה");
+      setErr(e instanceof Error ? e.message : t.portal.actionFailed);
     } finally {
       setBusy(false);
     }
@@ -246,14 +258,14 @@ function AccountPage() {
         },
       });
       setForm(emptyProfile);
-    }, "פרופיל החיפוש נשמר. מעכשיו נעדכן אותך על כל נכס חדש שמתאים.");
+    }, t.portal.profileSaved);
 
   const notifications = account.data?.notifications ?? [];
   const unread = notifications.filter((n) => !n.read_at).length;
   const backHref = useBackToSiteHref();
 
   return (
-    <>
+    <div dir={dir}>
       {/* סרגל עליון דביק — "לאתר" והתנתקות נגישים תמיד, גם בנייד */}
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-2 px-4 py-2.5">
@@ -263,7 +275,7 @@ function AccountPage() {
           >
             <ArrowRight className="size-4 rtl:block ltr:hidden" aria-hidden="true" />
             <ArrowLeft className="size-4 rtl:hidden ltr:block" aria-hidden="true" />
-            לאתר
+            {t.portal.toSite}
           </a>
           <button
             type="button"
@@ -271,7 +283,7 @@ function AccountPage() {
             className="flex items-center gap-1.5 rounded-lg border border-destructive/40 px-3 py-1.5 text-sm font-bold text-destructive transition hover:bg-destructive/10"
           >
             <LogOut className="size-4" aria-hidden="true" />
-            יציאה
+            {t.portal.logout}
           </button>
         </div>
       </header>
@@ -280,10 +292,10 @@ function AccountPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-primary">
             {isManager
-              ? "האזור האישי ואזור הניהול"
+              ? t.portal.managerHeading
               : user?.fullName
-                ? `שלום, ${user.fullName}`
-                : "האזור האישי שלי"}
+                ? t.portal.helloName(user.fullName)
+                : t.portal.heading}
           </h1>
           {user?.email && <p className="text-xs text-muted-foreground">{user.email}</p>}
         </div>
@@ -355,13 +367,13 @@ function AccountPage() {
             <section className="soft-card mt-6 p-5">
               <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
                 <User className="size-5 text-sun" aria-hidden="true" />
-                פרטי פרופיל
+                {t.portal.profileTitle}
               </h2>
               {editingName ? (
                 <div className="mt-3 flex flex-wrap items-end gap-3">
                   <label className="block flex-1 min-w-[12rem]">
                     <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                      שם מלא
+                      {t.portal.fullName}
                     </span>
                     <input
                       className="field"
@@ -380,11 +392,11 @@ function AccountPage() {
                           await updateProfile({ data: { full_name: nameInput.trim() } });
                           refresh();
                           setEditingName(false);
-                        }, "השם עודכן")
+                        }, t.portal.nameSaved)
                       }
                       className="rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground disabled:opacity-60"
                     >
-                      שמירה
+                      {t.portal.save}
                     </button>
                     <button
                       type="button"
@@ -394,14 +406,15 @@ function AccountPage() {
                       }}
                       className="rounded-xl border border-primary/30 px-4 py-2 text-sm font-bold text-primary"
                     >
-                      ביטול
+                      {t.portal.cancel}
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                   <p className="text-sm text-foreground">
-                    <span className="font-bold">שם:</span> {user?.fullName?.trim() || "לא הוגדר"}
+                    <span className="font-bold">{t.portal.nameLabel}</span>{" "}
+                    {user?.fullName?.trim() || t.portal.nameNotSet}
                   </p>
                   <button
                     type="button"
@@ -411,7 +424,7 @@ function AccountPage() {
                     }}
                     className="text-sm font-semibold text-primary underline"
                   >
-                    עריכת שם
+                    {t.portal.editName}
                   </button>
                 </div>
               )}
@@ -443,15 +456,16 @@ function AccountPage() {
                 <section className="soft-card mt-6 p-5">
                   <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
                     <BellRing className="size-5 text-sun" aria-hidden="true" />
-                    התראות על נכסים חדשים{" "}
-                    {unread > 0 && <span className="text-sm text-sun">({unread} חדשות)</span>}
+                    {t.portal.notificationsTitle}{" "}
+                    {unread > 0 && (
+                      <span className="text-sm text-sun">{t.portal.newCount(unread)}</span>
+                    )}
                   </h2>
-                  {account.isLoading && <p className="mt-2 text-sm text-muted-foreground">טוען…</p>}
+                  {account.isLoading && (
+                    <p className="mt-2 text-sm text-muted-foreground">{t.portal.loading}</p>
+                  )}
                   {!account.isLoading && notifications.length === 0 && (
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      אין התראות עדיין. ברגע שהמשרד יפרסם נכס שתואם לפרופיל שלכם — הוא יופיע כאן
-                      ויישלח גם במייל.
-                    </p>
+                    <p className="mt-2 text-sm text-muted-foreground">{t.portal.noNotifications}</p>
                   )}
                   <ul className="mt-3 grid gap-3">
                     {notifications.map((n) => (
@@ -459,10 +473,15 @@ function AccountPage() {
                         key={n.id}
                         className={`rounded-xl border p-3 ${n.read_at ? "border-border" : "border-sun bg-secondary/60"}`}
                       >
-                        <p className="font-bold text-primary">{n.listing?.title ?? "נכס הוסר"}</p>
+                        <p className="font-bold text-primary">
+                          {n.listing?.title ?? t.portal.listingRemoved}
+                        </p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {n.listing?.neighborhood ?? "אין מידע"} ·{" "}
-                          {formatListingPrice(n.listing?.price ?? null)} ·{" "}
+                          {n.listing?.neighborhood
+                            ? (t.maps.neighborhoods[n.listing.neighborhood] ??
+                              n.listing.neighborhood)
+                            : t.misc.noInfo}{" "}
+                          · {formatListingPrice(n.listing?.price ?? null)} ·{" "}
                           {formatUpdated(n.created_at)}
                         </p>
                         {n.reason && (
@@ -471,15 +490,15 @@ function AccountPage() {
                         {/* תגובה מהירה — יוצרת משימת Follow-up אצל הסוכן המטפל */}
                         {n.response ? (
                           <p className="mt-2 rounded-lg bg-secondary p-2 text-xs font-semibold text-primary">
-                            קיבלנו את התגובה שלך (
-                            {CLIENT_RESPONSES[n.response as ClientResponse] ?? n.response}) — הסוכן
-                            יחזור אליך בהקדם.
+                            {t.portal.responseReceived(
+                              t.portal.responses[n.response] ??
+                                CLIENT_RESPONSES[n.response as ClientResponse] ??
+                                n.response,
+                            )}
                           </p>
                         ) : (
                           <div className="mt-2 flex flex-wrap gap-2">
-                            {(
-                              Object.entries(CLIENT_RESPONSES) as Array<[ClientResponse, string]>
-                            ).map(([key, label]) => (
+                            {(Object.keys(CLIENT_RESPONSES) as ClientResponse[]).map((key) => (
                               <button
                                 key={key}
                                 type="button"
@@ -489,18 +508,18 @@ function AccountPage() {
                                   run(
                                     () =>
                                       respond({ data: { notificationId: n.id, response: key } }),
-                                    "קיבלנו! הסוכן יחזור אליך בהקדם.",
+                                    t.portal.respondOk,
                                   )
                                 }
                               >
-                                {label}
+                                {t.portal.responses[key] ?? CLIENT_RESPONSES[key]}
                               </button>
                             ))}
                           </div>
                         )}
                         <div className="mt-2 flex gap-3 text-sm">
                           <a href={`${backHref}#properties`} className="underline">
-                            לצפייה באתר
+                            {t.portal.viewOnSite}
                           </a>
                           {!n.read_at && (
                             <button
@@ -508,10 +527,10 @@ function AccountPage() {
                               disabled={busy}
                               className="underline"
                               onClick={() =>
-                                run(() => markRead({ data: { id: n.id } }), "סומן כנקרא")
+                                run(() => markRead({ data: { id: n.id } }), t.portal.markedRead)
                               }
                             >
-                              סימון כנקרא
+                              {t.portal.markRead}
                             </button>
                           )}
                         </div>
@@ -524,12 +543,9 @@ function AccountPage() {
                 <section className="soft-card mt-6 p-5">
                   <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
                     <Sparkles className="size-5 text-sun" aria-hidden="true" />
-                    הסוכן האישי שלי
+                    {t.portal.agentTitle}
                   </h2>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    הגדירו את פרופיל הנכס שאתם מחפשים. בכל פעם שהמשרד יפרסם נכס תואם — תקבלו התראה
-                    כאן, במייל ואם תבחרו גם בוואטסאפ.
-                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">{t.portal.agentText}</p>
 
                   <ul className="mt-4 grid gap-3">
                     {(account.data?.profiles ?? []).map((p) => (
@@ -539,23 +555,29 @@ function AccountPage() {
                             <p className="font-bold text-primary">
                               {p.label}{" "}
                               {!p.is_active && (
-                                <span className="text-xs text-muted-foreground">(כבוי)</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {t.portal.profileInactive}
+                                </span>
                               )}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {p.deal_type} ·{" "}
-                              {p.neighborhoods?.length ? p.neighborhoods.join(", ") : "כל האזורים"}{" "}
+                              {t.maps.deal[p.deal_type] ?? p.deal_type} ·{" "}
+                              {p.neighborhoods?.length
+                                ? p.neighborhoods
+                                    .map((n) => t.maps.neighborhoods[n] ?? n)
+                                    .join(", ")
+                                : t.portal.allAreas}{" "}
                               ·{" "}
                               {p.max_price
-                                ? `עד ${p.max_price.toLocaleString("he-IL")} ₪`
-                                : "בלי הגבלת מחיר"}{" "}
+                                ? t.portal.upTo(`${p.max_price.toLocaleString("he-IL")} ₪`)
+                                : t.portal.noPriceLimit}{" "}
                               ·{" "}
                               {p.rooms
-                                ? `${p.rooms} חדרים`
+                                ? t.portal.roomsExact(String(p.rooms))
                                 : p.min_rooms
-                                  ? `${p.min_rooms}+ חדרים`
-                                  : "כל מספר חדרים"}
-                              {p.street ? ` · רחוב ${p.street}` : ""}
+                                  ? t.portal.roomsMin(String(p.min_rooms))
+                                  : t.portal.anyRooms}
+                              {p.street ? ` · ${t.portal.street(p.street)}` : ""}
                             </p>
                           </div>
                           <div className="flex gap-2 text-sm">
@@ -564,17 +586,20 @@ function AccountPage() {
                               className="underline"
                               onClick={() => setForm(toForm(p))}
                             >
-                              עריכה
+                              {t.portal.edit}
                             </button>
                             <button
                               type="button"
                               disabled={busy}
                               className="text-destructive underline"
                               onClick={() =>
-                                run(() => removeProfile({ data: { id: p.id } }), "הפרופיל נמחק")
+                                run(
+                                  () => removeProfile({ data: { id: p.id } }),
+                                  t.portal.profileDeleted,
+                                )
                               }
                             >
-                              מחיקה
+                              {t.portal.delete}
                             </button>
                           </div>
                         </div>
@@ -583,12 +608,12 @@ function AccountPage() {
                   </ul>
 
                   <h3 className="mt-5 text-sm font-extrabold text-primary">
-                    {form.id ? "עריכת פרופיל חיפוש" : "פרופיל חיפוש חדש"}
+                    {form.id ? t.portal.editProfile : t.portal.newProfile}
                   </h3>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <label className="block sm:col-span-2">
                       <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                        שם הפרופיל
+                        {t.portal.profileLabel}
                       </span>
                       <input
                         className="field"
@@ -599,7 +624,7 @@ function AccountPage() {
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                        מה מחפשים?
+                        {t.portal.dealTypeLabel}
                       </span>
                       <select
                         className="field"
@@ -607,14 +632,14 @@ function AccountPage() {
                         onChange={(e) => setForm({ ...form, deal_type: e.target.value })}
                       >
                         {/* "קנייה" = כוונת קונה — תואמת נכסים שעומדים למכירה */}
-                        <option value="קנייה">קנייה</option>
-                        <option value="מכירה">מכירה (ערך ישן — זהה לקנייה)</option>
-                        <option value="השכרה">השכרה</option>
+                        <option value="קנייה">{t.portal.dealBuy}</option>
+                        <option value="מכירה">{t.portal.dealSaleLegacy}</option>
+                        <option value="השכרה">{t.portal.dealRent}</option>
                       </select>
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                        עיר
+                        {t.portal.city}
                       </span>
                       <input
                         className="field"
@@ -625,19 +650,19 @@ function AccountPage() {
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                        רחוב (אופציונלי)
+                        {t.portal.streetOptional}
                       </span>
                       <input
                         className="field"
                         value={form.street}
                         maxLength={80}
-                        placeholder="למשל: גולדה מאיר"
+                        placeholder={t.portal.streetPlaceholder}
                         onChange={(e) => setForm({ ...form, street: e.target.value })}
                       />
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                        חדרים (מדויק, ±חצי חדר)
+                        {t.portal.roomsExactLabel}
                       </span>
                       <input
                         className="field"
@@ -650,7 +675,7 @@ function AccountPage() {
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                        מחיר מינימלי (₪)
+                        {t.portal.minPrice}
                       </span>
                       <input
                         className="field"
@@ -662,7 +687,7 @@ function AccountPage() {
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                        מחיר מקסימלי (₪)
+                        {t.portal.maxPrice}
                       </span>
                       <input
                         className="field"
@@ -674,7 +699,7 @@ function AccountPage() {
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                        חדרים (מינימום)
+                        {t.portal.minRooms}
                       </span>
                       <input
                         className="field"
@@ -687,7 +712,7 @@ function AccountPage() {
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                        חדרים (מקסימום)
+                        {t.portal.maxRooms}
                       </span>
                       <input
                         className="field"
@@ -700,7 +725,7 @@ function AccountPage() {
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                        שטח מינימלי (מ״ר)
+                        {t.portal.minSize}
                       </span>
                       <input
                         className="field"
@@ -712,7 +737,7 @@ function AccountPage() {
                     </label>
                     <label className="block sm:col-span-2">
                       <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                        הערות לסוכן
+                        {t.portal.notesToAgent}
                       </span>
                       <textarea
                         className="field min-h-20"
@@ -725,7 +750,7 @@ function AccountPage() {
 
                   <fieldset className="mt-4">
                     <legend className="mb-2 text-xs font-bold text-muted-foreground">
-                      אזורים בעיר (אפשר לבחור כמה)
+                      {t.portal.areasLegend}
                     </legend>
                     <div className="flex flex-wrap gap-2">
                       {neighborhoods.map((n) => (
@@ -740,7 +765,7 @@ function AccountPage() {
                               : "border-border text-foreground"
                           }`}
                         >
-                          {n}
+                          {t.maps.neighborhoods[n] ?? n}
                         </button>
                       ))}
                     </div>
@@ -749,13 +774,13 @@ function AccountPage() {
                   <div className="mt-4 flex flex-wrap gap-4 text-sm">
                     {(
                       [
-                        ["needs_mamad", "ממ״ד"],
-                        ["needs_elevator", "מעלית"],
-                        ["needs_parking", "חניה"],
-                        ["needs_balcony", "מרפסת"],
-                        ["notify_email", "לקבל התראות במייל"],
-                        ["notify_whatsapp", 'לקבל התראות בוואטסאפ מסאן סיטי נדל"ן'],
-                        ["is_active", "פרופיל פעיל"],
+                        ["needs_mamad", t.portal.needMamad],
+                        ["needs_elevator", t.portal.needElevator],
+                        ["needs_parking", t.portal.needParking],
+                        ["needs_balcony", t.portal.needBalcony],
+                        ["notify_email", t.portal.notifyEmail],
+                        ["notify_whatsapp", t.portal.notifyWhatsapp],
+                        ["is_active", t.portal.profileActive],
                       ] as Array<[keyof ProfileForm, string]>
                     ).map(([key, label]) => (
                       <label className="flex items-center gap-2 font-semibold" key={String(key)}>
@@ -772,7 +797,7 @@ function AccountPage() {
                   {form.notify_whatsapp && (
                     <label className="mt-3 block max-w-xs">
                       <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                        מספר וואטסאפ להתראות
+                        {t.portal.whatsappNumber}
                       </span>
                       <input
                         className="field"
@@ -792,7 +817,7 @@ function AccountPage() {
                       onClick={submit}
                       className="flex-1 rounded-xl bg-sun py-3 text-base font-bold text-sun-foreground disabled:opacity-60"
                     >
-                      {form.id ? "עדכון הפרופיל" : "הפעלת הסוכן האישי"}
+                      {form.id ? t.portal.updateProfile : t.portal.activateAgent}
                     </button>
                     {form.id && (
                       <button
@@ -800,7 +825,7 @@ function AccountPage() {
                         onClick={() => setForm(emptyProfile)}
                         className="rounded-xl border border-primary/30 px-5 py-3 text-sm font-bold text-primary"
                       >
-                        ביטול
+                        {t.portal.cancel}
                       </button>
                     )}
                   </div>
@@ -824,6 +849,6 @@ function AccountPage() {
           </>
         )}
       </main>
-    </>
+    </div>
   );
 }
