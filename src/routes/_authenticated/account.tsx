@@ -95,7 +95,7 @@ type ProfileForm = {
 
 const emptyProfile: ProfileForm = {
   label: "החיפוש שלי",
-  deal_type: "מכירה",
+  deal_type: "קנייה",
   city: "נתניה",
   neighborhoods: [],
   street: "",
@@ -599,14 +599,16 @@ function AccountPage() {
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                        סוג עסקה
+                        מה מחפשים?
                       </span>
                       <select
                         className="field"
                         value={form.deal_type}
                         onChange={(e) => setForm({ ...form, deal_type: e.target.value })}
                       >
-                        <option value="מכירה">מכירה</option>
+                        {/* "קנייה" = כוונת קונה — תואמת נכסים שעומדים למכירה */}
+                        <option value="קנייה">קנייה</option>
+                        <option value="מכירה">מכירה (ערך ישן — זהה לקנייה)</option>
                         <option value="השכרה">השכרה</option>
                       </select>
                     </label>

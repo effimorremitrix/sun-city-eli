@@ -44,6 +44,8 @@ export type AdminTabKey =
 
 type ListingForm = {
   id?: string;
+  /** שיוך הנכס לדף/סוכן — "" = הדף הנבחר בבורר (ברירת המחדל) */
+  site_id: string;
   title: string;
   deal_type: string;
   description: string;
@@ -71,6 +73,7 @@ type ListingForm = {
 };
 
 const emptyForm: ListingForm = {
+  site_id: "",
   title: "",
   deal_type: "מכירה",
   description: "",
@@ -99,6 +102,7 @@ const emptyForm: ListingForm = {
 
 const toForm = (l: Listing): ListingForm => ({
   id: l.id,
+  site_id: l.site_id ?? "",
   title: l.title,
   deal_type: l.deal_type,
   description: l.description ?? "",
@@ -315,7 +319,7 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
       const res = (await saveListing({
         data: {
           ...(form.id ? { id: form.id } : {}),
-          site_id: selectedSiteId,
+          site_id: form.site_id || selectedSiteId,
           title: form.title,
           deal_type: form.deal_type,
           description: str(form.description),
@@ -489,6 +493,27 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
                 <option value="השכרה">השכרה</option>
               </select>
             </label>
+            {/* שיוך לסוכן — לאדמין שמנהל כמה דפים: כך נכס שהמשרד מזין מגיע
+                ישירות לדף ולדשבורד של הסוכן המטפל */}
+            {(site.data?.sites ?? []).length > 1 && (
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                  שיוך לסוכן / דף
+                </span>
+                <select
+                  className="field"
+                  value={form.site_id}
+                  onChange={(e) => setForm({ ...form, site_id: e.target.value })}
+                >
+                  <option value="">הדף הנבחר למעלה (ברירת מחדל)</option>
+                  {(site.data?.sites ?? []).map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} — /{s.slug}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label className="block">
               <span className="mb-1 block text-xs font-bold text-muted-foreground">שכונה</span>
               <select
@@ -824,49 +849,62 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
                       {!l.is_published && (
                         <span className="text-xs text-muted-foreground">(מוסתר)</span>
                       )}
+                      {l.editable === false && (
+                        <span className="ms-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-secondary-foreground">
+                          מלאי המשרד — לצפייה בלבד
+                        </span>
+                      )}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {l.deal_type} · {l.neighborhood ?? "אין מידע"} · {formatListingPrice(l.price)}
                     </p>
                   </div>
-                  <div className="flex gap-2 text-sm">
-                    <button type="button" className="underline" onClick={() => setForm(toForm(l))}>
-                      עריכה
-                    </button>
-                    {l.is_published && (
+                  {l.editable !== false && (
+                    <div className="flex gap-2 text-sm">
+                      <button
+                        type="button"
+                        className="underline"
+                        onClick={() => setForm(toForm(l))}
+                      >
+                        עריכה
+                      </button>
+                      {l.is_published && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          className="font-bold text-sun underline"
+                          onClick={() => {
+                            if (
+                              !window.confirm(
+                                `לסמן את "${l.title}" כנמכר? הנכס יוסתר מהאתר ויתווסף למדור "נמכר על ידינו".` +
+                                  (autoPostIg ? "\n\nכולל פרסום אוטומטי לאינסטגרם." : ""),
+                              )
+                            )
+                              return;
+                            void run(async () => {
+                              const res = (await markListingSold({
+                                data: { listingId: l.id, autoPostInstagram: autoPostIg },
+                              })) as MarkListingSoldResult;
+                              setSoldPost(res);
+                              setSoldPostCopied(false);
+                            }, 'הנכס סומן כנמכר ונוסף למדור "נמכר על ידינו"');
+                          }}
+                        >
+                          סימון כנמכר
+                        </button>
+                      )}
                       <button
                         type="button"
                         disabled={busy}
-                        className="font-bold text-sun underline"
-                        onClick={() => {
-                          if (
-                            !window.confirm(
-                              `לסמן את "${l.title}" כנמכר? הנכס יוסתר מהאתר ויתווסף למדור "נמכר על ידינו".` +
-                                (autoPostIg ? "\n\nכולל פרסום אוטומטי לאינסטגרם." : ""),
-                            )
-                          )
-                            return;
-                          void run(async () => {
-                            const res = (await markListingSold({
-                              data: { listingId: l.id, autoPostInstagram: autoPostIg },
-                            })) as MarkListingSoldResult;
-                            setSoldPost(res);
-                            setSoldPostCopied(false);
-                          }, 'הנכס סומן כנמכר ונוסף למדור "נמכר על ידינו"');
-                        }}
+                        className="text-destructive underline"
+                        onClick={() =>
+                          run(() => removeListing({ data: { id: l.id } }), "הנכס נמחק")
+                        }
                       >
-                        סימון כנמכר
+                        מחיקה
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      disabled={busy}
-                      className="text-destructive underline"
-                      onClick={() => run(() => removeListing({ data: { id: l.id } }), "הנכס נמחק")}
-                    >
-                      מחיקה
-                    </button>
-                  </div>
+                    </div>
+                  )}
                 </div>
               </li>
             ))}

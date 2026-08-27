@@ -10,6 +10,7 @@ import {
   type LeadsDashboardCounts,
 } from "@/lib/leads.functions";
 import { LEAD_STATUSES } from "@/lib/leads";
+import { leadCriteriaChips } from "@/components/site/LeadCriteria";
 import AdminLeadDrawer from "@/components/site/AdminLeadDrawer";
 import type { Listing } from "@/lib/listings";
 import type { ManagedSite } from "@/lib/admin.server";
@@ -28,6 +29,8 @@ const statusChipClass = (status: string): string => {
 };
 
 function LeadListItem({ lead, onOpen }: { lead: LeadRow; onOpen: () => void }) {
+  // "מה הלקוח מחפש": הקריטריונים המובנים; קטגוריות הקנייה/מכירה כתגיות משלימות
+  const criteriaChips = leadCriteriaChips(lead);
   const categories = [
     ...(lead.buy_categories ?? []).map((c) => ({ key: `buy-${c}`, label: `קנייה: ${c}` })),
     ...(lead.sell_categories ?? []).map((c) => ({ key: `sell-${c}`, label: `מכירה: ${c}` })),
@@ -69,6 +72,18 @@ function LeadListItem({ lead, onOpen }: { lead: LeadRow; onOpen: () => void }) {
         {lead.listing?.title && <> · {lead.listing.title}</>}
         {lead.created_at && <> · {fmtDateTime(lead.created_at)}</>}
       </p>
+      {criteriaChips.length > 0 && (
+        <p className="mt-1.5 flex flex-wrap gap-1">
+          {criteriaChips.map((c) => (
+            <span
+              key={c}
+              className="rounded-full bg-sun/15 px-2 py-0.5 text-[11px] font-bold text-primary"
+            >
+              {c}
+            </span>
+          ))}
+        </p>
+      )}
       {categories.length > 0 && (
         <p className="mt-1.5 flex flex-wrap gap-1">
           {categories.map((c) => (

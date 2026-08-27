@@ -288,6 +288,11 @@ export function AdminSold({ siteId }: { siteId: string }) {
               <p className="truncate font-bold text-primary">
                 {s.address}{" "}
                 {!s.is_published && <span className="text-xs text-muted-foreground">(מוסתר)</span>}
+                {!s.editable && (
+                  <span className="ms-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-secondary-foreground">
+                    של המשרד — לצפייה בלבד
+                  </span>
+                )}
               </p>
               <p className="truncate text-xs text-muted-foreground">
                 {[s.neighborhood, s.note].filter(Boolean).join(" · ") || "—"}
@@ -296,19 +301,23 @@ export function AdminSold({ siteId }: { siteId: string }) {
                 <p className="text-xs font-bold text-sun">חסרה תמונה — לחצו עריכה להעלאה</p>
               )}
             </div>
-            <div className="flex shrink-0 gap-2 text-sm">
-              <button type="button" className="underline" onClick={() => edit(s)}>
-                עריכה
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                className="text-destructive underline"
-                onClick={() => run(() => deleteSold({ data: { id: s.id } }), "הדירה הוסרה מהמדור")}
-              >
-                מחיקה
-              </button>
-            </div>
+            {s.editable && (
+              <div className="flex shrink-0 gap-2 text-sm">
+                <button type="button" className="underline" onClick={() => edit(s)}>
+                  עריכה
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="text-destructive underline"
+                  onClick={() =>
+                    run(() => deleteSold({ data: { id: s.id } }), "הדירה הוסרה מהמדור")
+                  }
+                >
+                  מחיקה
+                </button>
+              </div>
+            )}
           </li>
         ))}
       </ul>

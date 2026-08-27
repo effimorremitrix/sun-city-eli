@@ -4,6 +4,7 @@ import {
   type LeadEventType,
   type LeadStatus,
 } from "@/lib/leads";
+import { neighborhoods as canonical, canonicalNeighborhood } from "@/lib/neighborhoods";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- קליינט Supabase (של המשתמש או service role)
 type Db = any;
@@ -27,10 +28,104 @@ export type LeadRecord = {
   next_follow_up_at: string | null;
   created_at: string;
   updated_at: string;
+} & LeadCriteria;
+
+/**
+ * קריטריוני החיפוש המובנים של ליד — אותם שדות כמו search_profiles, בסגנון
+ * הפילטרים של יד2. deal_type הוא כוונת הלקוח: 'קנייה' / 'השכרה' / 'מכירה'.
+ */
+export type LeadCriteria = {
+  deal_type: string | null;
+  city: string | null;
+  neighborhoods: string[];
+  property_type: string | null;
+  min_price: number | null;
+  max_price: number | null;
+  min_rooms: number | null;
+  max_rooms: number | null;
+  min_size: number | null;
+  min_floor: number | null;
+  max_floor: number | null;
+  needs_mamad: boolean;
+  needs_elevator: boolean;
+  needs_parking: boolean;
+  needs_balcony: boolean;
 };
 
+export const LEAD_CRITERIA_COLUMNS =
+  "deal_type,city,neighborhoods,property_type,min_price,max_price,min_rooms,max_rooms,min_size,min_floor,max_floor,needs_mamad,needs_elevator,needs_parking,needs_balcony";
+
+// מחרוזת אחת (לא שרשור) — כדי שמנתח הטיפוסים של postgrest יזהה את העמודות
 export const LEAD_COLUMNS =
-  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at";
+  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at,deal_type,city,neighborhoods,property_type,min_price,max_price,min_rooms,max_rooms,min_size,min_floor,max_floor,needs_mamad,needs_elevator,needs_parking,needs_balcony";
+
+/** כוונות עסקה חוקיות על ליד/פרופיל (כולל 'קנייה' — כוונת קונה) */
+export const LEAD_DEAL_TYPES = ["קנייה", "מכירה", "השכרה"] as const;
+
+/**
+ * סניטציה של קריטריונים שהגיעו מטופס ציבורי: מספרים חיוביים בלבד, שכונות
+ * רק מהרשימה הקנונית (כולל תרגום ערכים ישנים), ותקרות אורך שמרניות.
+ * מחזיר null כשאין אף קריטריון ממשי — כדי לא לדרוס נתונים קיימים בכלום.
+ */
+export function sanitizeLeadCriteria(input: unknown): LeadCriteria | null {
+  if (input == null || typeof input !== "object") return null;
+  const raw = input as Record<string, unknown>;
+
+  const posNum = (v: unknown, max: number): number | null => {
+    const n = typeof v === "number" ? v : typeof v === "string" && v.trim() ? Number(v) : NaN;
+    return Number.isFinite(n) && n > 0 && n <= max ? n : null;
+  };
+  const bool = (v: unknown) => v === true;
+  const text = (v: unknown, max: number): string | null => {
+    const s = typeof v === "string" ? v.trim() : "";
+    return s ? s.slice(0, max) : null;
+  };
+
+  const dealRaw = text(raw["deal_type"], 20);
+  const deal = (LEAD_DEAL_TYPES as readonly string[]).includes(dealRaw ?? "") ? dealRaw : null;
+
+  const hoods = Array.isArray(raw["neighborhoods"])
+    ? (raw["neighborhoods"] as unknown[])
+        .map((h) => (typeof h === "string" ? canonicalNeighborhood(h.trim()) : ""))
+        .filter((h) => canonical.includes(h))
+        .slice(0, 20)
+    : [];
+
+  const criteria: LeadCriteria = {
+    deal_type: deal,
+    city: text(raw["city"], 80),
+    neighborhoods: [...new Set(hoods)],
+    property_type: text(raw["property_type"], 60),
+    min_price: posNum(raw["min_price"], 1_000_000_000),
+    max_price: posNum(raw["max_price"], 1_000_000_000),
+    min_rooms: posNum(raw["min_rooms"], 20),
+    max_rooms: posNum(raw["max_rooms"], 20),
+    min_size: posNum(raw["min_size"], 10_000),
+    min_floor: posNum(raw["min_floor"], 100),
+    max_floor: posNum(raw["max_floor"], 100),
+    needs_mamad: bool(raw["needs_mamad"]),
+    needs_elevator: bool(raw["needs_elevator"]),
+    needs_parking: bool(raw["needs_parking"]),
+    needs_balcony: bool(raw["needs_balcony"]),
+  };
+
+  const hasAny =
+    criteria.deal_type != null ||
+    criteria.neighborhoods.length > 0 ||
+    criteria.property_type != null ||
+    criteria.min_price != null ||
+    criteria.max_price != null ||
+    criteria.min_rooms != null ||
+    criteria.max_rooms != null ||
+    criteria.min_size != null ||
+    criteria.min_floor != null ||
+    criteria.max_floor != null ||
+    criteria.needs_mamad ||
+    criteria.needs_elevator ||
+    criteria.needs_parking ||
+    criteria.needs_balcony;
+  return hasAny ? criteria : null;
+}
 
 /** רישום אירוע בציר הזמן של ליד — נקודת הכניסה היחידה לכתיבת lead_events */
 export async function logLeadEvent(
@@ -430,4 +525,70 @@ export function bucketFollowUps<T extends { status: string; next_follow_up_at: s
   buckets.tomorrow.sort(byTime);
   buckets.thisWeek.sort(byTime);
   return buckets;
+}
+
+/**
+ * פרופיל חיפוש מאוחד: כשלקוח *מחובר* ממלא "נכס לפי דרישה", הדרישות שלו
+ * נשמרות גם כ-search_profiles — אותו פרופיל שמזין את הסוכן האישי, את
+ * ההתראות ואת האזור האישי. פרופיל קיים באותו label מתעדכן במקום להיווצר
+ * כפול. מחזיר את מזהה הפרופיל, או null בכשל (best-effort).
+ */
+export async function upsertSearchProfileFromCriteria(
+  db: Db,
+  input: {
+    userId: string;
+    criteria: LeadCriteria;
+    whatsappPhone?: string | null;
+    notes?: string | null;
+  },
+): Promise<string | null> {
+  try {
+    const label = "נכס לפי דרישה";
+    const fields = {
+      user_id: input.userId,
+      label,
+      deal_type: input.criteria.deal_type ?? "קנייה",
+      city: input.criteria.city ?? "נתניה",
+      neighborhoods: input.criteria.neighborhoods,
+      min_price: input.criteria.min_price,
+      max_price: input.criteria.max_price,
+      min_rooms: input.criteria.min_rooms,
+      max_rooms: input.criteria.max_rooms,
+      min_size: input.criteria.min_size,
+      needs_mamad: input.criteria.needs_mamad,
+      needs_elevator: input.criteria.needs_elevator,
+      needs_parking: input.criteria.needs_parking,
+      needs_balcony: input.criteria.needs_balcony,
+      notes: input.notes ?? null,
+      notify_email: true,
+      ...(input.whatsappPhone
+        ? { notify_whatsapp: true, whatsapp_phone: input.whatsappPhone }
+        : {}),
+      is_active: true,
+    };
+
+    const { data: existing } = await db
+      .from("search_profiles")
+      .select("id")
+      .eq("user_id", input.userId)
+      .eq("label", label)
+      .maybeSingle();
+
+    if (existing?.id) {
+      const { error } = await db.from("search_profiles").update(fields).eq("id", existing.id);
+      if (error) throw new Error(error.message);
+      return existing.id as string;
+    }
+
+    const { data: created, error } = await db
+      .from("search_profiles")
+      .insert(fields)
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return created.id as string;
+  } catch (e) {
+    console.error("upsertSearchProfileFromCriteria failed", e instanceof Error ? e.message : e);
+    return null;
+  }
 }

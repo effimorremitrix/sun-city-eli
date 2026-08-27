@@ -8,6 +8,7 @@ const SYSTEM_PROMPT = `אתה עוזר חיפוש נכסים של משרד תי�
 - "X חדרים" (למשל "3 חדרים") = rooms:X — מספר מדויק, לא מינימום.
 - "לפחות X חדרים" / "X+ חדרים" / "מינימום X" = min_rooms:X.
 - "עד X חדרים" = max_rooms:X.
+"לקנות" / "קנייה" / "מחפש לרכוש" הן כוונת קונה — החזר deal_type:"מכירה" (נכסים שעומדים למכירה). "לשכור" / "השכרה" — deal_type:"השכרה".
 שם רחוב או כתובת (למשל "גולדה מאיר", "שבטי ישראל 19") אינו שכונה — החזר אותו בשדה street (ללא מספר בית אם אינו הכרחי). בשדה neighborhoods החזר רק שכונות מהרשימה המותרת. אם הבקשה כולה היא שם רחוב בלבד — זו בקשה תקינה: החזר street והסבר קצר, אל תציין שלא הבנת.
 אם משהו לא נאמר במפורש — השאר null או false. "קרוב לים" אינו פילטר; התעלם ממנו בפילטרים ורק הזכר בהסבר.`;
 
@@ -22,10 +23,11 @@ function sanitize(raw: unknown, neighborhoods: string[]): AiFilterResult {
     const n = typeof v === "string" ? Number(v) : v;
     return typeof n === "number" && Number.isFinite(n) && n > 0 ? n : null;
   };
+  // "קנייה" היא כוונת קונה — מיתרגמת לנכסי "מכירה" (רשת ביטחון למקרה שהמודל
+  // החזיר את כוונת הגולש ולא את צד המודעה)
+  const dealRaw = f["deal_type"] === "קנייה" ? "מכירה" : f["deal_type"];
   const deal =
-    typeof f["deal_type"] === "string" && ALLOWED_DEALS.includes(f["deal_type"])
-      ? (f["deal_type"] as string)
-      : null;
+    typeof dealRaw === "string" && ALLOWED_DEALS.includes(dealRaw) ? (dealRaw as string) : null;
   const rawHoods = Array.isArray(f["neighborhoods"]) ? (f["neighborhoods"] as unknown[]) : [];
   const hoods = rawHoods
     .filter((h): h is string => typeof h === "string")

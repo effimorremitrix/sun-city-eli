@@ -103,20 +103,26 @@ export const listPublicSoldProperties = createServerFn({ method: "GET" })
 
 /* ------------------ ניהול (אדמין או סוכן, לפי ה-site) ------------------ */
 
+/**
+ * רשימת הנמכרים בלוח הניהול: הנכסים של האתר הנבחר + כל היסטוריית המכירות
+ * המפורסמת של המשרד (לקריאה — `editable` מסמן מה שייך לאתר הנבחר וניתן
+ * לעריכה). כך גם נמכרים שהמשרד הזין מופיעים אצל כל סוכן.
+ */
 export const adminListSoldProperties = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { siteId: string }) => input)
-  .handler(async ({ data, context }): Promise<SoldProperty[]> => {
+  .handler(async ({ data, context }): Promise<Array<SoldProperty & { editable: boolean }>> => {
     const { assertSiteAccess } = await import("@/lib/admin.server");
     await assertSiteAccess(context, data.siteId);
     const { data: rows, error } = await context.supabase
       .from("sold_properties")
       .select(COLUMNS)
-      .eq("site_id", data.siteId)
+      .or(`site_id.eq.${data.siteId},is_published.eq.true`)
       .order("sort_order", { ascending: true })
       .order("sold_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return withUrls((rows ?? []) as unknown as RawRow[]);
+    const items = await withUrls((rows ?? []) as unknown as RawRow[]);
+    return items.map((item) => ({ ...item, editable: item.site_id === data.siteId }));
   });
 
 export const adminSaveSoldProperty = createServerFn({ method: "POST" })

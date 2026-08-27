@@ -67,6 +67,11 @@ export type Listing = {
   updated_at: string;
   images?: ListingImage[];
   agent?: ListingAgent | null;
+  /**
+   * בלוח הניהול בלבד: האם המשתמש הנוכחי רשאי לערוך את הנכס. המלאי המשותף
+   * מוצג לכל הסוכנים, אבל נכס של site אחר הוא לקריאה בלבד.
+   */
+  editable?: boolean;
 };
 
 /** פילטרים מובנים — משמשים גם את החיפוש הידני וגם את חיפוש ה‑AI */

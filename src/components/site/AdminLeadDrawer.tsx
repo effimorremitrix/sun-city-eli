@@ -26,6 +26,7 @@ import {
   type QuickActionKey,
 } from "@/lib/leads.functions";
 import { LEAD_SOURCES, LEAD_STATUSES, PROPERTY_CATEGORIES } from "@/lib/leads";
+import { LeadCriteriaCard } from "@/components/site/LeadCriteria";
 import type { Listing } from "@/lib/listings";
 
 /** אייקון לכל סוג אירוע בציר הזמן */
@@ -384,6 +385,9 @@ export default function AdminLeadDrawer({
               )}
             </div>
           )}
+
+          {/* מה הלקוח מחפש — הקריטריונים המובנים מהטופס/הפרופיל */}
+          {lead && <LeadCriteriaCard lead={lead} />}
 
           {/* טופס פרטי הליד */}
           {(!leadId || lead) && (

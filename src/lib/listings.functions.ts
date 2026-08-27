@@ -50,6 +50,12 @@ export const listPublicAgents = createServerFn({ method: "GET" }).handler(async 
 
 /* ------------------ ניהול (אדמין או סוכן, לפי ה-site) ------------------ */
 
+/**
+ * רשימת הנכסים בלוח הניהול. המלאי הציבורי משותף לכל הסוכנים, ולכן גם
+ * בדשבורד כל סוכן רואה את כל הנכסים המפורסמים (כולל נכסים שהמשרד הזין) —
+ * אבל לעריכה זכאים רק בעלי ה-site של הנכס (או אדמין): שדה `editable`
+ * מסמן זאת לכל שורה, וה-UI מציג נכסים זרים לקריאה בלבד.
+ */
 export const adminListListings = createServerFn({ method: "GET" })
   .inputValidator((input?: { siteId?: string | null }) => ({ siteId: input?.siteId ?? null }))
   .middleware([requireSupabaseAuth])
@@ -66,22 +72,37 @@ export const adminListListings = createServerFn({ method: "GET" })
 
     if (data.siteId) {
       if (!ownIds.includes(data.siteId)) throw new Error("Forbidden");
-      // נכסים ישנים ללא site_id שייכים לאתר הראשי
-      query = includesDefaultSite(access.sites, [data.siteId])
-        ? query.or(`site_id.eq.${data.siteId},site_id.is.null`)
-        : query.eq("site_id", data.siteId);
+      // הנכסים של האתר הנבחר (נכסים ישנים ללא site_id שייכים לאתר הראשי)
+      // + כל המלאי המפורסם המשותף. מדיניות ה-RLS (public_select על מפורסמים
+      // + manage_select על שלו) כבר תוחמת את מה שסוכן יכול לראות בפועל.
+      const ownFilter = includesDefaultSite(access.sites, [data.siteId])
+        ? `site_id.eq.${data.siteId},site_id.is.null`
+        : `site_id.eq.${data.siteId}`;
+      query = query.or(`${ownFilter},is_published.eq.true`);
     } else if (!access.isAdmin) {
       query = includesDefaultSite(access.sites, ownIds)
-        ? query.or(`site_id.in.(${ownIds.join(",")}),site_id.is.null`)
-        : query.in("site_id", ownIds);
+        ? query.or(`site_id.in.(${ownIds.join(",")}),site_id.is.null,is_published.eq.true`)
+        : query.or(`site_id.in.(${ownIds.join(",")}),is_published.eq.true`);
     }
     // אדמין ללא סינון — כל הנכסים של כל הסוכנים
 
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
+
+    const officeSelected = data.siteId
+      ? includesDefaultSite(access.sites, [data.siteId])
+      : includesDefaultSite(access.sites, ownIds);
+    const editableFor = (l: Listing) =>
+      access.isAdmin ||
+      (l.site_id != null && ownIds.includes(l.site_id)) ||
+      (l.site_id == null && officeSelected);
+
     const { attachListingImages } = await import("@/lib/listing-images.server");
     const { attachListingAgents } = await import("@/lib/agents.server");
-    return attachListingAgents(await attachListingImages((rows ?? []) as unknown as Listing[]));
+    const full = await attachListingAgents(
+      await attachListingImages((rows ?? []) as unknown as Listing[]),
+    );
+    return full.map((l) => ({ ...l, editable: editableFor(l) }));
   });
 
 export const adminSaveListing = createServerFn({ method: "POST" })
