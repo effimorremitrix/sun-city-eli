@@ -112,12 +112,16 @@ export const adminListSoldProperties = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { siteId: string }) => input)
   .handler(async ({ data, context }): Promise<Array<SoldProperty & { editable: boolean }>> => {
-    const { assertSiteAccess } = await import("@/lib/admin.server");
+    const { assertManager, assertSiteAccess } = await import("@/lib/admin.server");
+    const access = await assertManager(context);
     await assertSiteAccess(context, data.siteId);
-    const { data: rows, error } = await context.supabase
-      .from("sold_properties")
-      .select(COLUMNS)
-      .or(`site_id.eq.${data.siteId},is_published.eq.true`)
+    let query = context.supabase.from("sold_properties").select(COLUMNS);
+    // סוכן רואה גם את היסטוריית המכירות המשותפת (לקריאה); אדמין שבחר אתר
+    // בבורר מקבל את האתר הזה בלבד — הבורר נשאר סינון אמיתי
+    query = access.isAdmin
+      ? query.eq("site_id", data.siteId)
+      : query.or(`site_id.eq.${data.siteId},is_published.eq.true`);
+    const { data: rows, error } = await query
       .order("sort_order", { ascending: true })
       .order("sold_at", { ascending: false });
     if (error) throw new Error(error.message);

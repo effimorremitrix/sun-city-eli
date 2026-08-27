@@ -72,13 +72,15 @@ export const adminListListings = createServerFn({ method: "GET" })
 
     if (data.siteId) {
       if (!ownIds.includes(data.siteId)) throw new Error("Forbidden");
-      // הנכסים של האתר הנבחר (נכסים ישנים ללא site_id שייכים לאתר הראשי)
-      // + כל המלאי המפורסם המשותף. מדיניות ה-RLS (public_select על מפורסמים
-      // + manage_select על שלו) כבר תוחמת את מה שסוכן יכול לראות בפועל.
+      // הנכסים של האתר הנבחר (נכסים ישנים ללא site_id שייכים לאתר הראשי).
+      // לסוכן מצורף גם כל המלאי המפורסם המשותף (לקריאה — editable=false);
+      // אדמין שבחר אתר בבורר מקבל את האתר הזה בלבד, כדי שהבורר יישאר סינון
+      // אמיתי. מדיניות ה-RLS (public_select על מפורסמים + manage_select על
+      // שלו) כבר תוחמת את מה שסוכן יכול לראות בפועל.
       const ownFilter = includesDefaultSite(access.sites, [data.siteId])
         ? `site_id.eq.${data.siteId},site_id.is.null`
         : `site_id.eq.${data.siteId}`;
-      query = query.or(`${ownFilter},is_published.eq.true`);
+      query = access.isAdmin ? query.or(ownFilter) : query.or(`${ownFilter},is_published.eq.true`);
     } else if (!access.isAdmin) {
       query = includesDefaultSite(access.sites, ownIds)
         ? query.or(`site_id.in.(${ownIds.join(",")}),site_id.is.null,is_published.eq.true`)

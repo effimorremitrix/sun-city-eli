@@ -116,9 +116,9 @@ export async function assertSiteAccess(context: Ctx, siteId: string): Promise<Ma
 }
 
 /**
- * שומר נכס, ואם הוא מפורסם — מייצר התראות ללקוחות תואמים (מייל + וואטסאפ),
- * מודיע לסוכן המפרסם ולמנהל הראשי, ומפרסם אוטומטית לעמוד הפייסבוק של הדף
- * כשנכס חדש נוצר ויש חיבור פייסבוק פעיל.
+ * שומר נכס, ואם הוא מפורסם — מייצר התראות ללקוחות תואמים (מייל + וואטסאפ,
+ * לרשומים ולידים עם הסכמה) ומודיע לסוכן המפרסם ולמנהל הראשי. פרסום לרשתות
+ * חברתיות לעולם לא קורה כאן — רק דרך טאב הפרסום, באישור מפורש.
  */
 export async function saveListingAndNotify(context: Ctx, input: ListingInput, siteUrl: string) {
   const { id, ...fields } = input;
