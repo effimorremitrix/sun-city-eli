@@ -1,9 +1,11 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useBackToSiteHref } from "@/lib/back-to-site";
 
 const title = 'כניסה לאזור האישי | סאן סיטי נדל"ן';
-const description = 'הרשמה וכניסה לאזור האישי באתר סאן סיטי נדל"ן — הגדרת סוכן אישי והתראות על דירות חדשות בנתניה.';
+const description =
+  'הרשמה וכניסה לאזור האישי באתר סאן סיטי נדל"ן — הגדרת סוכן אישי והתראות על דירות חדשות בנתניה.';
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -22,6 +24,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const backHref = useBackToSiteHref();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -64,7 +67,9 @@ function AuthPage() {
       <div className="soft-card w-full max-w-sm p-6">
         <h1 className="text-2xl font-extrabold text-primary">האזור האישי</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {mode === "signin" ? "התחברות עם המייל והסיסמה שלכם" : "הרשמה חינם: סוכן אישי שישלח לכם התראה על כל דירה חדשה שתואמת לדרישות שלכם"}
+          {mode === "signin"
+            ? "התחברות עם המייל והסיסמה שלכם"
+            : "הרשמה חינם: סוכן אישי שישלח לכם התראה על כל דירה חדשה שתואמת לדרישות שלכם"}
         </p>
 
         <form onSubmit={submit} className="mt-5 grid gap-3" noValidate>
@@ -164,9 +169,12 @@ function AuthPage() {
           </button>
         )}
 
-        <Link to="/" className="mt-4 block text-center text-xs text-muted-foreground underline">
+        <a
+          href={backHref}
+          className="mt-4 block text-center text-xs text-muted-foreground underline"
+        >
           חזרה לאתר
-        </Link>
+        </a>
       </div>
     </main>
   );

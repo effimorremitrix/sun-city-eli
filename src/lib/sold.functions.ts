@@ -24,10 +24,14 @@ const COLUMNS =
 const BUCKET = "listing-images";
 const SIGNED_TTL = 60 * 60 * 24 * 7; // שבוע
 /**
- * תקרת התצוגה הציבורית של מדור "נמכר על ידינו" — בלם ביצועים (חתימת כתובת לכל
- * תמונה, וכל הפריטים מרונדרים בקרוסלה), ולא מגבלה על מספר הנכסים שאפשר להוסיף.
+ * גודל עמוד ברירת-המחדל של מדור "נמכר על ידינו" — בלם ביצועים בלבד (חתימת
+ * כתובת לכל תמונה): שאר הנכסים נטענים בעימוד דרך "הצג עוד", כך שאין תקרה
+ * בפועל על מספר הנמכרים המוצגים.
  */
-const PUBLIC_LIMIT = 60;
+const PUBLIC_PAGE_SIZE = 60;
+
+/** עמוד אחד ממדור הנמכרים + סך כל הרשומות המפורסמות (לכפתור "הצג עוד") */
+export type SoldPage = { items: SoldProperty[]; total: number };
 
 type RawRow = {
   id: string;
@@ -67,25 +71,34 @@ async function withUrls(rows: RawRow[]): Promise<SoldProperty[]> {
  * כמו הנכסים, זו הוכחה חברתית משותפת ולא רשימה אישית לכל סוכן.
  */
 export const listPublicSoldProperties = createServerFn({ method: "GET" })
-  .inputValidator(() => ({}))
-  .handler(async (): Promise<SoldProperty[]> => {
+  .inputValidator((input: { offset?: number } | undefined) => {
+    const offset = Number(input?.offset ?? 0);
+    return { offset: Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 0 };
+  })
+  .handler(async ({ data }): Promise<SoldPage> => {
     const { publicDb } = await import("@/lib/public-db.server");
     const db = publicDb();
-    if (!db) return [];
+    if (!db) return { items: [], total: 0 };
 
-    const query = db
+    const {
+      data: rows,
+      count,
+      error,
+    } = await db
       .from("sold_properties")
-      .select(COLUMNS)
+      .select(COLUMNS, { count: "exact" })
       .eq("is_published", true)
       .order("sort_order", { ascending: true })
-      .order("sold_at", { ascending: false });
-
-    const { data: rows, error } = await query.limit(PUBLIC_LIMIT);
+      .order("sold_at", { ascending: false })
+      .range(data.offset, data.offset + PUBLIC_PAGE_SIZE - 1);
     if (error) {
       console.error("listPublicSoldProperties failed", error.message);
-      return [];
+      return { items: [], total: 0 };
     }
-    return withUrls((rows ?? []) as unknown as RawRow[]);
+    return {
+      items: await withUrls((rows ?? []) as unknown as RawRow[]),
+      total: count ?? rows?.length ?? 0,
+    };
   });
 
 /* ------------------ ניהול (אדמין או סוכן, לפי ה-site) ------------------ */
@@ -193,7 +206,11 @@ export type MarkListingSoldResult = {
  */
 export const adminMarkListingSold = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { listingId: string }) => ({ listingId: String(input.listingId) }))
+  .inputValidator((input: { listingId: string; autoPostInstagram?: boolean }) => ({
+    listingId: String(input.listingId),
+    // פרסום לאינסטגרם רק באישור מפורש — ברירת המחדל היא לא לפרסם שום דבר
+    autoPostInstagram: input.autoPostInstagram === true,
+  }))
   .handler(async ({ data, context }): Promise<MarkListingSoldResult> => {
     const { assertManager } = await import("@/lib/admin.server");
     const access = await assertManager(context);
@@ -289,14 +306,17 @@ export const adminMarkListingSold = createServerFn({ method: "POST" })
       postImageUrl = signed?.signedUrl ?? null;
     }
 
-    // פרסום אוטומטי לאינסטגרם — מיטב-מאמץ, לעולם לא מפיל את הסימון
+    // פרסום אוטומטי לאינסטגרם — רק כשסומן במפורש בפעולת הסימון; מיטב-מאמץ,
+    // לעולם לא מפיל את הסימון
     const instagram = { attempted: false, posted: false, error: null as string | null };
     try {
-      const { data: conn } = await supabaseAdmin
-        .from("facebook_connections")
-        .select("ig_user_id")
-        .eq("site_id", siteId)
-        .maybeSingle();
+      const { data: conn } = data.autoPostInstagram
+        ? await supabaseAdmin
+            .from("facebook_connections")
+            .select("ig_user_id")
+            .eq("site_id", siteId)
+            .maybeSingle()
+        : { data: null };
       if (conn?.ig_user_id && postImageUrl) {
         instagram.attempted = true;
         const { publishSoldToInstagram } = await import("@/lib/facebook.server");

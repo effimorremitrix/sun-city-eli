@@ -102,6 +102,12 @@ export function PropertySection({ listings, updatedAt }: Props) {
     try {
       const res = await aiSearchListings({ data: { query } });
       setAi({ ids: res.ids, explanation: res.explanation, filters: res.filters, web: res.web });
+      // איפוס הסינון הידני — פילטר ישן שנשאר בתפריטים היה מצמצם בשקט את
+      // תוצאות החיפוש החכם (חיתוך בין שתי הרשימות)
+      setDeal("all");
+      setRooms("all");
+      setRange("all");
+      setArea("all");
     } catch (err) {
       setAi(null);
       setAiErr(err instanceof Error ? err.message : t.properties.aiFailed);

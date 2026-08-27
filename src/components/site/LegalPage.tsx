@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { OFFICE_SLUG } from "@/lib/site-data";
 import { SITE_URL } from "@/lib/i18n/seo";
+import { useBackToSiteHref } from "@/lib/back-to-site";
 
 /**
  * מעטפת משותפת לדפים המשפטיים (/privacy, /terms, /data-deletion).
@@ -91,11 +91,13 @@ export function LegalPage({
   children: ReactNode;
 }) {
   const he = lang === "he";
+  // חוזרים לדף הציבורי האחרון שביקרו בו (כולל דף אישי של סוכן), לא לאתר המשרד
+  const backHref = useBackToSiteHref();
 
   return (
     <main lang={lang} dir={he ? "rtl" : "ltr"} className="mx-auto max-w-3xl px-4 py-14">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <a href={`/${OFFICE_SLUG}`} className="text-sm font-bold text-sun underline">
+        <a href={backHref} className="text-sm font-bold text-sun underline">
           {he ? "חזרה לעמוד הבית" : "Back to home"}
         </a>
 

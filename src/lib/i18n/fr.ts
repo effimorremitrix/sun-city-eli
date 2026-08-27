@@ -493,6 +493,8 @@ export const fr: Dict = {
     stampPrefix: "Ce bien aussi a été",
     stampSuffix: "par Sun City",
     soldOn: (d: string) => `Vendu en ${d}`,
+    showMore: (n: number) => `Afficher plus de biens vendus (${n})`,
+    loadingMore: "Chargement…",
   },
 
   misc: {

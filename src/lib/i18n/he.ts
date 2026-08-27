@@ -475,6 +475,8 @@ export const he = {
     stampPrefix: "גם הנכס הזה",
     stampSuffix: 'ע"י סאן סיטי',
     soldOn: (d: string) => `נמכר ב-${d}`,
+    showMore: (n: number) => `הצגת עוד נמכרים (${n})`,
+    loadingMore: "טוען…",
   },
 
   misc: {

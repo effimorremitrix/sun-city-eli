@@ -236,6 +236,9 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
   // פוסט "נמכר" מוכן להעתקה — תוצאת הסימון האחרון (הטקסט ניתן לעריכה לפני העתקה)
   const [soldPost, setSoldPost] = useState<MarkListingSoldResult | null>(null);
   const [soldPostCopied, setSoldPostCopied] = useState(false);
+  // פרסום אוטומטי לאינסטגרם בסימון "נמכר" — כבוי כברירת מחדל: שום דבר לא
+  // מתפרסם החוצה בלי בחירה מפורשת
+  const [autoPostIg, setAutoPostIg] = useState(false);
 
   const [business, setBusiness] = useState<LiveBusiness | null>(null);
   const [texts, setTexts] = useState<LiveTexts | null>(null);
@@ -711,6 +714,20 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
         <section className="soft-card mt-6 p-5">
           <h2 className="text-lg font-extrabold text-primary">הנכסים במסד הנתונים</h2>
 
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={autoPostIg}
+              onChange={(e) => setAutoPostIg(e.target.checked)}
+            />
+            <span>
+              פרסום אוטומטי לאינסטגרם בעת סימון נכס כנמכר{" "}
+              <span className="text-xs text-muted-foreground">
+                (כבוי = מקבלים נוסח מוכן להעתקה בלבד, שום דבר לא מתפרסם לבד)
+              </span>
+            </span>
+          </label>
+
           {/* מיקום למפה: הנכסים שנשמרו לפני הוספת המפה עדיין בלי קואורדינטות */}
           {withoutCoords > 0 && (
             <div className="mt-3 rounded-xl border border-border p-3">
@@ -752,7 +769,7 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
                   ? "הפוסט פורסם אוטומטית לאינסטגרם ✓"
                   : soldPost.instagram.attempted
                     ? `הפרסום האוטומטי לאינסטגרם נכשל (${soldPost.instagram.error ?? "שגיאה"}) — אפשר לפרסם ידנית עם הנוסח שלמטה`
-                    : "אין חיבור אינסטגרם עסקי לדף — העתיקו את הנוסח ופרסמו ידנית (חיבור: טאב הפרסום)"}
+                    : "לא פורסם אוטומטית — העתיקו את הנוסח ופרסמו ידנית (לפרסום אוטומטי: סמנו את התיבה למעלה וודאו חיבור אינסטגרם בטאב הפרסום)"}
               </p>
               <div className="mt-3 flex flex-wrap items-start gap-3">
                 {soldPost.post.imageUrl && (
@@ -824,13 +841,14 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
                         onClick={() => {
                           if (
                             !window.confirm(
-                              `לסמן את "${l.title}" כנמכר? הנכס יוסתר מהאתר ויתווסף למדור "נמכר על ידינו".`,
+                              `לסמן את "${l.title}" כנמכר? הנכס יוסתר מהאתר ויתווסף למדור "נמכר על ידינו".` +
+                                (autoPostIg ? "\n\nכולל פרסום אוטומטי לאינסטגרם." : ""),
                             )
                           )
                             return;
                           void run(async () => {
                             const res = (await markListingSold({
-                              data: { listingId: l.id },
+                              data: { listingId: l.id, autoPostInstagram: autoPostIg },
                             })) as MarkListingSoldResult;
                             setSoldPost(res);
                             setSoldPostCopied(false);

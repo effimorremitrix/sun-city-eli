@@ -16,7 +16,7 @@ import { SoldSection } from "@/components/site/SoldSection";
 import { SiteLiveProvider, localizeLive, type LiveSite } from "@/lib/site-live";
 import { getPublicSite } from "@/lib/site.functions";
 import { listPublicListings, listPublicAgents } from "@/lib/listings.functions";
-import { listPublicSoldProperties, type SoldProperty } from "@/lib/sold.functions";
+import { listPublicSoldProperties, type SoldPage } from "@/lib/sold.functions";
 import { localizeListing, type Listing } from "@/lib/listings";
 import { RESERVED_AGENT_SLUGS } from "@/lib/reserved-slugs";
 import {
@@ -131,7 +131,7 @@ function AgentPageContent() {
     live: LiveSite;
     listings: Listing[];
     agents: PublicAgentRow[];
-    sold: SoldProperty[];
+    sold: SoldPage;
   };
   const localizedLive = localizeLive(live, lang, t);
   const localizedListings = listings.map((l) => localizeListing(l, lang));
@@ -152,7 +152,7 @@ function AgentPageContent() {
           <PropertySection listings={localizedListings} updatedAt={listingsUpdatedAt} />
           <ItemsSection />
           <SellerSection />
-          <SoldSection items={sold} />
+          <SoldSection page={sold} />
           <BuyerSection />
           <Services />
           <WhyUs />

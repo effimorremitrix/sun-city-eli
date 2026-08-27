@@ -484,6 +484,8 @@ export const en: Dict = {
     stampPrefix: "This property was also",
     stampSuffix: "by Sun City",
     soldOn: (d: string) => `Sold ${d}`,
+    showMore: (n: number) => `Show more sold properties (${n})`,
+    loadingMore: "Loading…",
   },
 
   misc: {

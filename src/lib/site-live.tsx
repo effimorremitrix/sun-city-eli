@@ -1,6 +1,7 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { OFFICE_SLUG, SITE_CONFIG, team } from "@/lib/site-data";
 import { DICTS, type Dict, type Locale } from "@/lib/i18n";
+import { rememberSitePath } from "@/lib/back-to-site";
 
 /** ============================================================
  * תוכן חי (Live content) — הנתונים שמנוהלים באזור הניהול.
@@ -321,6 +322,12 @@ export function localizeLive(live: LiveSite, lang: Locale, t: Dict): LiveSite {
 const LiveContext = createContext<LiveSite>(DEFAULT_LIVE);
 
 export function SiteLiveProvider({ value, children }: { value: LiveSite; children: ReactNode }) {
+  // כל דף ציבורי שנטען נזכר כיעד של "חזרה לאתר" (כולל slug של סוכן ושפה).
+  // בלי מערך תלויות: הנתיב משתנה גם בניווט בין דפי סוכנים ובהחלפת שפה,
+  // והכתיבה ל-localStorage זולה.
+  useEffect(() => {
+    if (value.found) rememberSitePath(window.location.pathname);
+  });
   return <LiveContext.Provider value={value}>{children}</LiveContext.Provider>;
 }
 

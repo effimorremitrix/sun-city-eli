@@ -484,6 +484,8 @@ export const ru: Dict = {
     stampPrefix: "Этот объект тоже",
     stampSuffix: "агентством Sun City",
     soldOn: (d: string) => `Продано ${d}`,
+    showMore: (n: number) => `Показать ещё проданные (${n})`,
+    loadingMore: "Загрузка…",
   },
 
   misc: {
