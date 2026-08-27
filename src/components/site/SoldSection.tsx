@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { Home } from "lucide-react";
 import logo from "@/assets/sun-city-logo-full.svg";
 import { useLive } from "@/lib/site-live";
 import { useLang } from "@/lib/i18n";
-import type { SoldProperty } from "@/lib/sold.functions";
+import { listPublicSoldProperties, type SoldPage, type SoldProperty } from "@/lib/sold.functions";
 import {
   Carousel,
   CarouselContent,
@@ -11,7 +12,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 
-type Props = { items: SoldProperty[] };
+type Props = { page: SoldPage };
 
 /* ============================================================
  * פוסטר ה"נמכר" הרשמי של המשרד — משוחזר כקומפוזיציית SVG כך
@@ -215,8 +216,27 @@ function SoldPoster({ item }: { item: SoldProperty }) {
  * מדור "נמכר על ידינו" — הוכחה חברתית בתבנית פוסטר ה"נמכר"
  * הרשמי של המשרד: שמש עם התמונה בפנים, חותמת "נמכר" והכתובת בסרט.
  */
-export function SoldSection({ items }: Props) {
+export function SoldSection({ page }: Props) {
   const { dir, t } = useLang();
+  // עמודים נוספים שנטענו דרך "הצג עוד" — מעבר לעמוד הראשון שהגיע מה-loader
+  const [extra, setExtra] = useState<SoldProperty[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const items = [...page.items, ...extra];
+  const remaining = page.total - items.length;
+
+  const loadMore = async () => {
+    if (loadingMore || remaining <= 0) return;
+    setLoadingMore(true);
+    try {
+      const next = await listPublicSoldProperties({ data: { offset: items.length } });
+      setExtra((prev) => [...prev, ...next.items]);
+    } catch (e) {
+      console.error("load more sold failed", e);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   if (items.length === 0) return null;
 
   const fmtDate = (iso: string) => {
@@ -230,7 +250,7 @@ export function SoldSection({ items }: Props) {
       <p className="text-sm font-bold text-sun">{t.sold.label}</p>
       <h2 className="mt-2 text-3xl md:text-4xl">{t.sold.title}</h2>
       <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">
-        {t.sold.subtitle(items.length)}
+        {t.sold.subtitle(page.total)}
       </p>
 
       {/* קרוסלה: היסטוריית המכירות של כל המשרד ארוכה מדי לרשת סטטית */}
@@ -268,6 +288,19 @@ export function SoldSection({ items }: Props) {
           </>
         )}
       </Carousel>
+
+      {remaining > 0 && (
+        <div className="mt-6 text-center">
+          <button
+            type="button"
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="rounded-full border border-border bg-card px-6 py-2.5 text-sm font-bold shadow-sm transition hover:bg-muted disabled:opacity-60"
+          >
+            {loadingMore ? t.sold.loadingMore : t.sold.showMore(remaining)}
+          </button>
+        </div>
+      )}
     </section>
   );
 }

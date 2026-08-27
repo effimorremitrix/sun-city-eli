@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Check, ChevronDown } from "lucide-react";
 import { LOCALES, LOCALE_META, useLang, type Locale } from "@/lib/i18n";
+import { useLive } from "@/lib/site-live";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,16 +70,28 @@ const FLAGS: Record<Locale, () => React.JSX.Element> = {
   ru: FlagRussia,
 };
 
+/**
+ * יעד החלפת השפה: בדף אישי של סוכן נשארים על הדף של אותו סוכן (אחרת
+ * המעבר דרך "/" נתפס ב-homeRedirect ומחזיר את הגולש לאתר המשרד).
+ */
+function langLinkProps(live: { isHome: boolean; slug: string | null }, locale: Locale) {
+  const lang = locale === "he" ? undefined : locale;
+  if (!live.isHome && live.slug) {
+    return { to: "/{-$lang}/$agentSlug", params: { lang, agentSlug: live.slug } } as const;
+  }
+  return { to: "/{-$lang}", params: { lang } } as const;
+}
+
 function FlagLink({ locale }: { locale: Locale }) {
   const { lang } = useLang();
+  const live = useLive();
   const Flag = FLAGS[locale];
   const meta = LOCALE_META[locale];
   const active = lang === locale;
 
   return (
     <Link
-      to="/{-$lang}"
-      params={{ lang: locale === "he" ? undefined : locale }}
+      {...langLinkProps(live, locale)}
       resetScroll
       aria-label={meta.name}
       title={meta.name}
@@ -94,6 +107,7 @@ function FlagLink({ locale }: { locale: Locale }) {
 
 export function LangSwitcher({ big, className }: { big?: boolean; className?: string }) {
   const { t, lang, dir } = useLang();
+  const live = useLive();
 
   // הפאנל במובייל: שורת דגלים שטוחה — כל השפות גלויות בלחיצה אחת
   if (big) {
@@ -130,8 +144,7 @@ export function LangSwitcher({ big, className }: { big?: boolean; className?: st
             return (
               <DropdownMenuItem key={locale} asChild>
                 <Link
-                  to="/{-$lang}"
-                  params={{ lang: locale === "he" ? undefined : locale }}
+                  {...langLinkProps(live, locale)}
                   resetScroll
                   aria-current={active ? "page" : undefined}
                   className={`flex cursor-pointer items-center gap-2 ${active ? "font-bold text-primary" : ""}`}

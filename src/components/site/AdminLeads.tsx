@@ -10,6 +10,7 @@ import {
   type LeadsDashboardCounts,
 } from "@/lib/leads.functions";
 import { LEAD_STATUSES } from "@/lib/leads";
+import { leadCriteriaChips } from "@/components/site/LeadCriteria";
 import AdminLeadDrawer from "@/components/site/AdminLeadDrawer";
 import type { Listing } from "@/lib/listings";
 import type { ManagedSite } from "@/lib/admin.server";
@@ -28,6 +29,12 @@ const statusChipClass = (status: string): string => {
 };
 
 function LeadListItem({ lead, onOpen }: { lead: LeadRow; onOpen: () => void }) {
+  // "מה הלקוח מחפש": הקריטריונים המובנים; קטגוריות הקנייה/מכירה כתגיות משלימות
+  const criteriaChips = leadCriteriaChips(lead);
+  const categories = [
+    ...(lead.buy_categories ?? []).map((c) => ({ key: `buy-${c}`, label: `קנייה: ${c}` })),
+    ...(lead.sell_categories ?? []).map((c) => ({ key: `sell-${c}`, label: `מכירה: ${c}` })),
+  ];
   return (
     <li className="rounded-xl border border-border p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -54,8 +61,46 @@ function LeadListItem({ lead, onOpen }: { lead: LeadRow; onOpen: () => void }) {
             </a>
           </>
         )}
+        {lead.email && (
+          <>
+            {" · "}
+            <a href={`mailto:${lead.email}`} dir="ltr" className="underline">
+              {lead.email}
+            </a>
+          </>
+        )}
         {lead.listing?.title && <> · {lead.listing.title}</>}
+        {lead.created_at && <> · {fmtDateTime(lead.created_at)}</>}
       </p>
+      {criteriaChips.length > 0 && (
+        <p className="mt-1.5 flex flex-wrap gap-1">
+          {criteriaChips.map((c) => (
+            <span
+              key={c}
+              className="rounded-full bg-sun/15 px-2 py-0.5 text-[11px] font-bold text-primary"
+            >
+              {c}
+            </span>
+          ))}
+        </p>
+      )}
+      {categories.length > 0 && (
+        <p className="mt-1.5 flex flex-wrap gap-1">
+          {categories.map((c) => (
+            <span
+              key={c.key}
+              className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-secondary-foreground"
+            >
+              {c.label}
+            </span>
+          ))}
+        </p>
+      )}
+      {lead.notes && (
+        <p className="mt-1.5 whitespace-pre-line text-xs leading-relaxed text-foreground/80">
+          {lead.notes.length > 220 ? `${lead.notes.slice(0, 220)}…` : lead.notes}
+        </p>
+      )}
       {(lead.next_action || lead.next_follow_up_at) && (
         <p className="mt-1 text-xs text-primary">
           {lead.next_follow_up_at && (

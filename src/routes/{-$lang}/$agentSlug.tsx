@@ -16,7 +16,7 @@ import { SoldSection } from "@/components/site/SoldSection";
 import { SiteLiveProvider, localizeLive, type LiveSite } from "@/lib/site-live";
 import { getPublicSite } from "@/lib/site.functions";
 import { listPublicListings, listPublicAgents } from "@/lib/listings.functions";
-import { listPublicSoldProperties, type SoldProperty } from "@/lib/sold.functions";
+import { listPublicSoldProperties, type SoldPage } from "@/lib/sold.functions";
 import { localizeListing, type Listing } from "@/lib/listings";
 import { RESERVED_AGENT_SLUGS } from "@/lib/reserved-slugs";
 import {
@@ -102,9 +102,12 @@ export const Route = createFileRoute("/{-$lang}/$agentSlug")({
 });
 
 function RouteNotFound() {
+  // שפת ה-404 לפי הסגמנט בכתובת (/en/... וכו') — לא עברית קבועה
+  const params = Route.useParams();
+  const lang = langFromParam(params.lang);
   return (
-    <main className="mx-auto max-w-lg px-4 py-16 text-center">
-      <h1 className="text-xl font-bold text-primary">{DICTS.he.routeErrors.notFound}</h1>
+    <main dir={lang === "he" ? "rtl" : "ltr"} className="mx-auto max-w-lg px-4 py-16 text-center">
+      <h1 className="text-xl font-bold text-primary">{DICTS[lang].routeErrors.notFound}</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         <a href="/" className="underline">
           Sun City
@@ -131,7 +134,7 @@ function AgentPageContent() {
     live: LiveSite;
     listings: Listing[];
     agents: PublicAgentRow[];
-    sold: SoldProperty[];
+    sold: SoldPage;
   };
   const localizedLive = localizeLive(live, lang, t);
   const localizedListings = listings.map((l) => localizeListing(l, lang));
@@ -152,7 +155,7 @@ function AgentPageContent() {
           <PropertySection listings={localizedListings} updatedAt={listingsUpdatedAt} />
           <ItemsSection />
           <SellerSection />
-          <SoldSection items={sold} />
+          <SoldSection page={sold} />
           <BuyerSection />
           <Services />
           <WhyUs />

@@ -78,10 +78,11 @@ export const testimonialSchema = z.object({
   name: z.string().trim().min(1, "נדרש שם ממליץ").max(80),
   type: z.string().trim().max(60).default(""),
   quote: z.string().trim().min(2, "נדרש תוכן ההמלצה").max(600),
+  // כתובת חתומה של site-media היא ~340 תווים — התקרה נדיבה כדי לא לחתוך אותה
   videoUrl: z
     .string()
     .trim()
-    .max(300)
+    .max(2000)
     .refine((v) => v === "" || v.startsWith("https://"), "קישור סרטון חייב להתחיל ב-https://")
     .default(""),
 });

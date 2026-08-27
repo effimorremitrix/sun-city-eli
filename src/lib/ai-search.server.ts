@@ -8,6 +8,7 @@ const SYSTEM_PROMPT = `אתה עוזר חיפוש נכסים של משרד תי�
 - "X חדרים" (למשל "3 חדרים") = rooms:X — מספר מדויק, לא מינימום.
 - "לפחות X חדרים" / "X+ חדרים" / "מינימום X" = min_rooms:X.
 - "עד X חדרים" = max_rooms:X.
+"לקנות" / "קנייה" / "מחפש לרכוש" הן כוונת קונה — החזר deal_type:"מכירה" (נכסים שעומדים למכירה). "לשכור" / "השכרה" — deal_type:"השכרה".
 שם רחוב או כתובת (למשל "גולדה מאיר", "שבטי ישראל 19") אינו שכונה — החזר אותו בשדה street (ללא מספר בית אם אינו הכרחי). בשדה neighborhoods החזר רק שכונות מהרשימה המותרת. אם הבקשה כולה היא שם רחוב בלבד — זו בקשה תקינה: החזר street והסבר קצר, אל תציין שלא הבנת.
 אם משהו לא נאמר במפורש — השאר null או false. "קרוב לים" אינו פילטר; התעלם ממנו בפילטרים ורק הזכר בהסבר.`;
 
@@ -22,10 +23,11 @@ function sanitize(raw: unknown, neighborhoods: string[]): AiFilterResult {
     const n = typeof v === "string" ? Number(v) : v;
     return typeof n === "number" && Number.isFinite(n) && n > 0 ? n : null;
   };
+  // "קנייה" היא כוונת קונה — מיתרגמת לנכסי "מכירה" (רשת ביטחון למקרה שהמודל
+  // החזיר את כוונת הגולש ולא את צד המודעה)
+  const dealRaw = f["deal_type"] === "קנייה" ? "מכירה" : f["deal_type"];
   const deal =
-    typeof f["deal_type"] === "string" && ALLOWED_DEALS.includes(f["deal_type"])
-      ? (f["deal_type"] as string)
-      : null;
+    typeof dealRaw === "string" && ALLOWED_DEALS.includes(dealRaw) ? (dealRaw as string) : null;
   const rawHoods = Array.isArray(f["neighborhoods"]) ? (f["neighborhoods"] as unknown[]) : [];
   const hoods = rawHoods
     .filter((h): h is string => typeof h === "string")
@@ -58,11 +60,20 @@ function sanitize(raw: unknown, neighborhoods: string[]): AiFilterResult {
 }
 
 /** ממיר טקסט חופשי לפילטרים מובנים באמצעות Anthropic Claude (מפתח חיצוני של בעל האתר) */
+/** שמות השפות להנחיית המודל — ההסבר חוזר בשפת הגולש */
+const EXPLANATION_LANGS: Record<string, string> = {
+  he: "עברית",
+  en: "אנגלית",
+  fr: "צרפתית",
+  ru: "רוסית",
+};
+
 export async function extractFilters(
   query: string,
   neighborhoods: string[],
   userId: string | null = null,
   streets: string[] = [],
+  lang: string = "he",
 ): Promise<AiFilterResult> {
   const { AI_MODEL, logAiUsage } = await import("@/lib/ai-usage.server");
   const apiKey = process.env["ANTHROPIC_API_KEY"];
@@ -91,6 +102,10 @@ export async function extractFilters(
         system: `${SYSTEM_PROMPT}\nשכונות מותרות: ${neighborhoods.join(", ")}${
           streets.length
             ? `\nרחובות מוכרים בנכסי המשרד: ${streets.join(", ")}\nאם מילה בבקשה תואמת רחוב מהרשימה (גם עם תחילית "ב", וגם כשהבקשה היא שם הרחוב בלבד) — החזר אותה בשדה street.`
+            : ""
+        }${
+          lang !== "he" && EXPLANATION_LANGS[lang]
+            ? `\nחשוב: את משפט ההסבר (explanation) כתוב ב${EXPLANATION_LANGS[lang]} — זו שפת הגולש. הפילטרים נשארים בעברית.`
             : ""
         }`,
         messages: [{ role: "user", content: query }],

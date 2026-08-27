@@ -41,7 +41,7 @@ export type LeadsDashboardCounts = {
 };
 
 const LEAD_ROW_COLUMNS =
-  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at,listing:listing_id(id,title)";
+  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at,deal_type,city,neighborhoods,property_type,min_price,max_price,min_rooms,max_rooms,min_size,min_floor,max_floor,needs_mamad,needs_elevator,needs_parking,needs_balcony,listing:listing_id(id,title)";
 
 const str = (v: unknown, max = 200): string | null => {
   const s = typeof v === "string" ? v.trim() : "";
@@ -463,6 +463,10 @@ export const createPublicLead = createServerFn({ method: "POST" })
       source: string;
       listingId?: string | null;
       website?: string | null;
+      /** קריטריוני חיפוש מובנים (טופס הקונים) — עוברים סניטציה בצד השרת */
+      criteria?: unknown;
+      /** הסכמת דיוור (מייל/וואטסאפ) — תנאי לקבלת התראות התאמה אוטומטיות */
+      marketingConsent?: boolean;
     }) => ({
       siteId: str(input?.siteId, 60),
       siteSlug: str(input?.siteSlug, 60),
@@ -473,6 +477,8 @@ export const createPublicLead = createServerFn({ method: "POST" })
       source: isSource(input?.source) ? input.source : ("אתר אישי" as LeadSource),
       listingId: str(input?.listingId, 60),
       website: str(input?.website, 200), // honeypot — אמור להישאר ריק
+      criteria: input?.criteria ?? null,
+      marketingConsent: input?.marketingConsent === true,
     }),
   )
   .handler(async ({ data }) => {
@@ -484,9 +490,16 @@ export const createPublicLead = createServerFn({ method: "POST" })
 
       const { getRequest } = await import("@tanstack/react-start/server");
       const ip = getRequest()?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-      const { checkPublicLeadRateLimit, logLeadEvent, LEAD_COLUMNS } =
-        await import("@/lib/leads.server");
+      const {
+        checkPublicLeadRateLimit,
+        logLeadEvent,
+        sanitizeLeadCriteria,
+        upsertSearchProfileFromCriteria,
+        LEAD_COLUMNS,
+      } = await import("@/lib/leads.server");
       if (!checkPublicLeadRateLimit(ip)) return { ok: true };
+
+      const criteria = sanitizeLeadCriteria(data.criteria);
 
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -544,13 +557,47 @@ export const createPublicLead = createServerFn({ method: "POST" })
             note: `פנייה חוזרת מהאתר (${data.source})${data.message ? `: ${data.message}` : ""}`,
             listingId: data.listingId,
           });
-          // נגיעה קלה בשורת הליד כדי שיעלה לראש הרשימה (הטריגר מעדכן updated_at)
+          // נגיעה קלה בשורת הליד כדי שיעלה לראש הרשימה (הטריגר מעדכן updated_at).
+          // דרישות חיפוש חדשות מעדכנות את הקריטריונים המובנים של הליד הקיים.
           await supabaseAdmin
             .from("leads")
-            .update({ listing_id: data.listingId ?? existing.listing_id })
+            .update({
+              listing_id: data.listingId ?? existing.listing_id,
+              ...(criteria ?? {}),
+              // הסכמה רק נדלקת מטופס — הסרה נעשית מול הסוכן/המשרד
+              ...(data.marketingConsent
+                ? { marketing_consent: true, consent_at: new Date().toISOString() }
+                : {}),
+            })
             .eq("id", existing.id);
+          if (criteria && userId) {
+            const profileId = await upsertSearchProfileFromCriteria(supabaseAdmin, {
+              userId,
+              criteria,
+              whatsappPhone: data.phone,
+              notes: data.message,
+            });
+            if (profileId) {
+              await supabaseAdmin
+                .from("leads")
+                .update({ search_profile_id: profileId, user_id: userId })
+                .eq("id", existing.id);
+            }
+          }
           return { ok: true };
         }
+      }
+
+      // לקוח מחובר עם דרישות חיפוש: הדרישות נשמרות גם כפרופיל חיפוש מאוחד
+      // (הסוכן האישי) — כך אותה הזנה משרתת גם את הליד וגם את ההתראות
+      let searchProfileId: string | null = null;
+      if (criteria && userId) {
+        searchProfileId = await upsertSearchProfileFromCriteria(supabaseAdmin, {
+          userId,
+          criteria,
+          whatsappPhone: data.phone,
+          notes: data.message,
+        });
       }
 
       const { data: lead, error } = await supabaseAdmin
@@ -559,12 +606,17 @@ export const createPublicLead = createServerFn({ method: "POST" })
           site_id: site.id,
           user_id: userId,
           listing_id: data.listingId,
+          search_profile_id: searchProfileId,
           full_name: data.name,
           phone: data.phone,
           phone_normalized: phoneNormalized || null,
           email: data.email,
           source: data.source,
           notes: data.message,
+          ...(criteria ?? {}),
+          ...(data.marketingConsent
+            ? { marketing_consent: true, consent_at: new Date().toISOString() }
+            : {}),
         })
         .select("id")
         .single();

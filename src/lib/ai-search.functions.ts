@@ -8,6 +8,22 @@ const WEB_FEATURE = "client_web_search";
 
 export type AiWebStatus = "ok" | "login_required" | "quota_exceeded" | "unavailable";
 
+/** תקציר שקוף של סריקת הרשת — כמה נמצא, כמה נפסל ומה קרה בכל לוח */
+export type AiWebSummary = {
+  /** כמה מודעות נבדקו בפועל (עברו + נפסלו) */
+  scanned: number;
+  /** כמה נפסלו בסינון הקשיח (מחיר/חדרים חסרים, התאמה נמוכה וכו') */
+  rejected: number;
+  /** דוח קצר פר לוח: "יד2: 120 בלוח, 80 נסרקו, 12 תואמות" / שגיאת חסימה */
+  sites: Array<{
+    site: string;
+    total: number;
+    fetched: number;
+    matched: number;
+    error: string | null;
+  }>;
+};
+
 export type AiSearchResult = {
   filters: ListingFilters;
   explanation: string;
@@ -18,6 +34,7 @@ export type AiSearchResult = {
     status: AiWebStatus;
     candidates: ScoutCandidate[];
     remaining: number | null;
+    summary?: AiWebSummary;
   };
 };
 
@@ -82,12 +99,15 @@ async function releaseWebSearch(reservationId: string): Promise<void> {
  *    של האדמין), מוגבלת במכסה יומית שנאכפת בשרת מול ai_usage_events.
  */
 export const aiSearchListings = createServerFn({ method: "POST" })
-  .inputValidator((input: { query: string; includeWeb?: boolean }) => {
+  .inputValidator((input: { query: string; includeWeb?: boolean; lang?: string }) => {
     const query = String(input?.query ?? "")
       .trim()
       .slice(0, 300);
     if (query.length < 3) throw new Error("נא לתאר מה אתם מחפשים (לפחות 3 תווים)");
-    return { query, includeWeb: input?.includeWeb !== false };
+    const lang = ["he", "en", "fr", "ru"].includes(String(input?.lang))
+      ? String(input?.lang)
+      : "he";
+    return { query, includeWeb: input?.includeWeb !== false, lang };
   })
   .handler(async ({ data }): Promise<AiSearchResult> => {
     const { publicDb } = await import("@/lib/public-db.server");
@@ -119,6 +139,7 @@ export const aiSearchListings = createServerFn({ method: "POST" })
       [...neighborhoods],
       userId,
       streets,
+      data.lang,
     );
 
     // רשת ביטחון דטרמיניסטית: אם המודל לא חילץ אף פילטר אבל הבקשה מכילה רחוב מוכר
@@ -158,7 +179,7 @@ export const aiSearchListings = createServerFn({ method: "POST" })
           reservationId = reserved.reservationId;
           const used = reserved.used;
           const { runWebPropertySearch } = await import("@/lib/scout.server");
-          const { candidates } = await runWebPropertySearch(
+          const { candidates, rejected, sites } = await runWebPropertySearch(
             {
               id: "client-search",
               label: "חיפוש לקוח",
@@ -191,6 +212,19 @@ export const aiSearchListings = createServerFn({ method: "POST" })
             status: "ok",
             candidates,
             remaining: Math.max(0, DAILY_WEB_SEARCH_LIMIT - used),
+            // שקיפות: הלקוח רואה כמה נסרק וכמה נפסל — סריקה "ריקה" כבר לא
+            // נראית כמו תקלה, ורואים גם לוח שחסם את הסריקה
+            summary: {
+              scanned: candidates.length + rejected.length,
+              rejected: rejected.length,
+              sites: sites.map((s) => ({
+                site: s.site,
+                total: s.total,
+                fetched: s.fetched,
+                matched: s.matched,
+                error: s.error,
+              })),
+            },
           };
         }
       } catch (err) {

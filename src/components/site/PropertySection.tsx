@@ -1,5 +1,5 @@
 import { DataSource } from "@/components/site/DataSource";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ShieldCheck,
@@ -42,6 +42,7 @@ import { useLive } from "@/lib/site-live";
 import { isValidIsraeliPhone } from "@/lib/leads";
 import { createPublicLead } from "@/lib/leads.functions";
 import { mapValue, useLang } from "@/lib/i18n";
+import { trackEvent } from "@/lib/analytics";
 import { PropertyMap } from "@/components/site/PropertyMap";
 import { Reveal } from "./Reveal";
 
@@ -58,8 +59,8 @@ const SORT_KEYS: ListingSortKey[] = ["newest", "priceAsc", "priceDesc", "rooms",
 type Props = { listings: Listing[]; updatedAt: string | null };
 
 export function PropertySection({ listings, updatedAt }: Props) {
-  const { t } = useLang();
-  const { business: live } = useLive();
+  const { t, lang } = useLang();
+  const { business: live, siteId } = useLive();
   const [deal, setDeal] = useState("all");
   const [rooms, setRooms] = useState("all");
   const [range, setRange] = useState("all");
@@ -95,13 +96,32 @@ export function PropertySection({ listings, updatedAt }: Props) {
     [manual, ai, sort],
   );
 
+  // קישור עמוק לנכס: ?listing=<id> (מהתראות מייל/וואטסאפ ומהאזור האישי)
+  // פותח את חלון פרטי הנכס וגולל אל מדור הנכסים
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("listing");
+    if (!id) return;
+    const listing = listings.find((l) => l.id === id);
+    if (!listing) return;
+    setSelected(listing);
+    document.getElementById("properties")?.scrollIntoView({ behavior: "smooth" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ריצה חד-פעמית בטעינת הרשימה
+  }, [listings.length]);
+
   const runAiSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setAiErr(null);
     setAiBusy(true);
+    trackEvent("search", siteId);
     try {
-      const res = await aiSearchListings({ data: { query } });
+      const res = await aiSearchListings({ data: { query, lang } });
       setAi({ ids: res.ids, explanation: res.explanation, filters: res.filters, web: res.web });
+      // איפוס הסינון הידני — פילטר ישן שנשאר בתפריטים היה מצמצם בשקט את
+      // תוצאות החיפוש החכם (חיתוך בין שתי הרשימות)
+      setDeal("all");
+      setRooms("all");
+      setRange("all");
+      setArea("all");
     } catch (err) {
       setAi(null);
       setAiErr(err instanceof Error ? err.message : t.properties.aiFailed);
@@ -306,7 +326,13 @@ export function PropertySection({ listings, updatedAt }: Props) {
           {filtered.map((p, i) => (
             <li key={p.id} className="h-full">
               <Reveal delay={i * 60} className="h-full">
-                <PropertyCard property={p} onOpen={() => setSelected(p)} />
+                <PropertyCard
+                  property={p}
+                  onOpen={() => {
+                    setSelected(p);
+                    trackEvent("property_view", siteId, p.id);
+                  }}
+                />
               </Reveal>
             </li>
           ))}
@@ -775,8 +801,20 @@ function WebCandidates({
     return <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">{w.unavailable}</p>;
   }
 
+  // תקציר הסריקה — שקיפות: כמה נסרק וכמה נפסל (סריקה "ריקה" אינה תקלה)
+  const summaryLine = web.summary
+    ? w.scanSummary(web.summary.scanned, web.candidates.length, web.summary.rejected)
+    : null;
+
   if (web.candidates.length === 0) {
-    return <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">{w.empty}</p>;
+    return (
+      <div className="soft-card mt-6 p-5 text-sm text-muted-foreground">
+        <p>{w.empty}</p>
+        {summaryLine && web.summary && web.summary.scanned > 0 && (
+          <p className="mt-1 text-xs">{summaryLine}</p>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -789,6 +827,7 @@ function WebCandidates({
         {w.subtitle}
         {web.remaining != null && w.remaining(web.remaining)}
       </p>
+      {summaryLine && <p className="mt-1 text-xs text-muted-foreground">{summaryLine}</p>}
       {/* תצוגה טבלאית של המודעות מהרשת */}
       <div className="soft-card mt-4 overflow-x-auto">
         <table className="w-full min-w-[40rem] text-sm">

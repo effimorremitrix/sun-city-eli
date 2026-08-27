@@ -1,8 +1,8 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { BellRing, Sparkles, LogOut, User } from "lucide-react";
+import { ArrowLeft, ArrowRight, BellRing, Sparkles, LogOut, User } from "lucide-react";
 import {
   getMyAccount,
   saveMySearchProfile,
@@ -15,11 +15,14 @@ import { claimAdminRole } from "@/lib/site.functions";
 import { adminScoutNewCount } from "@/lib/scout.functions";
 import { adminLeadsAttentionCount, respondToNotification } from "@/lib/leads.functions";
 import { CLIENT_RESPONSES, type ClientResponse } from "@/lib/leads";
+import { LangProvider, useLang, useStoredLocale } from "@/lib/i18n";
 import { formatListingPrice } from "@/lib/listings";
 import { neighborhoods } from "@/lib/site-data";
 import { formatUpdated } from "@/lib/site-live";
 import { useAuth } from "@/hooks/useAuth";
+import { useBackToSiteHref } from "@/lib/back-to-site";
 import AccountSettings from "@/components/site/AccountSettings";
+import { PortalExtrasSections } from "@/components/portal/PortalSections";
 import { AdminPanel, type AdminTabKey } from "@/components/site/AdminPanel";
 
 const title = 'האזור האישי | סאן סיטי נדל"ן';
@@ -33,6 +36,7 @@ const TAB_KEYS: TabKey[] = [
   "listings",
   "leads",
   "sold",
+  "stats",
   "scout",
   "content",
   "publish",
@@ -94,7 +98,7 @@ type ProfileForm = {
 
 const emptyProfile: ProfileForm = {
   label: "החיפוש שלי",
-  deal_type: "מכירה",
+  deal_type: "קנייה",
   city: "נתניה",
   neighborhoods: [],
   street: "",
@@ -141,7 +145,18 @@ const toForm = (p: SearchProfileRow): ProfileForm => ({
 
 const num = (v: string) => (v.trim() === "" ? null : Number(v));
 
+/** לדף אין סגמנט שפה בכתובת — השפה נלקחת מהבחירה האחרונה באתר הציבורי */
 function AccountPage() {
+  const lang = useStoredLocale();
+  return (
+    <LangProvider lang={lang}>
+      <AccountContent />
+    </LangProvider>
+  );
+}
+
+function AccountContent() {
+  const { t, dir } = useLang();
   const { user, logout, refresh } = useAuth();
   const navigate = useNavigate();
   const search = Route.useSearch();
@@ -203,7 +218,7 @@ function AccountPage() {
       setMsg(okMsg);
       await account.refetch();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "הפעולה נכשלה");
+      setErr(e instanceof Error ? e.message : t.portal.actionFailed);
     } finally {
       setBusy(false);
     }
@@ -245,562 +260,608 @@ function AccountPage() {
         },
       });
       setForm(emptyProfile);
-    }, "פרופיל החיפוש נשמר. מעכשיו נעדכן אותך על כל נכס חדש שמתאים.");
+    }, t.portal.profileSaved);
 
   const notifications = account.data?.notifications ?? [];
   const unread = notifications.filter((n) => !n.read_at).length;
+  const backHref = useBackToSiteHref();
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-extrabold text-primary">
-            {isManager
-              ? "האזור האישי ואזור הניהול"
-              : user?.fullName
-                ? `שלום, ${user.fullName}`
-                : "האזור האישי שלי"}
-          </h1>
-          {user?.email && <p className="text-xs text-muted-foreground">{user.email}</p>}
-        </div>
-        <div className="flex items-center gap-3 text-sm">
-          <Link to="/" className="underline">
-            לאתר
-          </Link>
+    <div dir={dir}>
+      {/* סרגל עליון דביק — "לאתר" והתנתקות נגישים תמיד, גם בנייד */}
+      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-2 px-4 py-2.5">
+          <a
+            href={backHref}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-bold text-primary transition hover:bg-muted"
+          >
+            <ArrowRight className="size-4 rtl:block ltr:hidden" aria-hidden="true" />
+            <ArrowLeft className="size-4 rtl:hidden ltr:block" aria-hidden="true" />
+            {t.portal.toSite}
+          </a>
           <button
             type="button"
             onClick={logout}
-            className="flex items-center gap-1 font-bold text-destructive underline"
+            className="flex items-center gap-1.5 rounded-lg border border-destructive/40 px-3 py-1.5 text-sm font-bold text-destructive transition hover:bg-destructive/10"
           >
             <LogOut className="size-4" aria-hidden="true" />
-            יציאה
+            {t.portal.logout}
           </button>
         </div>
-      </div>
+      </header>
 
-      {msg && (
-        <p className="mt-4 rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">{msg}</p>
-      )}
-      {err && (
-        <p
-          role="alert"
-          className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive"
-        >
-          {err}
-        </p>
-      )}
-
-      {/* טאבים מאוחדים — האזור האישי + כל טאבי הניהול (למנהל ולסוכנים) */}
-      {isManager && (
-        <div className="mt-6 flex flex-wrap gap-2" role="tablist">
-          {(
-            [
-              ["overview", "החשבון שלי"],
-              ["listings", "נכסים"],
-              ["leads", attentionCount > 0 ? `לידים (${attentionCount})` : "לידים"],
-              ["sold", "נמכרו"],
-              ...(isSuperAdmin
-                ? ([["scout", newCount > 0 ? `סוכן סריקה (${newCount})` : "סוכן סריקה"]] as Array<
-                    [TabKey, string]
-                  >)
-                : []),
-              ["content", "תוכן העסק"],
-              ["publish", "פרסום"],
-              ...(isSuperAdmin
-                ? ([
-                    ["agents", "סוכנים וצוות"],
-                    ["clients", "לקוחות רשומים"],
-                    ["usage", "שימוש (Usage)"],
-                  ] as Array<[TabKey, string]>)
-                : []),
-              ["guide", "מדריך"],
-            ] as Array<[TabKey, string]>
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              aria-selected={tab === key}
-              onClick={() => setTab(key)}
-              className={
-                tab === key
-                  ? "rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground"
-                  : "rounded-xl border border-primary/30 px-4 py-2 text-sm font-bold text-primary"
-              }
-            >
-              {label}
-            </button>
-          ))}
+      <main className="mx-auto max-w-4xl px-4 py-8">
+        <div>
+          <h1 className="text-2xl font-extrabold text-primary">
+            {isManager
+              ? t.portal.managerHeading
+              : user?.fullName
+                ? t.portal.helloName(user.fullName)
+                : t.portal.heading}
+          </h1>
+          {user?.email && <p className="text-xs text-muted-foreground">{user.email}</p>}
         </div>
-      )}
 
-      {/* טאבי הניהול — הלוח המלא */}
-      {isManager && tab !== "overview" && <AdminPanel tab={tab} siteSlug={search.site ?? null} />}
+        {msg && (
+          <p className="mt-4 rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">
+            {msg}
+          </p>
+        )}
+        {err && (
+          <p
+            role="alert"
+            className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive"
+          >
+            {err}
+          </p>
+        )}
 
-      {tab === "overview" && (
-        <>
-          {/* פרטי פרופיל */}
-          <section className="soft-card mt-6 p-5">
-            <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
-              <User className="size-5 text-sun" aria-hidden="true" />
-              פרטי פרופיל
-            </h2>
-            {editingName ? (
-              <div className="mt-3 flex flex-wrap items-end gap-3">
-                <label className="block flex-1 min-w-[12rem]">
-                  <span className="mb-1 block text-xs font-bold text-muted-foreground">שם מלא</span>
-                  <input
-                    className="field"
-                    type="text"
-                    value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
-                    autoFocus
-                  />
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() =>
-                      run(async () => {
-                        await updateProfile({ data: { full_name: nameInput.trim() } });
-                        refresh();
+        {/* טאבים מאוחדים — האזור האישי + כל טאבי הניהול (למנהל ולסוכנים) */}
+        {isManager && (
+          <div className="mt-6 flex flex-wrap gap-2" role="tablist">
+            {(
+              [
+                ["overview", "החשבון שלי"],
+                ["listings", "נכסים"],
+                ["leads", attentionCount > 0 ? `לידים (${attentionCount})` : "לידים"],
+                ["sold", "נמכרו"],
+                ["stats", "סטטיסטיקות"],
+                ...(isSuperAdmin
+                  ? ([["scout", newCount > 0 ? `סוכן סריקה (${newCount})` : "סוכן סריקה"]] as Array<
+                      [TabKey, string]
+                    >)
+                  : []),
+                ["content", "תוכן העסק"],
+                ["publish", "פרסום"],
+                ...(isSuperAdmin
+                  ? ([
+                      ["agents", "סוכנים וצוות"],
+                      ["clients", "לקוחות רשומים"],
+                      ["usage", "שימוש (Usage)"],
+                    ] as Array<[TabKey, string]>)
+                  : []),
+                ["guide", "מדריך"],
+              ] as Array<[TabKey, string]>
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={tab === key}
+                onClick={() => setTab(key)}
+                className={
+                  tab === key
+                    ? "rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground"
+                    : "rounded-xl border border-primary/30 px-4 py-2 text-sm font-bold text-primary"
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* טאבי הניהול — הלוח המלא */}
+        {isManager && tab !== "overview" && <AdminPanel tab={tab} siteSlug={search.site ?? null} />}
+
+        {tab === "overview" && (
+          <>
+            {/* פרטי פרופיל */}
+            <section className="soft-card mt-6 p-5">
+              <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
+                <User className="size-5 text-sun" aria-hidden="true" />
+                {t.portal.profileTitle}
+              </h2>
+              {editingName ? (
+                <div className="mt-3 flex flex-wrap items-end gap-3">
+                  <label className="block flex-1 min-w-[12rem]">
+                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                      {t.portal.fullName}
+                    </span>
+                    <input
+                      className="field"
+                      type="text"
+                      value={nameInput}
+                      onChange={(e) => setNameInput(e.target.value)}
+                      autoFocus
+                    />
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        run(async () => {
+                          await updateProfile({ data: { full_name: nameInput.trim() } });
+                          refresh();
+                          setEditingName(false);
+                        }, t.portal.nameSaved)
+                      }
+                      className="rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground disabled:opacity-60"
+                    >
+                      {t.portal.save}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNameInput(user?.fullName ?? "");
                         setEditingName(false);
-                      }, "השם עודכן")
-                    }
-                    className="rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground disabled:opacity-60"
-                  >
-                    שמירה
-                  </button>
+                      }}
+                      className="rounded-xl border border-primary/30 px-4 py-2 text-sm font-bold text-primary"
+                    >
+                      {t.portal.cancel}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm text-foreground">
+                    <span className="font-bold">{t.portal.nameLabel}</span>{" "}
+                    {user?.fullName?.trim() || t.portal.nameNotSet}
+                  </p>
                   <button
                     type="button"
                     onClick={() => {
                       setNameInput(user?.fullName ?? "");
-                      setEditingName(false);
+                      setEditingName(true);
                     }}
-                    className="rounded-xl border border-primary/30 px-4 py-2 text-sm font-bold text-primary"
+                    className="text-sm font-semibold text-primary underline"
                   >
-                    ביטול
+                    {t.portal.editName}
                   </button>
                 </div>
-              </div>
-            ) : (
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-foreground">
-                  <span className="font-bold">שם:</span> {user?.fullName?.trim() || "לא הוגדר"}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNameInput(user?.fullName ?? "");
-                    setEditingName(true);
-                  }}
-                  className="text-sm font-semibold text-primary underline"
-                >
-                  עריכת שם
-                </button>
-              </div>
-            )}
-          </section>
-
-          {isSuperAdmin && (
-            <section className="soft-card mt-6 p-5">
-              <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
-                <Sparkles className="size-5 text-sun" aria-hidden="true" />
-                הסוכן שלך נמצא בטאב "סוכן סריקה"
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                הסוכן האישי וההתראות באזור זה נבנו עבור לקוחות המשרד. הסוכן שלך סורק את האינטרנט
-                ומציע נכסים להעלאה לאתר — הוא נמצא בטאב "סוכן סריקה" למעלה.
-              </p>
-              <button
-                type="button"
-                onClick={() => setTab("scout")}
-                className="mt-4 inline-flex rounded-xl bg-sun px-5 py-3 text-sm font-bold text-sun-foreground"
-              >
-                מעבר לסוכן הסריקה
-              </button>
+              )}
             </section>
-          )}
 
-          {!isAdmin && (
-            <>
-              {/* התראות */}
-              <section className="soft-card mt-6 p-5">
-                <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
-                  <BellRing className="size-5 text-sun" aria-hidden="true" />
-                  התראות על נכסים חדשים{" "}
-                  {unread > 0 && <span className="text-sm text-sun">({unread} חדשות)</span>}
-                </h2>
-                {account.isLoading && <p className="mt-2 text-sm text-muted-foreground">טוען…</p>}
-                {!account.isLoading && notifications.length === 0 && (
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    אין התראות עדיין. ברגע שהמשרד יפרסם נכס שתואם לפרופיל שלכם — הוא יופיע כאן
-                    ויישלח גם במייל.
-                  </p>
-                )}
-                <ul className="mt-3 grid gap-3">
-                  {notifications.map((n) => (
-                    <li
-                      key={n.id}
-                      className={`rounded-xl border p-3 ${n.read_at ? "border-border" : "border-sun bg-secondary/60"}`}
-                    >
-                      <p className="font-bold text-primary">{n.listing?.title ?? "נכס הוסר"}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {n.listing?.neighborhood ?? "אין מידע"} ·{" "}
-                        {formatListingPrice(n.listing?.price ?? null)} ·{" "}
-                        {formatUpdated(n.created_at)}
-                      </p>
-                      {n.reason && <p className="mt-1 text-xs text-muted-foreground">{n.reason}</p>}
-                      {/* תגובה מהירה — יוצרת משימת Follow-up אצל הסוכן המטפל */}
-                      {n.response ? (
-                        <p className="mt-2 rounded-lg bg-secondary p-2 text-xs font-semibold text-primary">
-                          קיבלנו את התגובה שלך (
-                          {CLIENT_RESPONSES[n.response as ClientResponse] ?? n.response}) — הסוכן
-                          יחזור אליך בהקדם.
-                        </p>
-                      ) : (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {(
-                            Object.entries(CLIENT_RESPONSES) as Array<[ClientResponse, string]>
-                          ).map(([key, label]) => (
-                            <button
-                              key={key}
-                              type="button"
-                              disabled={busy}
-                              className="rounded-xl bg-sun px-3 py-1.5 text-xs font-bold text-sun-foreground disabled:opacity-50"
-                              onClick={() =>
-                                run(
-                                  () => respond({ data: { notificationId: n.id, response: key } }),
-                                  "קיבלנו! הסוכן יחזור אליך בהקדם.",
-                                )
-                              }
-                            >
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      <div className="mt-2 flex gap-3 text-sm">
-                        <Link to="/" hash="properties" className="underline">
-                          לצפייה באתר
-                        </Link>
-                        {!n.read_at && (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            className="underline"
-                            onClick={() =>
-                              run(() => markRead({ data: { id: n.id } }), "סומן כנקרא")
-                            }
-                          >
-                            סימון כנקרא
-                          </button>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              {/* פרופילי חיפוש */}
+            {isSuperAdmin && (
               <section className="soft-card mt-6 p-5">
                 <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
                   <Sparkles className="size-5 text-sun" aria-hidden="true" />
-                  הסוכן האישי שלי
+                  הסוכן שלך נמצא בטאב "סוכן סריקה"
                 </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  הגדירו את פרופיל הנכס שאתם מחפשים. בכל פעם שהמשרד יפרסם נכס תואם — תקבלו התראה
-                  כאן, במייל ואם תבחרו גם בוואטסאפ.
+                <p className="mt-1 text-sm text-muted-foreground">
+                  הסוכן האישי וההתראות באזור זה נבנו עבור לקוחות המשרד. הסוכן שלך סורק את האינטרנט
+                  ומציע נכסים להעלאה לאתר — הוא נמצא בטאב "סוכן סריקה" למעלה.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => setTab("scout")}
+                  className="mt-4 inline-flex rounded-xl bg-sun px-5 py-3 text-sm font-bold text-sun-foreground"
+                >
+                  מעבר לסוכן הסריקה
+                </button>
+              </section>
+            )}
 
-                <ul className="mt-4 grid gap-3">
-                  {(account.data?.profiles ?? []).map((p) => (
-                    <li key={p.id} className="rounded-xl border border-border p-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <p className="font-bold text-primary">
-                            {p.label}{" "}
-                            {!p.is_active && (
-                              <span className="text-xs text-muted-foreground">(כבוי)</span>
+            {!isAdmin && (
+              <>
+                {/* התראות */}
+                <section className="soft-card mt-6 p-5">
+                  <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
+                    <BellRing className="size-5 text-sun" aria-hidden="true" />
+                    {t.portal.notificationsTitle}{" "}
+                    {unread > 0 && (
+                      <span className="text-sm text-sun">{t.portal.newCount(unread)}</span>
+                    )}
+                  </h2>
+                  {account.isLoading && (
+                    <p className="mt-2 text-sm text-muted-foreground">{t.portal.loading}</p>
+                  )}
+                  {!account.isLoading && notifications.length === 0 && (
+                    <p className="mt-2 text-sm text-muted-foreground">{t.portal.noNotifications}</p>
+                  )}
+                  <ul className="mt-3 grid gap-3">
+                    {notifications.map((n) => (
+                      <li
+                        key={n.id}
+                        className={`rounded-xl border p-3 ${n.read_at ? "border-border" : "border-sun bg-secondary/60"}`}
+                      >
+                        <p className="font-bold text-primary">
+                          {n.listing?.title ?? t.portal.listingRemoved}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {n.listing?.neighborhood
+                            ? (t.maps.neighborhoods[n.listing.neighborhood] ??
+                              n.listing.neighborhood)
+                            : t.misc.noInfo}{" "}
+                          · {formatListingPrice(n.listing?.price ?? null)} ·{" "}
+                          {formatUpdated(n.created_at)}
+                        </p>
+                        {n.reason && (
+                          <p className="mt-1 text-xs text-muted-foreground">{n.reason}</p>
+                        )}
+                        {/* תגובה מהירה — יוצרת משימת Follow-up אצל הסוכן המטפל */}
+                        {n.response ? (
+                          <p className="mt-2 rounded-lg bg-secondary p-2 text-xs font-semibold text-primary">
+                            {t.portal.responseReceived(
+                              t.portal.responses[n.response] ??
+                                CLIENT_RESPONSES[n.response as ClientResponse] ??
+                                n.response,
                             )}
                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            {p.deal_type} ·{" "}
-                            {p.neighborhoods?.length ? p.neighborhoods.join(", ") : "כל האזורים"} ·{" "}
-                            {p.max_price
-                              ? `עד ${p.max_price.toLocaleString("he-IL")} ₪`
-                              : "בלי הגבלת מחיר"}{" "}
-                            ·{" "}
-                            {p.rooms
-                              ? `${p.rooms} חדרים`
-                              : p.min_rooms
-                                ? `${p.min_rooms}+ חדרים`
-                                : "כל מספר חדרים"}
-                            {p.street ? ` · רחוב ${p.street}` : ""}
-                          </p>
-                        </div>
-                        <div className="flex gap-2 text-sm">
-                          <button
-                            type="button"
-                            className="underline"
-                            onClick={() => setForm(toForm(p))}
-                          >
-                            עריכה
-                          </button>
-                          <button
-                            type="button"
-                            disabled={busy}
-                            className="text-destructive underline"
-                            onClick={() =>
-                              run(() => removeProfile({ data: { id: p.id } }), "הפרופיל נמחק")
+                        ) : (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {(Object.keys(CLIENT_RESPONSES) as ClientResponse[]).map((key) => (
+                              <button
+                                key={key}
+                                type="button"
+                                disabled={busy}
+                                className="rounded-xl bg-sun px-3 py-1.5 text-xs font-bold text-sun-foreground disabled:opacity-50"
+                                onClick={() =>
+                                  run(
+                                    () =>
+                                      respond({ data: { notificationId: n.id, response: key } }),
+                                    t.portal.respondOk,
+                                  )
+                                }
+                              >
+                                {t.portal.responses[key] ?? CLIENT_RESPONSES[key]}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <div className="mt-2 flex gap-3 text-sm">
+                          <a
+                            href={
+                              n.listing
+                                ? `${backHref}?listing=${n.listing.id}#properties`
+                                : `${backHref}#properties`
                             }
+                            className="underline"
                           >
-                            מחיקה
-                          </button>
+                            {t.portal.viewOnSite}
+                          </a>
+                          {!n.read_at && (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              className="underline"
+                              onClick={() =>
+                                run(() => markRead({ data: { id: n.id } }), t.portal.markedRead)
+                              }
+                            >
+                              {t.portal.markRead}
+                            </button>
+                          )}
                         </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
 
-                <h3 className="mt-5 text-sm font-extrabold text-primary">
-                  {form.id ? "עריכת פרופיל חיפוש" : "פרופיל חיפוש חדש"}
-                </h3>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <label className="block sm:col-span-2">
-                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                      שם הפרופיל
-                    </span>
-                    <input
-                      className="field"
-                      value={form.label}
-                      maxLength={80}
-                      onChange={(e) => setForm({ ...form, label: e.target.value })}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                      סוג עסקה
-                    </span>
-                    <select
-                      className="field"
-                      value={form.deal_type}
-                      onChange={(e) => setForm({ ...form, deal_type: e.target.value })}
-                    >
-                      <option value="מכירה">מכירה</option>
-                      <option value="השכרה">השכרה</option>
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-bold text-muted-foreground">עיר</span>
-                    <input
-                      className="field"
-                      value={form.city}
-                      maxLength={60}
-                      onChange={(e) => setForm({ ...form, city: e.target.value })}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                      רחוב (אופציונלי)
-                    </span>
-                    <input
-                      className="field"
-                      value={form.street}
-                      maxLength={80}
-                      placeholder="למשל: גולדה מאיר"
-                      onChange={(e) => setForm({ ...form, street: e.target.value })}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                      חדרים (מדויק, ±חצי חדר)
-                    </span>
-                    <input
-                      className="field"
-                      type="number"
-                      step="0.5"
-                      dir="ltr"
-                      value={form.rooms}
-                      onChange={(e) => setForm({ ...form, rooms: e.target.value })}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                      מחיר מינימלי (₪)
-                    </span>
-                    <input
-                      className="field"
-                      type="number"
-                      dir="ltr"
-                      value={form.min_price}
-                      onChange={(e) => setForm({ ...form, min_price: e.target.value })}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                      מחיר מקסימלי (₪)
-                    </span>
-                    <input
-                      className="field"
-                      type="number"
-                      dir="ltr"
-                      value={form.max_price}
-                      onChange={(e) => setForm({ ...form, max_price: e.target.value })}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                      חדרים (מינימום)
-                    </span>
-                    <input
-                      className="field"
-                      type="number"
-                      step="0.5"
-                      dir="ltr"
-                      value={form.min_rooms}
-                      onChange={(e) => setForm({ ...form, min_rooms: e.target.value })}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                      חדרים (מקסימום)
-                    </span>
-                    <input
-                      className="field"
-                      type="number"
-                      step="0.5"
-                      dir="ltr"
-                      value={form.max_rooms}
-                      onChange={(e) => setForm({ ...form, max_rooms: e.target.value })}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                      שטח מינימלי (מ״ר)
-                    </span>
-                    <input
-                      className="field"
-                      type="number"
-                      dir="ltr"
-                      value={form.min_size}
-                      onChange={(e) => setForm({ ...form, min_size: e.target.value })}
-                    />
-                  </label>
-                  <label className="block sm:col-span-2">
-                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                      הערות לסוכן
-                    </span>
-                    <textarea
-                      className="field min-h-20"
-                      value={form.notes}
-                      maxLength={500}
-                      onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                    />
-                  </label>
-                </div>
+                {/* הסוכן המטפל, התאמות עם אחוז התאמה ונכסים שמורים */}
+                <PortalExtrasSections onMessage={setMsg} />
 
-                <fieldset className="mt-4">
-                  <legend className="mb-2 text-xs font-bold text-muted-foreground">
-                    אזורים בעיר (אפשר לבחור כמה)
-                  </legend>
-                  <div className="flex flex-wrap gap-2">
-                    {neighborhoods.map((n) => (
-                      <button
-                        type="button"
-                        key={n}
-                        onClick={() => toggleHood(n)}
-                        aria-pressed={form.neighborhoods.includes(n)}
-                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                          form.neighborhoods.includes(n)
-                            ? "border-sun bg-sun text-sun-foreground"
-                            : "border-border text-foreground"
-                        }`}
+                {/* פרופילי חיפוש */}
+                <section className="soft-card mt-6 p-5">
+                  <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
+                    <Sparkles className="size-5 text-sun" aria-hidden="true" />
+                    {t.portal.agentTitle}
+                  </h2>
+                  <p className="mt-1 text-xs text-muted-foreground">{t.portal.agentText}</p>
+
+                  <ul className="mt-4 grid gap-3">
+                    {(account.data?.profiles ?? []).map((p) => (
+                      <li key={p.id} className="rounded-xl border border-border p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <p className="font-bold text-primary">
+                              {p.label}{" "}
+                              {!p.is_active && (
+                                <span className="text-xs text-muted-foreground">
+                                  {t.portal.profileInactive}
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {t.maps.deal[p.deal_type] ?? p.deal_type} ·{" "}
+                              {p.neighborhoods?.length
+                                ? p.neighborhoods
+                                    .map((n) => t.maps.neighborhoods[n] ?? n)
+                                    .join(", ")
+                                : t.portal.allAreas}{" "}
+                              ·{" "}
+                              {p.max_price
+                                ? t.portal.upTo(`${p.max_price.toLocaleString("he-IL")} ₪`)
+                                : t.portal.noPriceLimit}{" "}
+                              ·{" "}
+                              {p.rooms
+                                ? t.portal.roomsExact(String(p.rooms))
+                                : p.min_rooms
+                                  ? t.portal.roomsMin(String(p.min_rooms))
+                                  : t.portal.anyRooms}
+                              {p.street ? ` · ${t.portal.street(p.street)}` : ""}
+                            </p>
+                          </div>
+                          <div className="flex gap-2 text-sm">
+                            <button
+                              type="button"
+                              className="underline"
+                              onClick={() => setForm(toForm(p))}
+                            >
+                              {t.portal.edit}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              className="text-destructive underline"
+                              onClick={() =>
+                                run(
+                                  () => removeProfile({ data: { id: p.id } }),
+                                  t.portal.profileDeleted,
+                                )
+                              }
+                            >
+                              {t.portal.delete}
+                            </button>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <h3 className="mt-5 text-sm font-extrabold text-primary">
+                    {form.id ? t.portal.editProfile : t.portal.newProfile}
+                  </h3>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <label className="block sm:col-span-2">
+                      <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                        {t.portal.profileLabel}
+                      </span>
+                      <input
+                        className="field"
+                        value={form.label}
+                        maxLength={80}
+                        onChange={(e) => setForm({ ...form, label: e.target.value })}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                        {t.portal.dealTypeLabel}
+                      </span>
+                      <select
+                        className="field"
+                        value={form.deal_type}
+                        onChange={(e) => setForm({ ...form, deal_type: e.target.value })}
                       >
-                        {n}
-                      </button>
+                        {/* "קנייה" = כוונת קונה — תואמת נכסים שעומדים למכירה */}
+                        <option value="קנייה">{t.portal.dealBuy}</option>
+                        <option value="מכירה">{t.portal.dealSaleLegacy}</option>
+                        <option value="השכרה">{t.portal.dealRent}</option>
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                        {t.portal.city}
+                      </span>
+                      <input
+                        className="field"
+                        value={form.city}
+                        maxLength={60}
+                        onChange={(e) => setForm({ ...form, city: e.target.value })}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                        {t.portal.streetOptional}
+                      </span>
+                      <input
+                        className="field"
+                        value={form.street}
+                        maxLength={80}
+                        placeholder={t.portal.streetPlaceholder}
+                        onChange={(e) => setForm({ ...form, street: e.target.value })}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                        {t.portal.roomsExactLabel}
+                      </span>
+                      <input
+                        className="field"
+                        type="number"
+                        step="0.5"
+                        dir="ltr"
+                        value={form.rooms}
+                        onChange={(e) => setForm({ ...form, rooms: e.target.value })}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                        {t.portal.minPrice}
+                      </span>
+                      <input
+                        className="field"
+                        type="number"
+                        dir="ltr"
+                        value={form.min_price}
+                        onChange={(e) => setForm({ ...form, min_price: e.target.value })}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                        {t.portal.maxPrice}
+                      </span>
+                      <input
+                        className="field"
+                        type="number"
+                        dir="ltr"
+                        value={form.max_price}
+                        onChange={(e) => setForm({ ...form, max_price: e.target.value })}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                        {t.portal.minRooms}
+                      </span>
+                      <input
+                        className="field"
+                        type="number"
+                        step="0.5"
+                        dir="ltr"
+                        value={form.min_rooms}
+                        onChange={(e) => setForm({ ...form, min_rooms: e.target.value })}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                        {t.portal.maxRooms}
+                      </span>
+                      <input
+                        className="field"
+                        type="number"
+                        step="0.5"
+                        dir="ltr"
+                        value={form.max_rooms}
+                        onChange={(e) => setForm({ ...form, max_rooms: e.target.value })}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                        {t.portal.minSize}
+                      </span>
+                      <input
+                        className="field"
+                        type="number"
+                        dir="ltr"
+                        value={form.min_size}
+                        onChange={(e) => setForm({ ...form, min_size: e.target.value })}
+                      />
+                    </label>
+                    <label className="block sm:col-span-2">
+                      <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                        {t.portal.notesToAgent}
+                      </span>
+                      <textarea
+                        className="field min-h-20"
+                        value={form.notes}
+                        maxLength={500}
+                        onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                      />
+                    </label>
+                  </div>
+
+                  <fieldset className="mt-4">
+                    <legend className="mb-2 text-xs font-bold text-muted-foreground">
+                      {t.portal.areasLegend}
+                    </legend>
+                    <div className="flex flex-wrap gap-2">
+                      {neighborhoods.map((n) => (
+                        <button
+                          type="button"
+                          key={n}
+                          onClick={() => toggleHood(n)}
+                          aria-pressed={form.neighborhoods.includes(n)}
+                          className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                            form.neighborhoods.includes(n)
+                              ? "border-sun bg-sun text-sun-foreground"
+                              : "border-border text-foreground"
+                          }`}
+                        >
+                          {t.maps.neighborhoods[n] ?? n}
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  <div className="mt-4 flex flex-wrap gap-4 text-sm">
+                    {(
+                      [
+                        ["needs_mamad", t.portal.needMamad],
+                        ["needs_elevator", t.portal.needElevator],
+                        ["needs_parking", t.portal.needParking],
+                        ["needs_balcony", t.portal.needBalcony],
+                        ["notify_email", t.portal.notifyEmail],
+                        ["notify_whatsapp", t.portal.notifyWhatsapp],
+                        ["is_active", t.portal.profileActive],
+                      ] as Array<[keyof ProfileForm, string]>
+                    ).map(([key, label]) => (
+                      <label className="flex items-center gap-2 font-semibold" key={String(key)}>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(form[key])}
+                          onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
+                        />
+                        {label}
+                      </label>
                     ))}
                   </div>
-                </fieldset>
 
-                <div className="mt-4 flex flex-wrap gap-4 text-sm">
-                  {(
-                    [
-                      ["needs_mamad", "ממ״ד"],
-                      ["needs_elevator", "מעלית"],
-                      ["needs_parking", "חניה"],
-                      ["needs_balcony", "מרפסת"],
-                      ["notify_email", "לקבל התראות במייל"],
-                      ["notify_whatsapp", 'לקבל התראות בוואטסאפ מסאן סיטי נדל"ן'],
-                      ["is_active", "פרופיל פעיל"],
-                    ] as Array<[keyof ProfileForm, string]>
-                  ).map(([key, label]) => (
-                    <label className="flex items-center gap-2 font-semibold" key={String(key)}>
+                  {form.notify_whatsapp && (
+                    <label className="mt-3 block max-w-xs">
+                      <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                        {t.portal.whatsappNumber}
+                      </span>
                       <input
-                        type="checkbox"
-                        checked={Boolean(form[key])}
-                        onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
+                        className="field"
+                        dir="ltr"
+                        value={form.whatsapp_phone}
+                        maxLength={20}
+                        placeholder="050-1234567"
+                        onChange={(e) => setForm({ ...form, whatsapp_phone: e.target.value })}
                       />
-                      {label}
                     </label>
-                  ))}
-                </div>
+                  )}
 
-                {form.notify_whatsapp && (
-                  <label className="mt-3 block max-w-xs">
-                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                      מספר וואטסאפ להתראות
-                    </span>
-                    <input
-                      className="field"
-                      dir="ltr"
-                      value={form.whatsapp_phone}
-                      maxLength={20}
-                      placeholder="050-1234567"
-                      onChange={(e) => setForm({ ...form, whatsapp_phone: e.target.value })}
-                    />
-                  </label>
-                )}
-
-                <div className="mt-5 flex gap-3">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={submit}
-                    className="flex-1 rounded-xl bg-sun py-3 text-base font-bold text-sun-foreground disabled:opacity-60"
-                  >
-                    {form.id ? "עדכון הפרופיל" : "הפעלת הסוכן האישי"}
-                  </button>
-                  {form.id && (
+                  <div className="mt-5 flex gap-3">
                     <button
                       type="button"
-                      onClick={() => setForm(emptyProfile)}
-                      className="rounded-xl border border-primary/30 px-5 py-3 text-sm font-bold text-primary"
+                      disabled={busy}
+                      onClick={submit}
+                      className="flex-1 rounded-xl bg-sun py-3 text-base font-bold text-sun-foreground disabled:opacity-60"
                     >
-                      ביטול
+                      {form.id ? t.portal.updateProfile : t.portal.activateAgent}
                     </button>
-                  )}
-                </div>
-              </section>
-            </>
-          )}
+                    {form.id && (
+                      <button
+                        type="button"
+                        onClick={() => setForm(emptyProfile)}
+                        className="rounded-xl border border-primary/30 px-5 py-3 text-sm font-bold text-primary"
+                      >
+                        {t.portal.cancel}
+                      </button>
+                    )}
+                  </div>
+                </section>
+              </>
+            )}
 
-          <AccountSettings />
+            <AccountSettings />
 
-          {/* הקמה ראשונה של המערכת: כשאין עדיין אף מנהל */}
-          {!account.isLoading && !isManager && (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => run(() => claim(), "קיבלת הרשאת ניהול")}
-              className="mt-6 block w-full text-center text-xs text-muted-foreground underline"
-            >
-              הגדרת החשבון הזה כמנהל הראשון של המערכת
-            </button>
-          )}
-        </>
-      )}
-    </main>
+            {/* הקמה ראשונה של המערכת: כשאין עדיין אף מנהל */}
+            {!account.isLoading && !isManager && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => run(() => claim(), "קיבלת הרשאת ניהול")}
+                className="mt-6 block w-full text-center text-xs text-muted-foreground underline"
+              >
+                הגדרת החשבון הזה כמנהל הראשון של המערכת
+              </button>
+            )}
+          </>
+        )}
+      </main>
+    </div>
   );
 }

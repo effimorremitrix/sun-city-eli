@@ -15,7 +15,7 @@ import { SiteLiveProvider, localizeLive, type LiveSite } from "@/lib/site-live";
 import { OFFICE_SLUG } from "@/lib/site-data";
 import { getPublicSite } from "@/lib/site.functions";
 import { listPublicListings } from "@/lib/listings.functions";
-import { listPublicSoldProperties, type SoldProperty } from "@/lib/sold.functions";
+import { listPublicSoldProperties, type SoldPage } from "@/lib/sold.functions";
 import { localizeListing, type Listing } from "@/lib/listings";
 import { DICTS, LangProvider, useLang, type Locale } from "@/lib/i18n";
 import { headForLocale } from "@/lib/i18n/seo";
@@ -33,7 +33,7 @@ import { headForLocale } from "@/lib/i18n/seo";
 export type HomeData = {
   live: LiveSite;
   listings: Listing[];
-  sold: SoldProperty[];
+  sold: SoldPage;
 };
 
 /**
@@ -91,7 +91,7 @@ function HomeContent({ data }: { data: HomeData }) {
           <PropertySection listings={localizedListings} updatedAt={listingsUpdatedAt} />
           <ItemsSection />
           <SellerSection />
-          <SoldSection items={sold} />
+          <SoldSection page={sold} />
           <BuyerSection />
           <Services />
           <WhyUs />

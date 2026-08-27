@@ -48,7 +48,7 @@ export async function sendPendingListingNotifications(
   const { data: rows, error } = await supabaseAdmin
     .from("listing_notifications")
     .select(
-      "id, user_id, search_profile_id, email_sent_at, whatsapp_sent_at, profiles:user_id(email, full_name), search_profiles:search_profile_id(label, notify_email, notify_whatsapp, whatsapp_phone)",
+      "id, user_id, lead_id, search_profile_id, email_sent_at, whatsapp_sent_at, profiles:user_id(email, full_name), search_profiles:search_profile_id(label, notify_email, notify_whatsapp, whatsapp_phone), leads:lead_id(full_name, email, phone, marketing_consent)",
     )
     .eq("listing_id", listing.id)
     .or("email_sent_at.is.null,whatsapp_sent_at.is.null");
@@ -70,6 +70,7 @@ export async function sendPendingListingNotifications(
 
   for (const row of rows as unknown as Array<{
     id: string;
+    lead_id: string | null;
     email_sent_at: string | null;
     whatsapp_sent_at: string | null;
     profiles: { email: string | null; full_name: string | null } | null;
@@ -79,34 +80,57 @@ export async function sendPendingListingNotifications(
       notify_whatsapp: boolean;
       whatsapp_phone: string | null;
     } | null;
+    leads: {
+      full_name: string | null;
+      email: string | null;
+      phone: string | null;
+      marketing_consent: boolean;
+    } | null;
   }>) {
-    const email = row.profiles?.email;
     const sp = row.search_profiles;
-    const stamps: { email_sent_at?: string; whatsapp_sent_at?: string } = {};
+    const isLeadTarget = row.lead_id != null;
+    // התראה ממוקדת-ליד: הכתובות מגיעות מהליד עצמו, בכפוף להסכמת דיוור
+    const email = isLeadTarget
+      ? row.leads?.marketing_consent
+        ? (row.leads?.email ?? null)
+        : null
+      : (row.profiles?.email ?? null);
+    const waPhone = isLeadTarget
+      ? row.leads?.marketing_consent
+        ? (row.leads?.phone ?? null)
+        : null
+      : sp?.notify_whatsapp
+        ? (sp.whatsapp_phone ?? null)
+        : null;
+    const profileLabel = isLeadTarget ? "נכס לפי דרישה" : (sp?.label ?? "פרופיל חיפוש");
+    const stamps: { email_sent_at?: string; whatsapp_sent_at?: string; error?: string | null } = {};
 
     // מייל
-    if (!row.email_sent_at && email && sp?.notify_email !== false) {
+    if (!row.email_sent_at && email && (isLeadTarget || sp?.notify_email !== false)) {
       const result = await sendNotificationEmail({
         to: email,
         subject: `נכס חדש שמתאים לך: ${listing.title}`,
         html: newListingEmailHtml({
           ...listing,
           siteUrl,
-          profileLabel: sp?.label ?? "פרופיל חיפוש",
+          profileLabel,
         }),
       });
       if (result.sent) {
         stamps.email_sent_at = new Date().toISOString();
+        stamps.error = null;
         sent += 1;
       } else {
         pending += 1;
+        if (result.reason && result.reason !== "no-email-provider")
+          stamps.error = `email: ${result.reason}`;
       }
     }
 
-    // וואטסאפ — רק ללקוח שביקש וסיפק מספר
-    if (!row.whatsapp_sent_at && sp?.notify_whatsapp && sp.whatsapp_phone) {
-      const result = await sendWhatsAppTemplate(sp.whatsapp_phone, "new_listing_client", {
-        profileLabel: sp.label,
+    // וואטסאפ — רק ללקוח שביקש (או ליד עם הסכמה) וסיפק מספר
+    if (!row.whatsapp_sent_at && waPhone) {
+      const result = await sendWhatsAppTemplate(waPhone, "new_listing_client", {
+        profileLabel,
         ...listingParams(listing),
         agentContact,
         siteUrl,
@@ -118,6 +142,7 @@ export async function sendPendingListingNotifications(
         // skipped הוא ה-no-op המתוכנן (אין ספק / אין מזהה תבנית / טלפון לא תקין)
         // ולכן נספר כאן רק כשל אמיתי מול הספק — למשל תבנית שטרם אושרה.
         waPending += 1;
+        stamps.error = `${stamps.error ? `${stamps.error}; ` : ""}whatsapp: ${result.error}`;
       }
     }
 
@@ -126,10 +151,10 @@ export async function sendPendingListingNotifications(
     }
 
     recipients.push({
-      name: row.profiles?.full_name ?? null,
+      name: (isLeadTarget ? row.leads?.full_name : row.profiles?.full_name) ?? null,
       email: email ?? null,
-      whatsappPhone: sp?.notify_whatsapp ? (sp.whatsapp_phone ?? null) : null,
-      profileLabel: sp?.label ?? "פרופיל חיפוש",
+      whatsappPhone: waPhone,
+      profileLabel,
     });
   }
 

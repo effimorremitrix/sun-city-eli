@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { LangProvider, useLang, useStoredLocale } from "@/lib/i18n";
 
 const title = 'איפוס סיסמה | סאן סיטי נדל"ן';
 const description = 'הגדרת סיסמה חדשה לחשבון באתר סאן סיטי נדל"ן.';
@@ -20,7 +21,18 @@ export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
 });
 
+/** לדף אין סגמנט שפה בכתובת — השפה נלקחת מהבחירה האחרונה באתר הציבורי */
 function ResetPasswordPage() {
+  const lang = useStoredLocale();
+  return (
+    <LangProvider lang={lang}>
+      <ResetPasswordContent />
+    </LangProvider>
+  );
+}
+
+function ResetPasswordContent() {
+  const { t, dir } = useLang();
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [hasSession, setHasSession] = useState(false);
@@ -54,43 +66,46 @@ function ResetPasswordPage() {
     setErr(null);
     setMsg(null);
     if (pw1.length < 8) {
-      setErr("הסיסמה צריכה להכיל לפחות 8 תווים");
+      setErr(t.resetPassword.tooShort);
       return;
     }
     if (pw1 !== pw2) {
-      setErr("הסיסמאות אינן תואמות");
+      setErr(t.resetPassword.mismatch);
       return;
     }
     setBusy(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: pw1 });
       if (error) throw error;
-      setMsg("הסיסמה עודכנה. מעבירים אותך לאזור האישי…");
+      setMsg(t.resetPassword.updated);
       setTimeout(() => navigate({ to: "/account", replace: true }), 1200);
     } catch (e2) {
-      setErr(e2 instanceof Error ? e2.message : "עדכון הסיסמה נכשל");
+      setErr(e2 instanceof Error ? e2.message : t.resetPassword.updateFailed);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
+    <main
+      dir={dir}
+      className="flex min-h-screen items-center justify-center bg-background px-4 py-12"
+    >
       <div className="soft-card w-full max-w-sm p-6">
-        <h1 className="text-2xl font-extrabold text-primary">הגדרת סיסמה חדשה</h1>
+        <h1 className="text-2xl font-extrabold text-primary">{t.resetPassword.title}</h1>
 
-        {!ready && <p className="mt-2 text-sm text-muted-foreground">טוען…</p>}
+        {!ready && <p className="mt-2 text-sm text-muted-foreground">{t.resetPassword.loading}</p>}
 
         {ready && !hasSession && (
-          <p className="mt-2 text-sm text-muted-foreground">
-            הקישור לאיפוס סיסמה אינו בתוקף. אפשר לבקש קישור חדש מעמוד הכניסה.
-          </p>
+          <p className="mt-2 text-sm text-muted-foreground">{t.resetPassword.invalidLink}</p>
         )}
 
         {ready && hasSession && (
           <form onSubmit={submit} className="mt-5 grid gap-3" noValidate>
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted-foreground">סיסמה חדשה</span>
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.resetPassword.newPassword}
+              </span>
               <input
                 className="field"
                 type="password"
@@ -102,7 +117,9 @@ function ResetPasswordPage() {
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted-foreground">אימות סיסמה</span>
+              <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                {t.resetPassword.confirmPassword}
+              </span>
               <input
                 className="field"
                 type="password"
@@ -126,13 +143,13 @@ function ResetPasswordPage() {
               disabled={busy}
               className="mt-1 rounded-xl bg-sun py-3 text-base font-bold text-sun-foreground disabled:opacity-60"
             >
-              {busy ? "רגע…" : "שמירת הסיסמה"}
+              {busy ? t.resetPassword.working : t.resetPassword.save}
             </button>
           </form>
         )}
 
         <Link to="/auth" className="mt-4 block text-center text-xs text-muted-foreground underline">
-          חזרה לעמוד הכניסה
+          {t.resetPassword.backToLogin}
         </Link>
       </div>
     </main>

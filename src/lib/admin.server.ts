@@ -116,9 +116,9 @@ export async function assertSiteAccess(context: Ctx, siteId: string): Promise<Ma
 }
 
 /**
- * שומר נכס, ואם הוא מפורסם — מייצר התראות ללקוחות תואמים (מייל + וואטסאפ),
- * מודיע לסוכן המפרסם ולמנהל הראשי, ומפרסם אוטומטית לעמוד הפייסבוק של הדף
- * כשנכס חדש נוצר ויש חיבור פייסבוק פעיל.
+ * שומר נכס, ואם הוא מפורסם — מייצר התראות ללקוחות תואמים (מייל + וואטסאפ,
+ * לרשומים ולידים עם הסכמה) ומודיע לסוכן המפרסם ולמנהל הראשי. פרסום לרשתות
+ * חברתיות לעולם לא קורה כאן — רק דרך טאב הפרסום, באישור מפורש.
  */
 export async function saveListingAndNotify(context: Ctx, input: ListingInput, siteUrl: string) {
   const { id, ...fields } = input;
@@ -144,7 +144,7 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
   let emailsPending = 0;
   let waSent = 0;
   let waPending = 0;
-  let facebookPosted = false;
+  const facebookPosted = false;
 
   if (fields.is_published && listingId) {
     const { data: count, error: matchError } = await context.supabase.rpc(
@@ -156,6 +156,19 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
     if (matchError) throw new Error(matchError.message);
     matched = Number(count ?? 0);
 
+    // התאמה גם ללידים אנונימיים (טופס "נכס לפי דרישה" עם הסכמת דיוור) —
+    // כשל כאן לא מפיל את השמירה, זה נדבך משלים
+    try {
+      const { data: leadCount, error: leadMatchError } = await context.supabase.rpc(
+        "match_listing_to_leads",
+        { p_listing_id: listingId },
+      );
+      if (leadMatchError) console.error("match_listing_to_leads failed", leadMatchError.message);
+      else matched += Number(leadCount ?? 0);
+    } catch (e) {
+      console.error("match_listing_to_leads failed", e instanceof Error ? e.message : e);
+    }
+
     const minimal = {
       id: listingId,
       title: fields.title,
@@ -166,17 +179,18 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
       description: fields.description,
     };
 
-    // הסוכן המפרסם — לצירוף לינק יצירת קשר בהודעות ללקוחות
+    // הסוכן המפרסם — לצירוף לינק יצירת קשר בהודעות ללקוחות. באותה קריאה
+    // נשלף גם ה-slug של הדף, לבניית קישור עמוק ישירות לנכס.
     let agent: { name: string; phoneTel: string | null } | null = null;
+    let listingUrl = `${siteUrl}/?listing=${listingId}#properties`;
     const siteId = fields.site_id ?? null;
     if (siteId) {
       try {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: content } = await supabaseAdmin
-          .from("site_content")
-          .select("business")
-          .eq("site_id", siteId)
-          .maybeSingle();
+        const [{ data: content }, { data: site }] = await Promise.all([
+          supabaseAdmin.from("site_content").select("business").eq("site_id", siteId).maybeSingle(),
+          supabaseAdmin.from("sites").select("slug").eq("id", siteId).maybeSingle(),
+        ]);
         const business = (content?.business ?? {}) as {
           agentName?: string;
           name?: string;
@@ -186,12 +200,13 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
           name: business.agentName || business.name || "הסוכן",
           phoneTel: business.phoneTel ?? null,
         };
+        if (site?.slug) listingUrl = `${siteUrl}/${site.slug}?listing=${listingId}#properties`;
       } catch {
         agent = null;
       }
     }
 
-    const result = await sendPendingListingNotifications(minimal, `${siteUrl}/#properties`, agent);
+    const result = await sendPendingListingNotifications(minimal, listingUrl, agent);
     emailsSent = result.sent;
     emailsPending = result.pending;
     waSent = result.waSent;
@@ -207,34 +222,15 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
 
     // התראה לסוכן ולמנהל הראשי — כשל כאן לא מפיל את השמירה
     try {
-      await notifyAgentOfMatches(minimal, siteId, result.recipients, `${siteUrl}/#properties`);
+      await notifyAgentOfMatches(minimal, siteId, result.recipients, listingUrl);
     } catch (e) {
       console.error("notifyAgentOfMatches failed", e instanceof Error ? e.message : e);
     }
 
-    // פרסום אוטומטי לפייסבוק — רק לנכס חדש, כשיש חיבור עמוד פעיל לדף.
-    // (אינסטגרם/טיקטוק: אין API ציבורי לפרסום אוטומטי — הפרסום שם נשאר ידני בטאב הפרסום)
-    if (isNew && siteId) {
-      try {
-        const { getConnectionStatus, publishListingToPage } = await import("@/lib/facebook.server");
-        const status = await getConnectionStatus(siteId);
-        if (status.connected) {
-          const details = [
-            `שכונה: ${fields.neighborhood ?? "נתניה"}`,
-            fields.rooms != null ? `${fields.rooms} חדרים` : null,
-            fields.size_sqm != null ? `${fields.size_sqm} מ"ר` : null,
-            fields.price != null ? `מחיר: ${fields.price.toLocaleString("he-IL")} ₪` : null,
-          ]
-            .filter(Boolean)
-            .join(" · ");
-          const message = `🏠 חדש אצלנו! ${fields.title}\n${details}\n${fields.description ?? ""}\n\nלפרטים באתר: ${siteUrl}/#properties`;
-          await publishListingToPage(listingId, message, context.userId, siteUrl);
-          facebookPosted = true;
-        }
-      } catch (e) {
-        console.error("facebook auto-post failed", e instanceof Error ? e.message : e);
-      }
-    }
+    // פרסום לפייסבוק: שום דבר לא מתפרסם אוטומטית — הפרסום נעשה תמיד דרך
+    // טאב "פרסום" (תצוגה מקדימה, עריכה ואישור מפורש). facebookPosted נשאר
+    // false כדי שהודעת השמירה תפנה את המנהל לטאב הפרסום.
+    void isNew;
   }
 
   return {

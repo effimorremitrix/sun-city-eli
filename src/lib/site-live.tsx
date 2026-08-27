@@ -1,6 +1,8 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { OFFICE_SLUG, SITE_CONFIG, team } from "@/lib/site-data";
-import { DICTS, type Dict, type Locale } from "@/lib/i18n";
+import { DICTS, useLang, type Dict, type Locale } from "@/lib/i18n";
+import { rememberSitePath } from "@/lib/back-to-site";
+import { trackPageView } from "@/lib/analytics";
 
 /** ============================================================
  * תוכן חי (Live content) — הנתונים שמנוהלים באזור הניהול.
@@ -320,7 +322,23 @@ export function localizeLive(live: LiveSite, lang: Locale, t: Dict): LiveSite {
 
 const LiveContext = createContext<LiveSite>(DEFAULT_LIVE);
 
+/** מניעת רישום כפול של אותה צפיית עמוד (ה-effect רץ בכל רינדור) */
+let lastTrackedPath: string | null = null;
+
 export function SiteLiveProvider({ value, children }: { value: LiveSite; children: ReactNode }) {
+  const { lang } = useLang();
+  // כל דף ציבורי שנטען נזכר כיעד של "חזרה לאתר" (כולל slug של סוכן ושפה).
+  // בלי מערך תלויות: הנתיב משתנה גם בניווט בין דפי סוכנים ובהחלפת שפה,
+  // והכתיבה ל-localStorage זולה. באותה נקודה נרשמת גם צפיית העמוד למדידה
+  // העצמית (פעם אחת לכל נתיב).
+  useEffect(() => {
+    if (!value.found) return;
+    rememberSitePath(window.location.pathname);
+    if (lastTrackedPath !== window.location.pathname) {
+      lastTrackedPath = window.location.pathname;
+      trackPageView(value.siteId, lang);
+    }
+  });
   return <LiveContext.Provider value={value}>{children}</LiveContext.Provider>;
 }
 

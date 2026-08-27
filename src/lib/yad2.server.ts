@@ -8,6 +8,7 @@
  */
 
 import type { ScoutCandidate } from "@/lib/scout.server";
+import { NEIGHBORHOODS } from "@/lib/neighborhoods";
 
 /**
  * סט הכותרות שמאפשר גישה ל-gw.yad2.co.il מהשרת. בלי origin/referer
@@ -155,16 +156,18 @@ async function yad2Get<T>(url: string): Promise<T> {
 }
 
 /**
- * מזהי המיקום של שכונות נתניה, כרשת ביטחון לכשל ב-autocomplete. כל הערכים
- * אומתו מול ה-API עצמו; שכונה שאינה כאן עדיין תיפתר דרך ה-autocomplete.
+ * מזהי המיקום של שכונות נתניה, כרשת ביטחון לכשל ב-autocomplete — נבנים
+ * מרשימת השכונות המיושרת ליד2 (neighborhoods.ts). המפתחות מנורמלים
+ * ("קריית" → "קרית"), כי כך ההשוואה נעשית ב-resolveYad2Location.
+ * שכונה בלי מזהה מאומת עדיין תיפתר דרך ה-autocomplete.
  */
-const NETANYA_FALLBACK: Record<string, Yad2Location> = {
-  "": { cityId: "7400", hoodId: null, areaId: "17", regionId: "1" },
-  "קרית השרון": { cityId: "7400", hoodId: "341", areaId: "17", regionId: "1" },
-  "רמת פולג": { cityId: "7400", hoodId: "342", areaId: "17", regionId: "1" },
-  "עיר ימים": { cityId: "7400", hoodId: "343", areaId: "17", regionId: "1" },
-  אגמים: { cityId: "7400", hoodId: "855", areaId: "17", regionId: "1" },
-};
+const NETANYA_FALLBACK: Record<string, Yad2Location> = Object.fromEntries([
+  ["", { cityId: "7400", hoodId: null, areaId: "17", regionId: "1" }],
+  ...NEIGHBORHOODS.filter((n) => n.yad2HoodId != null).map((n) => [
+    normalizeHebrew(n.he),
+    { cityId: "7400", hoodId: n.yad2HoodId, areaId: "17", regionId: "1" },
+  ]),
+]);
 
 /** מטמון לכל חיי התהליך — מזהי מיקום ביד2 אינם משתנים */
 const locationCache = new Map<string, Yad2Location | null>();

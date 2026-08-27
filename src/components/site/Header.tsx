@@ -118,14 +118,15 @@ export function Header() {
               </>
             ) : (
               <>
+                {/* כפתור בולט ל"אזור אישי" — לא עוד לינק טקסט חבוי */}
                 <Link
                   to="/auth"
                   aria-label={t.nav.authArea}
                   title={t.nav.authArea}
-                  className="flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-foreground transition-colors hover:text-sun"
+                  className="flex items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-sun px-3 py-1.5 text-sm font-bold text-primary transition-colors hover:bg-sun/10"
                 >
                   <User className="size-4 text-sun" aria-hidden="true" />
-                  <span className="hidden xl:rtl:inline">{t.nav.authArea}</span>
+                  <span className="hidden xl:inline">{t.nav.authArea}</span>
                 </Link>
                 <a
                   href="#sellers"
@@ -139,7 +140,18 @@ export function Header() {
           </div>
         </nav>
 
-        <div className="flex items-center gap-3 lg:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
+          {/* כניסה/אזור אישי — נגיש ישירות מהסרגל, בלי לפתוח את ההמבורגר */}
+          <Link
+            to={user ? "/account" : "/auth"}
+            aria-label={user ? t.nav.myAccount : t.nav.authArea}
+            className="inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-lg border-2 border-sun px-2.5 text-sm font-bold text-primary"
+          >
+            <User className="size-4 text-sun" aria-hidden="true" />
+            <span className="hidden min-[400px]:inline">
+              {user ? t.nav.myAccount : t.nav.authArea}
+            </span>
+          </Link>
           <button
             type="button"
             aria-label={open ? t.nav.closeMenu : t.nav.openMenu}
@@ -219,12 +231,13 @@ export function Header() {
               </>
             ) : (
               <>
-                <li>
+                <li className="pt-3">
                   <Link
                     to="/auth"
                     onClick={() => setOpen(false)}
-                    className="block border-b border-border/70 py-3 text-base font-semibold text-foreground"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-sun py-3 text-base font-bold text-primary"
                   >
+                    <User className="size-5 text-sun" aria-hidden="true" />
                     {t.nav.authArea}
                   </Link>
                 </li>
