@@ -187,17 +187,35 @@ export type Database = {
       leads: {
         Row: {
           buy_categories: string[]
+          city: string | null
+          consent_at: string | null
           created_at: string
           created_by: string | null
+          criteria_extra: Json | null
+          deal_type: string | null
           email: string | null
           full_name: string
           id: string
           listing_id: string | null
+          marketing_consent: boolean
+          max_floor: number | null
+          max_price: number | null
+          max_rooms: number | null
+          min_floor: number | null
+          min_price: number | null
+          min_rooms: number | null
+          min_size: number | null
+          needs_balcony: boolean
+          needs_elevator: boolean
+          needs_mamad: boolean
+          needs_parking: boolean
+          neighborhoods: string[]
           next_action: string | null
           next_follow_up_at: string | null
           notes: string | null
           phone: string | null
           phone_normalized: string | null
+          property_type: string | null
           reminder_email_sent_at: string | null
           reminder_whatsapp_sent_at: string | null
           score: number | null
@@ -211,17 +229,35 @@ export type Database = {
         }
         Insert: {
           buy_categories?: string[]
+          city?: string | null
+          consent_at?: string | null
           created_at?: string
           created_by?: string | null
+          criteria_extra?: Json | null
+          deal_type?: string | null
           email?: string | null
           full_name: string
           id?: string
           listing_id?: string | null
+          marketing_consent?: boolean
+          max_floor?: number | null
+          max_price?: number | null
+          max_rooms?: number | null
+          min_floor?: number | null
+          min_price?: number | null
+          min_rooms?: number | null
+          min_size?: number | null
+          needs_balcony?: boolean
+          needs_elevator?: boolean
+          needs_mamad?: boolean
+          needs_parking?: boolean
+          neighborhoods?: string[]
           next_action?: string | null
           next_follow_up_at?: string | null
           notes?: string | null
           phone?: string | null
           phone_normalized?: string | null
+          property_type?: string | null
           reminder_email_sent_at?: string | null
           reminder_whatsapp_sent_at?: string | null
           score?: number | null
@@ -235,17 +271,35 @@ export type Database = {
         }
         Update: {
           buy_categories?: string[]
+          city?: string | null
+          consent_at?: string | null
           created_at?: string
           created_by?: string | null
+          criteria_extra?: Json | null
+          deal_type?: string | null
           email?: string | null
           full_name?: string
           id?: string
           listing_id?: string | null
+          marketing_consent?: boolean
+          max_floor?: number | null
+          max_price?: number | null
+          max_rooms?: number | null
+          min_floor?: number | null
+          min_price?: number | null
+          min_rooms?: number | null
+          min_size?: number | null
+          needs_balcony?: boolean
+          needs_elevator?: boolean
+          needs_mamad?: boolean
+          needs_parking?: boolean
+          neighborhoods?: string[]
           next_action?: string | null
           next_follow_up_at?: string | null
           notes?: string | null
           phone?: string | null
           phone_normalized?: string | null
+          property_type?: string | null
           reminder_email_sent_at?: string | null
           reminder_whatsapp_sent_at?: string | null
           score?: number | null
@@ -274,6 +328,58 @@ export type Database = {
           },
           {
             foreignKeyName: "leads_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_feedback: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string | null
+          listing_id: string
+          reaction: string
+          site_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          listing_id: string
+          reaction: string
+          site_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          listing_id?: string
+          reaction?: string
+          site_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_feedback_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_feedback_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_feedback_site_id_fkey"
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "sites"
@@ -326,6 +432,7 @@ export type Database = {
         Row: {
           created_at: string
           email_sent_at: string | null
+          error: string | null
           id: string
           lead_id: string | null
           listing_id: string
@@ -335,12 +442,13 @@ export type Database = {
           response_at: string | null
           search_profile_id: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
           whatsapp_sent_at: string | null
         }
         Insert: {
           created_at?: string
           email_sent_at?: string | null
+          error?: string | null
           id?: string
           lead_id?: string | null
           listing_id: string
@@ -350,12 +458,13 @@ export type Database = {
           response_at?: string | null
           search_profile_id?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
           whatsapp_sent_at?: string | null
         }
         Update: {
           created_at?: string
           email_sent_at?: string | null
+          error?: string | null
           id?: string
           lead_id?: string | null
           listing_id?: string
@@ -365,7 +474,7 @@ export type Database = {
           response_at?: string | null
           search_profile_id?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
           whatsapp_sent_at?: string | null
         }
         Relationships: [
@@ -581,24 +690,80 @@ export type Database = {
           },
         ]
       }
+      page_views: {
+        Row: {
+          created_at: string
+          device: string | null
+          id: number
+          is_new_session: boolean
+          lang: string | null
+          path: string
+          referrer: string | null
+          session_hash: string
+          site_id: string | null
+          utm_campaign: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          created_at?: string
+          device?: string | null
+          id?: never
+          is_new_session?: boolean
+          lang?: string | null
+          path: string
+          referrer?: string | null
+          session_hash: string
+          site_id?: string | null
+          utm_campaign?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          created_at?: string
+          device?: string | null
+          id?: never
+          is_new_session?: boolean
+          lang?: string | null
+          path?: string
+          referrer?: string | null
+          session_hash?: string
+          site_id?: string | null
+          utm_campaign?: string | null
+          utm_source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_views_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
+          consent_at: string | null
           created_at: string
           email: string | null
           full_name: string | null
           id: string
+          marketing_consent: boolean
         }
         Insert: {
+          consent_at?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id: string
+          marketing_consent?: boolean
         }
         Update: {
+          consent_at?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id?: string
+          marketing_consent?: boolean
         }
         Relationships: []
       }
@@ -1046,6 +1211,51 @@ export type Database = {
           },
         ]
       }
+      track_events: {
+        Row: {
+          created_at: string
+          id: number
+          listing_id: string | null
+          path: string | null
+          session_hash: string
+          site_id: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          listing_id?: string | null
+          path?: string | null
+          session_hash: string
+          site_id?: string | null
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          listing_id?: string | null
+          path?: string | null
+          session_hash?: string
+          site_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "track_events_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "track_events_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1072,6 +1282,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      analytics_overview: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
       get_public_agents: { Args: never; Returns: Json }
       get_public_site: { Args: { p_slug: string }; Returns: Json }
       get_site_id: { Args: { p_slug: string }; Returns: string }
@@ -1083,6 +1297,10 @@ export type Database = {
         Returns: boolean
       }
       is_site_manager: { Args: never; Returns: boolean }
+      match_listing_to_leads: {
+        Args: { p_listing_id: string }
+        Returns: number
+      }
       match_listing_to_profiles: {
         Args: { p_listing_id: string }
         Returns: number
