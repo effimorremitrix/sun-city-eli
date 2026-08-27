@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { MapPin, Phone, Mail, Clock, MessageCircle } from "lucide-react";
 import { SITE_CONFIG, mapsEmbedUrl, mapsUrl, wazeUrl, waProps, openWa } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
+import { trackEvent } from "@/lib/analytics";
 import logoIcon from "@/assets/sun-city-logo-icon.svg";
 import { isValidIsraeliPhone } from "@/lib/leads";
 import { createPublicLead } from "@/lib/leads.functions";
@@ -32,6 +33,7 @@ export function ContactSection() {
           source: "טופס יצירת קשר",
         },
       }).catch(() => {});
+      trackEvent("lead_submit", siteId);
     } catch {
       /* קליטת ליד היא Best-effort */
     }

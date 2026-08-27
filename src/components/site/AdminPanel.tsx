@@ -22,6 +22,7 @@ import { AdminUsers } from "@/components/site/AdminUsers";
 import { AdminPublish } from "@/components/site/AdminPublish";
 import { AdminSold } from "@/components/site/AdminSold";
 import AdminUsage from "@/components/site/AdminUsage";
+import AdminAnalytics from "@/components/site/AdminAnalytics";
 import AdminScout from "@/components/site/AdminScout";
 import AdminLeads from "@/components/site/AdminLeads";
 import AdminListingImages from "@/components/site/AdminListingImages";
@@ -34,6 +35,7 @@ export type AdminTabKey =
   | "listings"
   | "leads"
   | "sold"
+  | "stats"
   | "scout"
   | "content"
   | "publish"
@@ -430,6 +432,7 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
       )}
       {tab === "clients" && isSuperAdmin && <AdminUsers audience="clients" />}
       {tab === "usage" && isSuperAdmin && <AdminUsage />}
+      {tab === "stats" && <AdminAnalytics />}
       {tab === "scout" && isSuperAdmin && <AdminScout />}
       {tab === "leads" &&
         (selectedSiteId ? (

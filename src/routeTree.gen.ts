@@ -18,6 +18,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as ApiTrackRouteImport } from './routes/api/track'
 import { Route as EnIndexRouteImport } from './routes/en/index'
 import { Route as FrIndexRouteImport } from './routes/fr/index'
 import { Route as HeIndexRouteImport } from './routes/he/index'
@@ -71,6 +72,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiTrackRoute = ApiTrackRouteImport.update({
+  id: '/api/track',
+  path: '/api/track',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const EnIndexRoute = EnIndexRouteImport.update({
   id: '/en/',
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/api/track': typeof ApiTrackRoute
   '/{-$lang}/$agentSlug': typeof Char123LangChar125AgentSlugRoute
   '/en/': typeof EnIndexRoute
   '/fr/': typeof FrIndexRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/api/track': typeof ApiTrackRoute
   '/{-$lang}/$agentSlug': typeof Char123LangChar125AgentSlugRoute
   '/en': typeof EnIndexRoute
   '/fr': typeof FrIndexRoute
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/api/track': typeof ApiTrackRoute
   '/{-$lang}/$agentSlug': typeof Char123LangChar125AgentSlugRoute
   '/en/': typeof EnIndexRoute
   '/fr/': typeof FrIndexRoute
@@ -192,6 +201,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/account'
     | '/admin'
+    | '/api/track'
     | '/{-$lang}/$agentSlug'
     | '/en/'
     | '/fr/'
@@ -212,6 +222,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/account'
     | '/admin'
+    | '/api/track'
     | '/{-$lang}/$agentSlug'
     | '/en'
     | '/fr'
@@ -232,6 +243,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_authenticated/account'
     | '/_authenticated/admin'
+    | '/api/track'
     | '/{-$lang}/$agentSlug'
     | '/en/'
     | '/fr/'
@@ -251,6 +263,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermsRoute: typeof TermsRoute
+  ApiTrackRoute: typeof ApiTrackRoute
   Char123LangChar125AgentSlugRoute: typeof Char123LangChar125AgentSlugRoute
   EnIndexRoute: typeof EnIndexRoute
   FrIndexRoute: typeof FrIndexRoute
@@ -326,6 +339,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/track': {
+      id: '/api/track'
+      path: '/api/track'
+      fullPath: '/api/track'
+      preLoaderRoute: typeof ApiTrackRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/en/': {
       id: '/en/'
@@ -414,6 +434,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermsRoute: TermsRoute,
+  ApiTrackRoute: ApiTrackRoute,
   Char123LangChar125AgentSlugRoute: Char123LangChar125AgentSlugRoute,
   EnIndexRoute: EnIndexRoute,
   FrIndexRoute: FrIndexRoute,

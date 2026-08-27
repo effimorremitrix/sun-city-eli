@@ -42,6 +42,7 @@ import { useLive } from "@/lib/site-live";
 import { isValidIsraeliPhone } from "@/lib/leads";
 import { createPublicLead } from "@/lib/leads.functions";
 import { mapValue, useLang } from "@/lib/i18n";
+import { trackEvent } from "@/lib/analytics";
 import { PropertyMap } from "@/components/site/PropertyMap";
 import { Reveal } from "./Reveal";
 
@@ -59,7 +60,7 @@ type Props = { listings: Listing[]; updatedAt: string | null };
 
 export function PropertySection({ listings, updatedAt }: Props) {
   const { t, lang } = useLang();
-  const { business: live } = useLive();
+  const { business: live, siteId } = useLive();
   const [deal, setDeal] = useState("all");
   const [rooms, setRooms] = useState("all");
   const [range, setRange] = useState("all");
@@ -111,6 +112,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
     e.preventDefault();
     setAiErr(null);
     setAiBusy(true);
+    trackEvent("search", siteId);
     try {
       const res = await aiSearchListings({ data: { query, lang } });
       setAi({ ids: res.ids, explanation: res.explanation, filters: res.filters, web: res.web });
@@ -324,7 +326,13 @@ export function PropertySection({ listings, updatedAt }: Props) {
           {filtered.map((p, i) => (
             <li key={p.id} className="h-full">
               <Reveal delay={i * 60} className="h-full">
-                <PropertyCard property={p} onOpen={() => setSelected(p)} />
+                <PropertyCard
+                  property={p}
+                  onOpen={() => {
+                    setSelected(p);
+                    trackEvent("property_view", siteId, p.id);
+                  }}
+                />
               </Reveal>
             </li>
           ))}

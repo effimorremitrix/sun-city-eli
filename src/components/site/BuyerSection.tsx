@@ -6,6 +6,7 @@ import { PROPERTY_CATEGORIES, isValidIsraeliPhone } from "@/lib/leads";
 import { createPublicLead } from "@/lib/leads.functions";
 import { useLang } from "@/lib/i18n";
 import { useLive } from "@/lib/site-live";
+import { trackEvent } from "@/lib/analytics";
 
 /** טופס "נכס לפי דרישה" — קריטריונים מובנים בסגנון הפילטרים של יד2 */
 type BuyerForm = {
@@ -112,6 +113,7 @@ export function BuyerSection() {
     } catch {
       /* קליטת ליד היא Best-effort */
     }
+    trackEvent("lead_submit", siteId);
     setSent(true);
     openWa(
       t.buyers.waMsg(live.name, {

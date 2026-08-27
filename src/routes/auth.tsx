@@ -3,6 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBackToSiteHref } from "@/lib/back-to-site";
 import { LangProvider, useLang, useStoredLocale } from "@/lib/i18n";
+import { trackEvent } from "@/lib/analytics";
 
 const title = 'כניסה לאזור האישי | סאן סיטי נדל"ן';
 const description =
@@ -95,6 +96,7 @@ function AuthContent() {
         type: "sms",
       });
       if (error) throw error;
+      trackEvent("login", null);
       navigate({ to: "/account", replace: true });
     } catch (e) {
       setErr(e instanceof Error ? e.message : t.auth.otpFailed);
@@ -112,6 +114,7 @@ function AuthContent() {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        trackEvent("login", null);
         navigate({ to: "/account", replace: true });
       } else {
         const { error } = await supabase.auth.signUp({
@@ -123,6 +126,7 @@ function AuthContent() {
           },
         });
         if (error) throw error;
+        trackEvent("signup", null);
         setMsg(t.auth.signupSuccess);
       }
     } catch (e) {

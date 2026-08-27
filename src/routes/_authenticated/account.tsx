@@ -36,6 +36,7 @@ const TAB_KEYS: TabKey[] = [
   "listings",
   "leads",
   "sold",
+  "stats",
   "scout",
   "content",
   "publish",
@@ -324,6 +325,7 @@ function AccountContent() {
                 ["listings", "נכסים"],
                 ["leads", attentionCount > 0 ? `לידים (${attentionCount})` : "לידים"],
                 ["sold", "נמכרו"],
+                ["stats", "סטטיסטיקות"],
                 ...(isSuperAdmin
                   ? ([["scout", newCount > 0 ? `סוכן סריקה (${newCount})` : "סוכן סריקה"]] as Array<
                       [TabKey, string]

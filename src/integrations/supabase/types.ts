@@ -684,6 +684,56 @@ export type Database = {
           },
         ];
       };
+      page_views: {
+        Row: {
+          created_at: string;
+          device: string | null;
+          id: number;
+          is_new_session: boolean;
+          lang: string | null;
+          path: string;
+          referrer: string | null;
+          session_hash: string;
+          site_id: string | null;
+          utm_campaign: string | null;
+          utm_source: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          device?: string | null;
+          id?: never;
+          is_new_session?: boolean;
+          lang?: string | null;
+          path: string;
+          referrer?: string | null;
+          session_hash: string;
+          site_id?: string | null;
+          utm_campaign?: string | null;
+          utm_source?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          device?: string | null;
+          id?: never;
+          is_new_session?: boolean;
+          lang?: string | null;
+          path?: string;
+          referrer?: string | null;
+          session_hash?: string;
+          site_id?: string | null;
+          utm_campaign?: string | null;
+          utm_source?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "page_views_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           consent_at: string | null;
@@ -1155,6 +1205,51 @@ export type Database = {
           },
         ];
       };
+      track_events: {
+        Row: {
+          created_at: string;
+          id: number;
+          listing_id: string | null;
+          path: string | null;
+          session_hash: string;
+          site_id: string | null;
+          type: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: never;
+          listing_id?: string | null;
+          path?: string | null;
+          session_hash: string;
+          site_id?: string | null;
+          type: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: never;
+          listing_id?: string | null;
+          path?: string | null;
+          session_hash?: string;
+          site_id?: string | null;
+          type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "track_events_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "track_events_listing_id_fkey";
+            columns: ["listing_id"];
+            isOneToOne: false;
+            referencedRelation: "listings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       user_roles: {
         Row: {
           created_at: string;
@@ -1192,6 +1287,10 @@ export type Database = {
         Returns: boolean;
       };
       is_site_manager: { Args: never; Returns: boolean };
+      analytics_overview: {
+        Args: { p_from: string; p_to: string };
+        Returns: Json;
+      };
       match_listing_to_leads: {
         Args: { p_listing_id: string };
         Returns: number;

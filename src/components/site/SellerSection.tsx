@@ -6,6 +6,7 @@ import { isValidIsraeliPhone } from "@/lib/leads";
 import { createPublicLead } from "@/lib/leads.functions";
 import { useLang } from "@/lib/i18n";
 import { useLive } from "@/lib/site-live";
+import { trackEvent } from "@/lib/analytics";
 
 const stepIcons = [ClipboardList, Home, FileCheck2];
 
@@ -33,6 +34,7 @@ export function SellerSection() {
           source: "טופס מוכרים",
         },
       }).catch(() => {});
+      trackEvent("lead_submit", siteId);
     } catch {
       /* קליטת ליד היא Best-effort */
     }
