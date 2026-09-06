@@ -1,16 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowDown, ArrowUp, Plus, Trash2, Video } from "lucide-react";
+import { ArrowDown, ArrowUp, ImagePlus, Plus, Trash2, Video } from "lucide-react";
 import { saveSiteContent } from "@/lib/site.functions";
 import type { LiveFaqItem, LiveTestimonial } from "@/lib/site-live";
 import { DICTS } from "@/lib/i18n";
 import { acceptFor } from "@/lib/media";
-import { VIDEO_TYPES, uploadSiteMedia } from "@/lib/upload-media";
+import { RASTER_TYPES, VIDEO_TYPES, uploadSiteMedia } from "@/lib/upload-media";
 
 const newId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+
+type MediaKind = NonNullable<LiveTestimonial["mediaKind"]>;
+
+/** סוג המדיה של ממליץ — המלצות ישנות (בלי השדה) נגזרות מהקישור ששמור בהן */
+const kindOf = (t: LiveTestimonial): MediaKind =>
+  t.mediaKind ?? (t.videoUrl ? "video" : t.imageUrl ? "image" : "text");
+
+/** התקדמות העלאה של ממליץ אחד: שלב (דחיסה/העלאה) ואחוזים */
+type UploadProgress = { id: string; phase: "compressing" | "uploading"; percent: number };
 
 /** עורך רשימות גנרי: הזזה למעלה/למטה ומחיקה */
 function moveItem<T>(list: T[], index: number, delta: -1 | 1): T[] {
@@ -23,8 +32,9 @@ function moveItem<T>(list: T[], index: number, delta: -1 | 1): T[] {
 }
 
 /**
- * עריכת ממליצים (כולל סרטוני המלצה) ושאלות נפוצות — טאב "תוכן העסק".
+ * עריכת ממליצים (טקסט / תמונה / סרטון המלצה) ושאלות נפוצות — טאב "תוכן העסק".
  * כשאין תוכן שמור במסד, האתר מציג את התוכן הסטטי; אפשר לייבא אותו כבסיס לעריכה.
+ * הטקסטים מתורגמים אוטומטית לשפות האתר בשמירה (ראו saveSiteContent).
  */
 export function AdminContentExtras({
   siteId,
@@ -38,30 +48,62 @@ export function AdminContentExtras({
   onSaved: () => void;
 }) {
   const saveContent = useServerFn(saveSiteContent);
+  const tHe = DICTS.he;
 
   const [items, setItems] = useState<LiveTestimonial[]>(testimonials ?? []);
   const [faqItems, setFaqItems] = useState<LiveFaqItem[]>(faq ?? []);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  /** מזהה הממליץ שסרטון שלו נמצא כרגע בהעלאה — משבית את שאר כפתורי ההעלאה */
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  /** הממליץ שקובץ שלו נמצא כרגע בהעלאה — משבית את שאר כפתורי ההעלאה */
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
+  /** ביטול העלאה/דחיסה כשהקומפוננטה יורדת מהמסך */
+  const abortRef = useRef<AbortController | null>(null);
+  useEffect(() => () => abortRef.current?.abort(), []);
 
-  /** העלאת קובץ סרטון (mp4/webm) לתיקיית testimonials וכתיבת הכתובת לשדה הקישור */
-  const handleVideoUpload = async (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadingId = progress?.id ?? null;
+
+  const patchItem = (id: string, patch: Partial<LiveTestimonial>) =>
+    // עדכון פונקציונלי: ההעלאה אסינכרונית והרשימה עלולה להשתנות בינתיים
+    setItems((prev) => prev.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+
+  /**
+   * העלאת קובץ מדיה לתיקיית testimonials וכתיבת הכתובת לשדה המתאים.
+   * סרטונים: דחיסה בדפדפן (כשגדולים) + העלאה מתחדשת עם מד התקדמות.
+   */
+  const handleUpload = async (
+    id: string,
+    kind: "image" | "video" | "poster",
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     e.target.value = ""; // איפוס — בחירה חוזרת של אותו קובץ תפעיל שוב onChange
     if (!file) return;
     setErr(null);
-    setUploadingId(id);
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setProgress({ id, phase: "uploading", percent: 0 });
     try {
-      const url = await uploadSiteMedia(file, "testimonials", VIDEO_TYPES);
-      // עדכון פונקציונלי: ההעלאה אסינכרונית והרשימה עלולה להשתנות בינתיים
-      setItems((prev) => prev.map((x) => (x.id === id ? { ...x, videoUrl: url } : x)));
+      const url = await uploadSiteMedia(
+        file,
+        "testimonials",
+        kind === "video" ? VIDEO_TYPES : RASTER_TYPES,
+        {
+          signal: controller.signal,
+          onCompressProgress: (percent) => setProgress({ id, phase: "compressing", percent }),
+          onProgress: (percent) => setProgress({ id, phase: "uploading", percent }),
+        },
+      );
+      if (kind === "video") patchItem(id, { videoUrl: url });
+      else if (kind === "poster") patchItem(id, { posterUrl: url });
+      else patchItem(id, { imageUrl: url });
     } catch (uploadErr) {
-      setErr(uploadErr instanceof Error ? uploadErr.message : "העלאת הסרטון נכשלה");
+      if (!controller.signal.aborted) {
+        setErr(uploadErr instanceof Error ? uploadErr.message : "העלאת הקובץ נכשלה");
+      }
     } finally {
-      setUploadingId(null);
+      if (abortRef.current === controller) abortRef.current = null;
+      setProgress(null);
     }
   };
 
@@ -72,17 +114,19 @@ export function AdminContentExtras({
 
   const seedTestimonials = () =>
     setItems(
-      DICTS.he.testimonials.items.map((t) => ({
+      tHe.testimonials.items.map((t) => ({
         id: newId(),
         name: t.name,
         type: t.type,
         quote: t.quote,
+        mediaKind: "text",
         videoUrl: "",
+        imageUrl: "",
+        posterUrl: "",
       })),
     );
 
-  const seedFaq = () =>
-    setFaqItems(DICTS.he.faq.items.map((f) => ({ id: newId(), q: f.q, a: f.a })));
+  const seedFaq = () => setFaqItems(tHe.faq.items.map((f) => ({ id: newId(), q: f.q, a: f.a })));
 
   const save = async () => {
     setBusy(true);
@@ -94,12 +138,18 @@ export function AdminContentExtras({
           siteId,
           // רשימה ריקה = חזרה לתוכן הסטטי של האתר
           testimonials: items.length
-            ? items.map((t) => ({ ...t, videoUrl: t.videoUrl ?? "" }))
+            ? items.map((t) => ({
+                ...t,
+                mediaKind: kindOf(t),
+                videoUrl: t.videoUrl ?? "",
+                imageUrl: t.imageUrl ?? "",
+                posterUrl: t.posterUrl ?? "",
+              }))
             : null,
           faq: faqItems.length ? faqItems : null,
         },
       });
-      setMsg("הממליצים והשאלות הנפוצות נשמרו — השינויים באתר מיידיים.");
+      setMsg("הממליצים והשאלות הנפוצות נשמרו — השינויים באתר מיידיים, והתרגומים נוצרו אוטומטית.");
       onSaved();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "השמירה נכשלה");
@@ -137,13 +187,71 @@ export function AdminContentExtras({
     </div>
   );
 
+  /** כפתור העלאה (label עוטף input — לחיצה טבעית שפותחת את בורר הקבצים) */
+  const uploadButton = (
+    id: string,
+    kind: "image" | "video" | "poster",
+    label: string,
+    Icon: typeof Video,
+  ) => (
+    <label
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-primary/30 px-3 py-2 text-xs font-bold text-primary ${
+        uploadingId ? "cursor-default opacity-60" : "cursor-pointer"
+      }`}
+    >
+      <Icon className="size-4 text-sun" aria-hidden="true" />
+      {uploadingId === id ? "מעלה…" : label}
+      <input
+        type="file"
+        accept={acceptFor(kind === "video" ? VIDEO_TYPES : RASTER_TYPES)}
+        className="hidden"
+        disabled={uploadingId !== null}
+        onChange={(e) => void handleUpload(id, kind, e)}
+      />
+    </label>
+  );
+
+  /** מד התקדמות של ההעלאה/הדחיסה של ממליץ מסוים */
+  const progressBar = (id: string) => {
+    if (!progress || progress.id !== id) return null;
+    const label =
+      progress.phase === "compressing"
+        ? `${tHe.media.compressing} ${progress.percent}%`
+        : tHe.media.uploading(progress.percent);
+    return (
+      <div className="mt-2" aria-live="polite">
+        <div
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={progress.percent}
+          aria-label={label}
+          className="h-2 w-full overflow-hidden rounded-full bg-secondary"
+        >
+          <div
+            className="h-full rounded-full bg-sun transition-[width] duration-300"
+            style={{ width: `${progress.percent}%` }}
+          />
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">{label}</p>
+      </div>
+    );
+  };
+
+  const KINDS: { value: MediaKind; label: string }[] = [
+    { value: "text", label: tHe.testimonials.kindText },
+    { value: "image", label: tHe.testimonials.kindImage },
+    { value: "video", label: tHe.testimonials.kindVideo },
+  ];
+
   return (
     <section className="soft-card mt-6 p-5">
       <h2 className="text-lg font-extrabold text-primary">ממליצים ושאלות נפוצות</h2>
       <p className="mt-1 text-xs text-muted-foreground">
         התוכן כאן מחליף את הממליצים והשאלות הקבועים של האתר. רשימה ריקה = האתר חוזר לתוכן הקבוע. לכל
-        ממליץ אפשר לצרף סרטון המלצה — העלאת קובץ (MP4/WebM עד 50MB), קישור YouTube או כתובת ישירה.
-        העלאה ממלאת את שדה הקישור, והכול נשמר רק בלחיצה על שמירה.
+        ממליץ אפשר לצרף תמונה או סרטון המלצה — העלאת קובץ (MP4/WebM/MOV עד 500MB, סרטונים גדולים
+        נדחסים אוטומטית), קישור YouTube או כתובת ישירה. העלאה ממלאת את שדה הקישור, והכול נשמר רק
+        בלחיצה על שמירה. הטקסטים מתורגמים אוטומטית לאנגלית, צרפתית ורוסית בשמירה.
       </p>
 
       {msg && (
@@ -171,7 +279,19 @@ export function AdminContentExtras({
             type="button"
             className="flex items-center gap-1 rounded-xl border border-primary/30 px-3 py-1.5 font-bold text-primary"
             onClick={() =>
-              setItems([...items, { id: newId(), name: "", type: "", quote: "", videoUrl: "" }])
+              setItems([
+                ...items,
+                {
+                  id: newId(),
+                  name: "",
+                  type: "",
+                  quote: "",
+                  mediaKind: "text",
+                  videoUrl: "",
+                  imageUrl: "",
+                  posterUrl: "",
+                },
+              ])
             }
           >
             <Plus className="size-4" aria-hidden="true" />
@@ -181,101 +301,145 @@ export function AdminContentExtras({
       </div>
 
       <ul className="mt-3 grid gap-3">
-        {items.map((t, i) => (
-          <li key={t.id} className="rounded-xl border border-border p-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="grid flex-1 gap-2 sm:grid-cols-2">
-                <label className="block">
-                  <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                    שם הממליץ
-                  </span>
-                  <input
-                    className="field"
-                    value={t.name}
-                    maxLength={80}
-                    onChange={(e) =>
-                      setItems(
-                        items.map((x) => (x.id === t.id ? { ...x, name: e.target.value } : x)),
-                      )
-                    }
-                  />
-                </label>
-                <label className="block">
-                  <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                    סוג העסקה (למשל: קניית דירה בנתניה)
-                  </span>
-                  <input
-                    className="field"
-                    value={t.type}
-                    maxLength={60}
-                    onChange={(e) =>
-                      setItems(
-                        items.map((x) => (x.id === t.id ? { ...x, type: e.target.value } : x)),
-                      )
-                    }
-                  />
-                </label>
-                <label className="block sm:col-span-2">
-                  <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                    תוכן ההמלצה
-                  </span>
-                  <textarea
-                    className="field min-h-20"
-                    value={t.quote}
-                    maxLength={600}
-                    onChange={(e) =>
-                      setItems(
-                        items.map((x) => (x.id === t.id ? { ...x, quote: e.target.value } : x)),
-                      )
-                    }
-                  />
-                </label>
-                <div className="block sm:col-span-2">
-                  <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                    סרטון המלצה (אופציונלי) — העלאת קובץ או קישור
-                  </span>
-                  <div className="flex gap-2">
+        {items.map((t, i) => {
+          const kind = kindOf(t);
+          return (
+            <li key={t.id} className="rounded-xl border border-border p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="grid flex-1 gap-2 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                      שם הממליץ
+                    </span>
                     <input
                       className="field"
-                      dir="ltr"
-                      placeholder="https://www.youtube.com/watch?v=..."
-                      value={t.videoUrl ?? ""}
-                      maxLength={300}
-                      onChange={(e) =>
-                        setItems(
-                          items.map((x) =>
-                            x.id === t.id ? { ...x, videoUrl: e.target.value } : x,
-                          ),
-                        )
-                      }
+                      value={t.name}
+                      maxLength={80}
+                      onChange={(e) => patchItem(t.id, { name: e.target.value })}
                     />
-                    {/* העלאה ב-<label> עוטף — לחיצה טבעית שפותחת את בורר הקבצים */}
-                    <label
-                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-primary/30 px-3 text-xs font-bold text-primary ${
-                        uploadingId ? "cursor-default opacity-60" : "cursor-pointer"
-                      }`}
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                      סוג העסקה (למשל: קניית דירה בנתניה)
+                    </span>
+                    <input
+                      className="field"
+                      value={t.type}
+                      maxLength={60}
+                      onChange={(e) => patchItem(t.id, { type: e.target.value })}
+                    />
+                  </label>
+                  <label className="block sm:col-span-2">
+                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                      תוכן ההמלצה
+                    </span>
+                    <textarea
+                      className="field min-h-20"
+                      value={t.quote}
+                      maxLength={600}
+                      onChange={(e) => patchItem(t.id, { quote: e.target.value })}
+                    />
+                  </label>
+
+                  {/* סוג המדיה: טקסט / תמונה / סרטון */}
+                  <div className="sm:col-span-2">
+                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                      מדיה מצורפת להמלצה
+                    </span>
+                    <div
+                      role="radiogroup"
+                      aria-label="סוג המדיה"
+                      className="inline-flex rounded-xl border border-border p-0.5"
                     >
-                      <Video className="size-4 text-sun" aria-hidden="true" />
-                      {uploadingId === t.id ? "מעלה…" : "העלאת סרטון"}
-                      <input
-                        type="file"
-                        accept={acceptFor(VIDEO_TYPES)}
-                        className="hidden"
-                        disabled={uploadingId !== null}
-                        onChange={(e) => void handleVideoUpload(t.id, e)}
-                      />
-                    </label>
+                      {KINDS.map((k) => (
+                        <button
+                          key={k.value}
+                          type="button"
+                          role="radio"
+                          aria-checked={kind === k.value}
+                          onClick={() => patchItem(t.id, { mediaKind: k.value })}
+                          className={
+                            kind === k.value
+                              ? "rounded-lg bg-sun px-3 py-1.5 text-xs font-bold text-sun-foreground"
+                              : "rounded-lg px-3 py-1.5 text-xs font-bold text-primary"
+                          }
+                        >
+                          {k.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+
+                  {kind === "image" && (
+                    <div className="block sm:col-span-2">
+                      <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                        תמונת ההמלצה — העלאת קובץ (JPG/PNG/WebP עד 5MB) או קישור
+                      </span>
+                      <div className="flex gap-2">
+                        <input
+                          className="field"
+                          dir="ltr"
+                          placeholder="https://..."
+                          value={t.imageUrl ?? ""}
+                          maxLength={2000}
+                          onChange={(e) => patchItem(t.id, { imageUrl: e.target.value })}
+                        />
+                        {uploadButton(t.id, "image", "העלאת תמונה", ImagePlus)}
+                      </div>
+                      {progressBar(t.id)}
+                      {t.imageUrl && (
+                        <img
+                          src={t.imageUrl}
+                          alt=""
+                          className="mt-2 max-h-40 rounded-lg border border-border object-cover"
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {kind === "video" && (
+                    <div className="block sm:col-span-2">
+                      <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                        סרטון המלצה — העלאת קובץ או קישור (YouTube / כתובת ישירה)
+                      </span>
+                      <div className="flex gap-2">
+                        <input
+                          className="field"
+                          dir="ltr"
+                          placeholder="https://www.youtube.com/watch?v=..."
+                          value={t.videoUrl ?? ""}
+                          maxLength={2000}
+                          onChange={(e) => patchItem(t.id, { videoUrl: e.target.value })}
+                        />
+                        {uploadButton(t.id, "video", "העלאת סרטון", Video)}
+                      </div>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        עד 500MB, סרטונים גדולים נדחסים אוטומטית
+                      </p>
+                      {progressBar(t.id)}
+                      <div className="mt-2 flex gap-2">
+                        <input
+                          className="field"
+                          dir="ltr"
+                          placeholder="תמונת פתיחה לסרטון (אופציונלי) — https://..."
+                          value={t.posterUrl ?? ""}
+                          maxLength={2000}
+                          onChange={(e) => patchItem(t.id, { posterUrl: e.target.value })}
+                        />
+                        {uploadButton(t.id, "poster", "תמונת פתיחה", ImagePlus)}
+                      </div>
+                    </div>
+                  )}
                 </div>
+                {rowButtons(
+                  () => setItems(moveItem(items, i, -1)),
+                  () => setItems(moveItem(items, i, 1)),
+                  () => setItems(items.filter((x) => x.id !== t.id)),
+                )}
               </div>
-              {rowButtons(
-                () => setItems(moveItem(items, i, -1)),
-                () => setItems(moveItem(items, i, 1)),
-                () => setItems(items.filter((x) => x.id !== t.id)),
-              )}
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
       {items.length === 0 && (
         <p className="mt-2 text-sm text-muted-foreground">
@@ -352,11 +516,11 @@ export function AdminContentExtras({
 
       <button
         type="button"
-        disabled={busy}
+        disabled={busy || uploadingId !== null}
         onClick={() => void save()}
         className="mt-5 w-full rounded-xl bg-sun py-3 text-base font-bold text-sun-foreground disabled:opacity-60"
       >
-        שמירת ממליצים ושאלות נפוצות
+        {busy ? "שומר ומתרגם…" : "שמירת ממליצים ושאלות נפוצות"}
       </button>
     </section>
   );

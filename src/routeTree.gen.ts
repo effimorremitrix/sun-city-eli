@@ -27,8 +27,10 @@ import { Route as RuIndexRouteImport } from './routes/ru/index'
 import { Route as Char123LangChar125IndexRouteImport } from './routes/{-$lang}/index'
 import { Route as Char123LangChar125AgentSlugRouteImport } from './routes/{-$lang}/$agentSlug'
 import { Route as ApiFacebookCallbackRouteImport } from './routes/api/facebook/callback'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicScoutCronRouteImport } from './routes/api/public/scout-cron'
 import { Route as ApiPublicWhatsappCheckRouteImport } from './routes/api/public/whatsapp-check'
+import { Route as ApiPublicJobsNameRouteImport } from './routes/api/public/jobs/$name'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -120,6 +122,11 @@ const ApiFacebookCallbackRoute = ApiFacebookCallbackRouteImport.update({
   path: '/api/facebook/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicScoutCronRoute = ApiPublicScoutCronRouteImport.update({
   id: '/api/public/scout-cron',
   path: '/api/public/scout-cron',
@@ -128,6 +135,11 @@ const ApiPublicScoutCronRoute = ApiPublicScoutCronRouteImport.update({
 const ApiPublicWhatsappCheckRoute = ApiPublicWhatsappCheckRouteImport.update({
   id: '/api/public/whatsapp-check',
   path: '/api/public/whatsapp-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicJobsNameRoute = ApiPublicJobsNameRouteImport.update({
+  id: '/api/public/jobs/$name',
+  path: '/api/public/jobs/$name',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -150,8 +162,10 @@ export interface FileRoutesByFullPath {
   '/ru/': typeof RuIndexRoute
   '/{-$lang}/': typeof Char123LangChar125IndexRoute
   '/api/facebook/callback': typeof ApiFacebookCallbackRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
   '/api/public/whatsapp-check': typeof ApiPublicWhatsappCheckRoute
+  '/api/public/jobs/$name': typeof ApiPublicJobsNameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedRouteRouteWithChildren
@@ -172,8 +186,10 @@ export interface FileRoutesByTo {
   '/ru': typeof RuIndexRoute
   '/{-$lang}': typeof Char123LangChar125IndexRoute
   '/api/facebook/callback': typeof ApiFacebookCallbackRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
   '/api/public/whatsapp-check': typeof ApiPublicWhatsappCheckRoute
+  '/api/public/jobs/$name': typeof ApiPublicJobsNameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -195,8 +211,10 @@ export interface FileRoutesById {
   '/ru/': typeof RuIndexRoute
   '/{-$lang}/': typeof Char123LangChar125IndexRoute
   '/api/facebook/callback': typeof ApiFacebookCallbackRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/scout-cron': typeof ApiPublicScoutCronRoute
   '/api/public/whatsapp-check': typeof ApiPublicWhatsappCheckRoute
+  '/api/public/jobs/$name': typeof ApiPublicJobsNameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -219,8 +237,10 @@ export interface FileRouteTypes {
     | '/ru/'
     | '/{-$lang}/'
     | '/api/facebook/callback'
+    | '/api/public/health'
     | '/api/public/scout-cron'
     | '/api/public/whatsapp-check'
+    | '/api/public/jobs/$name'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -241,8 +261,10 @@ export interface FileRouteTypes {
     | '/ru'
     | '/{-$lang}'
     | '/api/facebook/callback'
+    | '/api/public/health'
     | '/api/public/scout-cron'
     | '/api/public/whatsapp-check'
+    | '/api/public/jobs/$name'
   id:
     | '__root__'
     | '/_authenticated'
@@ -263,8 +285,10 @@ export interface FileRouteTypes {
     | '/ru/'
     | '/{-$lang}/'
     | '/api/facebook/callback'
+    | '/api/public/health'
     | '/api/public/scout-cron'
     | '/api/public/whatsapp-check'
+    | '/api/public/jobs/$name'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -284,8 +308,10 @@ export interface RootRouteChildren {
   RuIndexRoute: typeof RuIndexRoute
   Char123LangChar125IndexRoute: typeof Char123LangChar125IndexRoute
   ApiFacebookCallbackRoute: typeof ApiFacebookCallbackRoute
+  ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicScoutCronRoute: typeof ApiPublicScoutCronRoute
   ApiPublicWhatsappCheckRoute: typeof ApiPublicWhatsappCheckRoute
+  ApiPublicJobsNameRoute: typeof ApiPublicJobsNameRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -416,6 +442,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFacebookCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/scout-cron': {
       id: '/api/public/scout-cron'
       path: '/api/public/scout-cron'
@@ -428,6 +461,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/whatsapp-check'
       fullPath: '/api/public/whatsapp-check'
       preLoaderRoute: typeof ApiPublicWhatsappCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/jobs/$name': {
+      id: '/api/public/jobs/$name'
+      path: '/api/public/jobs/$name'
+      fullPath: '/api/public/jobs/$name'
+      preLoaderRoute: typeof ApiPublicJobsNameRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -463,8 +503,10 @@ const rootRouteChildren: RootRouteChildren = {
   RuIndexRoute: RuIndexRoute,
   Char123LangChar125IndexRoute: Char123LangChar125IndexRoute,
   ApiFacebookCallbackRoute: ApiFacebookCallbackRoute,
+  ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicScoutCronRoute: ApiPublicScoutCronRoute,
   ApiPublicWhatsappCheckRoute: ApiPublicWhatsappCheckRoute,
+  ApiPublicJobsNameRoute: ApiPublicJobsNameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

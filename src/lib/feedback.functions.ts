@@ -72,17 +72,14 @@ export const setListingFeedback = createServerFn({ method: "POST" })
         .eq("reaction", opposite);
     }
 
-    // ❤️ / 📞 — פתיחת/עדכון ליד אצל הסוכן המטפל + התראה לסוכן
+    // ❤️ / 📞 — פתיחת/עדכון ליד אצל הסוכן המטפל + התראה מיידית לסוכן
     let leadId: string | null = null;
-    if ((data.reaction === "interested" || data.reaction === "callback") && listing.site_id) {
+    let contactId: string | null = null;
+    if (data.reaction === "interested" || data.reaction === "callback") {
       try {
-        const {
-          findOrCreateLeadForUser,
-          logLeadEvent,
-          applyLeadUpdate,
-          notifyAgentOfClientResponse,
-          tomorrowAt10Israel,
-        } = await import("@/lib/leads.server");
+        const { findOrCreateLeadForUser, handleClientAction } = await import("@/lib/leads.server");
+        const { officeSiteId } = await import("@/lib/contacts.server");
+        const { getSettings } = await import("@/lib/settings.server");
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: profile } = await supabaseAdmin
           .from("profiles")
@@ -90,7 +87,8 @@ export const setListingFeedback = createServerFn({ method: "POST" })
           .eq("id", userId)
           .maybeSingle();
 
-        const { lead } = await findOrCreateLeadForUser(listing.site_id as string, userId, {
+        const pageSite = (listing.site_id as string | null) ?? (await officeSiteId()) ?? "";
+        const { lead, contact } = await findOrCreateLeadForUser(pageSite, userId, {
           fullName: (profile?.full_name as string | null) ?? null,
           email: (profile?.email as string | null) ?? null,
           source: "הסוכן האישי",
@@ -98,31 +96,22 @@ export const setListingFeedback = createServerFn({ method: "POST" })
           createdNote: `הלקוח סימן "${REACTION_LABELS[data.reaction]}" על הנכס: ${listing.title}`,
         });
         leadId = lead.id;
+        contactId = contact.id;
 
-        await logLeadEvent(supabaseAdmin, {
-          leadId: lead.id,
-          siteId: listing.site_id as string,
-          eventType: "client_response",
-          note: `"${REACTION_LABELS[data.reaction]}" על הנכס: ${listing.title}`,
-          listingId: listing.id as string,
-          actorUserId: userId,
-        });
-
-        // 📞 — משימת Follow-up מיידית למחר בבוקר, כמו בתגובה על התראה
-        if (data.reaction === "callback") {
-          await applyLeadUpdate(supabaseAdmin, userId, lead, {
-            listing_id: listing.id as string,
-            next_action: `לחזור ללקוח על הנכס: ${listing.title}`,
-            next_follow_up_at: tomorrowAt10Israel(),
-          });
-        }
-
-        await notifyAgentOfClientResponse(
+        await handleClientAction({
+          kind: data.reaction === "callback" ? "callback" : "interest",
+          responseLabel: REACTION_LABELS[data.reaction],
+          userId,
+          contact,
           lead,
-          listing.site_id as string,
-          listing.title as string,
-          REACTION_LABELS[data.reaction],
-        );
+          target: {
+            listingId: listing.id as string,
+            marketListingId: null,
+            title: listing.title as string,
+            siteId: (listing.site_id as string | null) ?? null,
+          },
+          siteUrl: (await getSettings()).site_url,
+        });
       } catch (e) {
         // המשוב עצמו נשמר גם אם עדכון הליד נכשל
         console.error("feedback lead sync failed", e instanceof Error ? e.message : e);
@@ -135,6 +124,7 @@ export const setListingFeedback = createServerFn({ method: "POST" })
         listing_id: data.listingId,
         site_id: (listing.site_id as string | null) ?? null,
         lead_id: leadId,
+        contact_id: contactId,
         reaction: data.reaction,
       },
       { onConflict: "listing_id,user_id,reaction" },

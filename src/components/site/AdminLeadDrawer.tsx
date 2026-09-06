@@ -14,21 +14,30 @@ import {
   RefreshCw,
   Sparkles,
   Trash2,
+  UserRound,
   X,
   type LucideIcon,
 } from "lucide-react";
 import {
   adminDeleteLead,
+  adminGetContact,
   adminGetLead,
   adminLeadQuickAction,
+  adminReassignLead,
   adminSaveLead,
   type LeadEventRow,
   type QuickActionKey,
 } from "@/lib/leads.functions";
-import { LEAD_SOURCES, LEAD_STATUSES, PROPERTY_CATEGORIES } from "@/lib/leads";
+import {
+  CLOSED_LEAD_STATUSES,
+  LEAD_SOURCES,
+  LEAD_STATUSES,
+  PROPERTY_CATEGORIES,
+} from "@/lib/leads";
 import { adminListLeadFeedback } from "@/lib/feedback.functions";
-import { LeadCriteriaCard } from "@/components/site/LeadCriteria";
+import { LeadCriteriaCard, intentLabel } from "@/components/site/LeadCriteria";
 import type { Listing } from "@/lib/listings";
+import type { ManagedSite } from "@/lib/admin.server";
 
 /** אייקון לכל סוג אירוע בציר הזמן */
 const EVENT_ICONS: Record<string, LucideIcon> = {
@@ -49,6 +58,261 @@ const EVENT_ICONS: Record<string, LucideIcon> = {
 
 const fmtDateTime = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" }) : "";
+
+/** ערך ריק מוצג כ"אין מידע" — אחיד עם שאר האתר */
+const orNoInfo = (v: string | null | undefined) => (v && v.trim() ? v : "אין מידע");
+
+const fmtNum = (n: number) => n.toLocaleString("he-IL");
+
+/** תג סטטוס ליומן הפעילות: ok ירוק, failed אדום, skipped אפור, blocked כתום */
+export const activityStatusClass = (status: string): string => {
+  if (status === "ok") return "bg-whatsapp/15 text-whatsapp";
+  if (status === "failed") return "bg-destructive/10 text-destructive";
+  if (status === "blocked") return "bg-orange-100 text-orange-700";
+  return "bg-muted text-muted-foreground";
+};
+
+export const ACTIVITY_STATUS_LABELS: Record<string, string> = {
+  ok: "הצליח",
+  failed: "נכשל",
+  skipped: "דולג",
+  blocked: "נחסם",
+};
+
+/** תגיות ייחוס (מאיפה הגיע הליד) — UTM, מפנה, עמוד נחיתה */
+export function AttributionChips({
+  utm_source,
+  utm_campaign,
+  referrer,
+  landing_path,
+}: {
+  utm_source?: string | null | undefined;
+  utm_campaign?: string | null | undefined;
+  referrer?: string | null | undefined;
+  landing_path?: string | null | undefined;
+}) {
+  const chips = [
+    utm_source ? `מקור: ${utm_source}` : null,
+    utm_campaign ? `קמפיין: ${utm_campaign}` : null,
+    referrer ? `מפנה: ${referrer.replace(/^https?:\/\//, "").slice(0, 40)}` : null,
+    landing_path ? `נחיתה: ${landing_path.slice(0, 40)}` : null,
+  ].filter((c): c is string => Boolean(c));
+  if (!chips.length) return null;
+  return (
+    <p className="flex flex-wrap gap-1">
+      {chips.map((c) => (
+        <span
+          key={c}
+          dir="auto"
+          className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-secondary-foreground"
+        >
+          {c}
+        </span>
+      ))}
+    </p>
+  );
+}
+
+/**
+ * כרטיס הלקוח — זהות, הסוכן הצמוד, ייחוס ראשון, כל הלידים של אותו אדם
+ * (אצל כל הסוכנים), פרופילי חיפוש פעילים ו-30 שורות הפעילות האחרונות.
+ * משמש במגירת הליד וביומן הפעילות.
+ */
+export function ContactCardSection({
+  contactId,
+  sites,
+}: {
+  contactId: string;
+  sites?: ManagedSite[] | undefined;
+}) {
+  const fetchContact = useServerFn(adminGetContact);
+  const card = useQuery({
+    queryKey: ["admin-contact", contactId],
+    queryFn: () => fetchContact({ data: { contactId } }),
+  });
+
+  const siteName = (id: string | null) => {
+    if (!id) return "אין מידע";
+    const s = (sites ?? []).find((x) => x.id === id) ?? card.data?.sites.find((x) => x.id === id);
+    return s?.name ?? "דף לא מוכר";
+  };
+
+  if (card.isLoading) return <p className="text-sm text-muted-foreground">טוען כרטיס לקוח…</p>;
+  if (card.isError || !card.data)
+    return (
+      <p className="text-xs text-muted-foreground">
+        כרטיס הלקוח לא זמין ({card.error instanceof Error ? card.error.message : "שגיאה"})
+      </p>
+    );
+
+  const { contact, leads, profiles, activity } = card.data;
+  const closed = new Set<string>(CLOSED_LEAD_STATUSES as readonly string[]);
+  const openLeads = leads.filter((l) => !closed.has(l.status)).length;
+  const activeProfiles = profiles.filter((p) => p.is_active);
+  const budget = (min: number | null, max: number | null) =>
+    min != null && max != null
+      ? `${fmtNum(min)}–${fmtNum(max)} ₪`
+      : max != null
+        ? `עד ${fmtNum(max)} ₪`
+        : min != null
+          ? `מ-${fmtNum(min)} ₪`
+          : "אין מידע";
+  const rooms = (p: {
+    min_rooms: number | null;
+    rooms: number | null;
+    max_rooms: number | null;
+  }) =>
+    p.min_rooms != null && p.max_rooms != null
+      ? `${p.min_rooms}–${p.max_rooms} חדרים`
+      : p.rooms != null
+        ? `${p.rooms} חדרים`
+        : p.min_rooms != null
+          ? `${p.min_rooms}+ חדרים`
+          : "אין מידע";
+
+  return (
+    <div className="grid gap-3">
+      {/* זהות + הסוכן הצמוד */}
+      <div className="grid gap-2 text-sm sm:grid-cols-2">
+        <div className="rounded-xl bg-secondary/50 p-3">
+          <p className="text-xs font-bold text-muted-foreground">זהות</p>
+          <p className="font-bold text-primary">{orNoInfo(contact.full_name)}</p>
+          <p className="text-xs text-muted-foreground" dir="ltr">
+            {orNoInfo(contact.phone_normalized)}
+          </p>
+          <p className="text-xs text-muted-foreground" dir="ltr">
+            {orNoInfo(contact.email)}
+          </p>
+          <p className="mt-1 text-xs">
+            {contact.marketing_consent ? "✅ אישר/ה קבלת דיוור" : "❌ ללא הסכמת דיוור"}
+            {contact.user_id ? " · משתמש רשום" : ""}
+          </p>
+        </div>
+        <div className="rounded-xl bg-secondary/50 p-3">
+          <p className="text-xs font-bold text-muted-foreground">הסוכן הצמוד</p>
+          <p className="font-bold text-primary">{siteName(contact.assigned_site_id)}</p>
+          <p className="text-xs text-muted-foreground">
+            שויך: {contact.assigned_at ? fmtDateTime(contact.assigned_at) : "אין מידע"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            לקוח מאז: {fmtDateTime(contact.created_at)}
+          </p>
+        </div>
+      </div>
+
+      {/* ייחוס ראשון */}
+      <div className="rounded-xl border border-border p-3 text-xs">
+        <p className="mb-1 font-bold text-muted-foreground">מאיפה הגיע/ה לראשונה</p>
+        <dl className="grid gap-x-3 gap-y-0.5 sm:grid-cols-2">
+          {(
+            [
+              ["מקור ראשון", contact.first_source],
+              ["דף ראשון", contact.first_site_id ? siteName(contact.first_site_id) : null],
+              ["UTM source", contact.first_utm_source],
+              ["UTM campaign", contact.first_utm_campaign],
+              ["UTM content", contact.first_utm_content],
+              ["מפנה", contact.first_referrer],
+              ["עמוד נחיתה", contact.first_landing_path],
+            ] as Array<[string, string | null]>
+          ).map(([k, v]) => (
+            <div key={k} className="flex gap-1">
+              <dt className="shrink-0 text-muted-foreground">{k}:</dt>
+              <dd className="truncate" dir="auto">
+                {orNoInfo(v)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
+      {/* כל הלידים של הלקוח */}
+      <div className="rounded-xl border border-border p-3">
+        <p className="text-xs font-bold text-muted-foreground">
+          כל הלידים של הלקוח ({leads.length})
+          {openLeads > 1 && (
+            <span className="ms-2 rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-bold text-orange-700">
+              כפילות: {openLeads} לידים פתוחים
+            </span>
+          )}
+        </p>
+        <ul className="mt-1.5 grid gap-1 text-xs">
+          {leads.map((l) => (
+            <li key={l.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <span className="font-bold text-primary">{siteName(l.site_id)}</span>
+              <span className="text-muted-foreground">· {l.source}</span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${closed.has(l.status) ? "bg-muted text-muted-foreground" : "bg-sun/20 text-primary"}`}
+              >
+                {l.status}
+              </span>
+              <span className="text-muted-foreground">{fmtDateTime(l.created_at)}</span>
+            </li>
+          ))}
+          {leads.length === 0 && <li className="text-muted-foreground">אין לידים</li>}
+        </ul>
+      </div>
+
+      {/* פרופילי חיפוש פעילים */}
+      <div className="rounded-xl border border-border p-3">
+        <p className="text-xs font-bold text-muted-foreground">
+          פרופילי חיפוש פעילים ({activeProfiles.length})
+        </p>
+        {activeProfiles.length === 0 ? (
+          <p className="mt-1 text-xs text-muted-foreground">אין פרופיל חיפוש פעיל</p>
+        ) : (
+          <ul className="mt-1.5 grid gap-1.5 text-xs">
+            {activeProfiles.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center gap-1">
+                <span className="font-bold text-primary">{p.label || "פרופיל"}</span>
+                {[
+                  intentLabel(p.deal_type),
+                  (p.neighborhoods ?? []).join(", ") || null,
+                  budget(p.min_price, p.max_price),
+                  rooms(p),
+                ]
+                  .filter((c): c is string => Boolean(c))
+                  .map((c) => (
+                    <span
+                      key={c}
+                      className="rounded-full bg-sun/15 px-2 py-0.5 text-[11px] font-bold text-primary"
+                    >
+                      {c}
+                    </span>
+                  ))}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* פעילות אחרונה */}
+      <div className="rounded-xl border border-border p-3">
+        <p className="text-xs font-bold text-muted-foreground">פעילות אחרונה</p>
+        {activity.length === 0 ? (
+          <p className="mt-1 text-xs text-muted-foreground">אין פעילות רשומה</p>
+        ) : (
+          <ul className="mt-1.5 grid max-h-64 gap-1 overflow-y-auto text-xs">
+            {activity.slice(0, 30).map((a) => (
+              <li key={a.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span className="shrink-0 text-muted-foreground">{fmtDateTime(a.created_at)}</span>
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${activityStatusClass(a.status)}`}
+                >
+                  {ACTIVITY_STATUS_LABELS[a.status] ?? a.status}
+                </span>
+                <span className="min-w-0 flex-1 truncate" dir="auto">
+                  {a.message ?? a.event}
+                  {a.channel ? ` (${a.channel})` : ""}
+                </span>
+                {a.error && <span className="w-full truncate text-destructive">{a.error}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /** המרה בין ISO ל-input type=datetime-local (בשעון המקומי של הדפדפן) */
 const isoToLocalInput = (iso: string | null): string => {
@@ -99,12 +363,17 @@ export default function AdminLeadDrawer({
   siteId,
   leadId,
   listings,
+  sites,
+  isSuperAdmin = false,
   onClose,
   onChanged,
 }: {
   siteId: string;
   leadId: string | null;
   listings: Listing[];
+  /** כל הדפים המנוהלים — לשמות סוכנים בכרטיס הלקוח ולהעברת ליד (מנהל ראשי) */
+  sites?: ManagedSite[];
+  isSuperAdmin?: boolean;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -112,6 +381,9 @@ export default function AdminLeadDrawer({
   const saveLead = useServerFn(adminSaveLead);
   const removeLead = useServerFn(adminDeleteLead);
   const quickAction = useServerFn(adminLeadQuickAction);
+  const reassignLead = useServerFn(adminReassignLead);
+  // העברה לסוכן אחר (מנהל ראשי בלבד)
+  const [reassignTo, setReassignTo] = useState("");
 
   const detail = useQuery({
     queryKey: ["admin-lead", siteId, leadId],
@@ -233,10 +505,20 @@ export default function AdminLeadDrawer({
       className="fixed inset-0 z-50 flex items-end justify-center bg-[oklch(0.263_0.038_260/0.6)] p-0 sm:items-center sm:p-4"
     >
       <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl bg-card sm:rounded-2xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card px-4 py-3">
-          <h3 className="text-lg font-extrabold text-primary">
-            {leadId ? (lead?.full_name ?? "כרטיס ליד") : "ליד חדש"}
-          </h3>
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3">
+          <div className="min-w-0">
+            <h3 className="text-lg font-extrabold text-primary">
+              {leadId ? (lead?.full_name ?? "כרטיס ליד") : "ליד חדש"}
+            </h3>
+            {lead && (
+              <AttributionChips
+                utm_source={lead.utm_source}
+                utm_campaign={lead.utm_campaign}
+                referrer={lead.referrer}
+                landing_path={lead.landing_path}
+              />
+            )}
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -397,6 +679,60 @@ export default function AdminLeadDrawer({
 
           {/* מה הלקוח מחפש — הקריטריונים המובנים מהטופס/הפרופיל */}
           {lead && <LeadCriteriaCard lead={lead} />}
+
+          {/* כרטיס הלקוח — כל מה שידוע על האדם הזה מעבר לליד הבודד */}
+          {lead?.contact_id && (
+            <div className="mt-3 rounded-xl border border-border p-3">
+              <p className="mb-2 flex items-center gap-2 text-sm font-extrabold text-primary">
+                <UserRound className="size-4 text-sun" aria-hidden="true" />
+                כרטיס הלקוח
+              </p>
+              <ContactCardSection contactId={lead.contact_id} sites={sites} />
+            </div>
+          )}
+
+          {/* העברה לסוכן אחר — מנהל ראשי בלבד */}
+          {leadId && lead && isSuperAdmin && (sites ?? []).length > 1 && (
+            <div className="mt-3 rounded-xl border border-sun/50 p-3">
+              <p className="text-sm font-extrabold text-primary">העברה לסוכן אחר</p>
+              <p className="text-xs text-muted-foreground">
+                הליד (והלקוח, אם יש לו כרטיס לקוח) יעברו לדף של הסוכן שנבחר יחד עם ההיסטוריה. ההעברה
+                נרשמת בציר הזמן והכרטיס ייסגר.
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <select
+                  className="field max-w-xs"
+                  value={reassignTo}
+                  onChange={(e) => setReassignTo(e.target.value)}
+                >
+                  <option value="">בחרו סוכן / דף…</option>
+                  {(sites ?? [])
+                    .filter((s) => s.id !== siteId)
+                    .map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} — /{s.slug}
+                      </option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={busy || !reassignTo}
+                  onClick={() => {
+                    const target = (sites ?? []).find((s) => s.id === reassignTo);
+                    if (!confirm(`להעביר את הליד אל ${target?.name ?? "הסוכן שנבחר"}?`)) return;
+                    void run(
+                      () => reassignLead({ data: { leadId, toSiteId: reassignTo } }),
+                      "הליד הועבר",
+                      true,
+                    );
+                  }}
+                  className="rounded-xl bg-sun px-3 py-1.5 text-xs font-bold text-sun-foreground disabled:opacity-50"
+                >
+                  אישור ההעברה
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* משוב הלקוח על נכסים */}
           {(feedback.data ?? []).length > 0 && (

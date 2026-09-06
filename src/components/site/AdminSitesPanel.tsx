@@ -1,12 +1,18 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ExternalLink, Home, Link2, Power } from "lucide-react";
+import { AlertTriangle, ExternalLink, Home, Link2, Power, Send } from "lucide-react";
 import {
   adminGetHomeRedirect,
   adminSetHomeRedirect,
   adminSetSiteActive,
 } from "@/lib/users.functions";
+import {
+  adminSendTestNotification,
+  adminSiteDiagnostics,
+  adminUpdateSiteNotify,
+  type SiteDiagnostics,
+} from "@/lib/system.functions";
 import { OFFICE_SLUG } from "@/lib/site-data";
 import type { ManagedSite } from "@/lib/admin.server";
 
@@ -66,6 +72,14 @@ export default function AdminSitesPanel({ sites, onChanged }: Props) {
   };
 
   const adminLink = (slug: string) => `${window.location.origin}/account?tab=content&site=${slug}`;
+
+  // אבחון דפים: בעלים, ערוצי התראות ומונים — מוצג לכל דף
+  const fetchDiagnostics = useServerFn(adminSiteDiagnostics);
+  const diagnostics = useQuery({
+    queryKey: ["admin-site-diagnostics"],
+    queryFn: () => fetchDiagnostics(),
+  });
+  const diagById = new Map((diagnostics.data ?? []).map((d) => [d.id, d]));
 
   const copy = async (site: ManagedSite) => {
     setErr(null);
@@ -162,82 +176,228 @@ export default function AdminSitesPanel({ sites, onChanged }: Props) {
         {sites.map((s) => {
           const isOffice = s.slug === OFFICE_SLUG;
           const busy = busyId === s.id;
+          const diag = diagById.get(s.id) ?? null;
           return (
-            <li key={s.id} className="flex flex-wrap items-center gap-2 py-3">
-              <div className="min-w-0 flex-1">
-                <span className="font-bold text-primary">{s.name}</span>{" "}
-                <span dir="ltr" className="text-xs text-muted-foreground">
-                  /{isOffice ? "" : s.slug}
+            <li key={s.id} className="py-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <span className="font-bold text-primary">{s.name}</span>{" "}
+                  <span dir="ltr" className="text-xs text-muted-foreground">
+                    /{isOffice ? "" : s.slug}
+                  </span>
+                  {diag && (
+                    <span className="ms-2 text-xs text-muted-foreground">
+                      {diag.listings} נכסים · {diag.sold} נמכרו · {diag.openLeads} לידים פתוחים
+                    </span>
+                  )}
+                </div>
+
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                    s.is_active
+                      ? "bg-whatsapp/15 text-whatsapp"
+                      : "bg-destructive/10 text-destructive"
+                  }`}
+                >
+                  {s.is_active ? "פעיל" : "מושבת"}
                 </span>
+
+                <a
+                  href={isOffice ? "/" : `/${s.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center gap-1 rounded-xl border border-primary/30 px-2.5 py-1.5 text-xs font-bold text-primary ${
+                    s.is_active ? "" : "opacity-50"
+                  }`}
+                  title={s.is_active ? undefined : "הדף מושבת — הקישור יחזיר 404"}
+                >
+                  <ExternalLink className="size-3.5" aria-hidden="true" />
+                  צפייה בדף
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => void copy(s)}
+                  className="inline-flex items-center gap-1 rounded-xl border border-primary/30 px-2.5 py-1.5 text-xs font-bold text-primary"
+                >
+                  <Link2 className="size-3.5" aria-hidden="true" />
+                  {copiedId === s.id ? "הקישור הועתק ✓" : "קישור ניהול"}
+                </button>
+
+                {!isOffice &&
+                  (confirmId === s.id ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void toggle(s)}
+                        className="rounded-xl bg-destructive px-2.5 py-1.5 text-xs font-bold text-destructive-foreground disabled:opacity-60"
+                      >
+                        {busy ? "מעדכן…" : s.is_active ? "אישור השבתה" : "אישור הפעלה"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => setConfirmId(null)}
+                        className="text-xs font-bold text-muted-foreground underline"
+                      >
+                        ביטול
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setConfirmId(s.id)}
+                      className="inline-flex items-center gap-1 rounded-xl border border-destructive/40 px-2.5 py-1.5 text-xs font-bold text-destructive disabled:opacity-60"
+                    >
+                      <Power className="size-3.5" aria-hidden="true" />
+                      {s.is_active ? "השבתת הדף" : "הפעלת הדף"}
+                    </button>
+                  ))}
               </div>
 
-              <span
-                className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                  s.is_active
-                    ? "bg-whatsapp/15 text-whatsapp"
-                    : "bg-destructive/10 text-destructive"
-                }`}
-              >
-                {s.is_active ? "פעיל" : "מושבת"}
-              </span>
-
-              <a
-                href={isOffice ? "/" : `/${s.slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`inline-flex items-center gap-1 rounded-xl border border-primary/30 px-2.5 py-1.5 text-xs font-bold text-primary ${
-                  s.is_active ? "" : "opacity-50"
-                }`}
-                title={s.is_active ? undefined : "הדף מושבת — הקישור יחזיר 404"}
-              >
-                <ExternalLink className="size-3.5" aria-hidden="true" />
-                צפייה בדף
-              </a>
-
-              <button
-                type="button"
-                onClick={() => void copy(s)}
-                className="inline-flex items-center gap-1 rounded-xl border border-primary/30 px-2.5 py-1.5 text-xs font-bold text-primary"
-              >
-                <Link2 className="size-3.5" aria-hidden="true" />
-                {copiedId === s.id ? "הקישור הועתק ✓" : "קישור ניהול"}
-              </button>
-
-              {!isOffice &&
-                (confirmId === s.id ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void toggle(s)}
-                      className="rounded-xl bg-destructive px-2.5 py-1.5 text-xs font-bold text-destructive-foreground disabled:opacity-60"
-                    >
-                      {busy ? "מעדכן…" : s.is_active ? "אישור השבתה" : "אישור הפעלה"}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => setConfirmId(null)}
-                      className="text-xs font-bold text-muted-foreground underline"
-                    >
-                      ביטול
-                    </button>
+              {/* אזהרה: דף שהבעלים שלו הוא מנהל ולא סוכן — הסוכן לא יראה כלום */}
+              {diag && diag.ownerIsAdmin && !isOffice && (
+                <p className="mt-2 flex items-start gap-1.5 rounded-xl border border-orange-300 bg-orange-50 p-2 text-xs font-semibold text-orange-900">
+                  <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                  <span>
+                    הדף לא מקושר לחשבון סוכן — נכסים ולידים לא יופיעו אצל הסוכן. הבעלים כרגע:{" "}
+                    <span dir="ltr">{diag.ownerEmail ?? "אין מידע"}</span>. מנו את הסוכן כבעלים דרך
+                    &quot;הוספת סוכן&quot; בטאב המשתמשים.
                   </span>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => setConfirmId(s.id)}
-                    className="inline-flex items-center gap-1 rounded-xl border border-destructive/40 px-2.5 py-1.5 text-xs font-bold text-destructive disabled:opacity-60"
-                  >
-                    <Power className="size-3.5" aria-hidden="true" />
-                    {s.is_active ? "השבתת הדף" : "הפעלת הדף"}
-                  </button>
-                ))}
+                </p>
+              )}
+
+              {diag && <SiteNotifyRow diag={diag} onSaved={() => void diagnostics.refetch()} />}
             </li>
           );
         })}
       </ul>
     </section>
+  );
+}
+
+/**
+ * ערוצי ההתראות של דף: מייל ווואטסאפ שאליהם נשלחות התראות על לידים
+ * והתאמות, עם הודעת בדיקה שמראה מיד מה עובד ומה לא.
+ */
+function SiteNotifyRow({ diag, onSaved }: { diag: SiteDiagnostics[number]; onSaved: () => void }) {
+  const updateNotify = useServerFn(adminUpdateSiteNotify);
+  const sendTest = useServerFn(adminSendTestNotification);
+  const [email, setEmail] = useState(diag.notify_email ?? "");
+  const [whatsapp, setWhatsapp] = useState(diag.notify_whatsapp ?? "");
+  const [busy, setBusy] = useState<"save" | "test" | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [test, setTest] = useState<{ email: string; whatsapp: string } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const dirty = email !== (diag.notify_email ?? "") || whatsapp !== (diag.notify_whatsapp ?? "");
+
+  const save = async () => {
+    setBusy("save");
+    setErr(null);
+    setMsg(null);
+    try {
+      await updateNotify({
+        data: {
+          siteId: diag.id,
+          notifyEmail: email.trim() || null,
+          notifyWhatsapp: whatsapp.trim() || null,
+        },
+      });
+      setMsg("ערוצי ההתראות נשמרו");
+      onSaved();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "השמירה נכשלה");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const runTest = async () => {
+    setBusy("test");
+    setErr(null);
+    setTest(null);
+    try {
+      setTest(await sendTest({ data: { siteId: diag.id } }));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "שליחת הבדיקה נכשלה");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const resultClass = (r: string) =>
+    r.startsWith("נשלח")
+      ? "text-whatsapp"
+      : r.startsWith("נכשל")
+        ? "text-destructive"
+        : "text-muted-foreground";
+
+  return (
+    <div className="mt-2 rounded-xl bg-secondary/40 p-2.5">
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="block min-w-48 flex-1">
+          <span className="mb-1 block text-xs font-bold text-muted-foreground">מייל להתראות</span>
+          <input
+            className="field !py-1.5 text-sm"
+            dir="ltr"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="agent@example.com"
+          />
+        </label>
+        <label className="block min-w-40 flex-1">
+          <span className="mb-1 block text-xs font-bold text-muted-foreground">
+            וואטסאפ להתראות
+          </span>
+          <input
+            className="field !py-1.5 text-sm"
+            dir="ltr"
+            value={whatsapp}
+            onChange={(e) => setWhatsapp(e.target.value)}
+            placeholder="05X-XXXXXXX"
+          />
+        </label>
+        <button
+          type="button"
+          disabled={busy != null || !dirty}
+          onClick={() => void save()}
+          className="rounded-xl bg-sun px-3 py-2 text-xs font-bold text-sun-foreground disabled:opacity-50"
+        >
+          {busy === "save" ? "שומר…" : "שמירה"}
+        </button>
+        <button
+          type="button"
+          disabled={busy != null || dirty}
+          title={dirty ? "שמרו קודם את הערוצים" : undefined}
+          onClick={() => void runTest()}
+          className="inline-flex items-center gap-1 rounded-xl border border-primary/30 px-3 py-2 text-xs font-bold text-primary disabled:opacity-50"
+        >
+          <Send className="size-3.5" aria-hidden="true" />
+          {busy === "test" ? "שולח…" : "שלח הודעת בדיקה"}
+        </button>
+      </div>
+      {!diag.notify_email && !diag.notify_whatsapp && (
+        <p className="mt-1.5 text-xs font-semibold text-orange-800">
+          אין ערוץ התראות — הסוכן לא יקבל הודעה על לידים חדשים.
+        </p>
+      )}
+      {msg && <p className="mt-1.5 text-xs font-semibold text-primary">{msg}</p>}
+      {err && (
+        <p role="alert" className="mt-1.5 text-xs font-semibold text-destructive">
+          {err}
+        </p>
+      )}
+      {test && (
+        <ul className="mt-1.5 grid gap-0.5 text-xs">
+          <li className={`font-semibold ${resultClass(test.email)}`}>מייל: {test.email}</li>
+          <li className={`font-semibold ${resultClass(test.whatsapp)}`}>
+            וואטסאפ: {test.whatsapp}
+          </li>
+        </ul>
+      )}
+    </div>
   );
 }

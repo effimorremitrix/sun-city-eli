@@ -41,6 +41,8 @@ export function newListingEmailHtml(l: {
   description: string | null;
   siteUrl: string;
   profileLabel: string;
+  /** מודעה מהשוק: קישור למקור */
+  sourceUrl?: string | null;
 }) {
   const price = l.price == null ? "אין מידע" : `${l.price.toLocaleString("he-IL")} ₪`;
   return `<!doctype html><html lang="he" dir="rtl"><body style="font-family:Assistant,Arial,sans-serif;background:#FAF8F5;padding:24px">
@@ -51,6 +53,7 @@ export function newListingEmailHtml(l: {
     <p style="color:#1B2A41;font-size:20px;font-weight:800;margin:12px 0">${price}</p>
     <p style="color:#333;line-height:1.6;margin:0 0 16px">${l.description ?? ""}</p>
     <a href="${l.siteUrl}" style="display:inline-block;background:#E8A33D;color:#1B2A41;font-weight:700;padding:12px 20px;border-radius:12px;text-decoration:none">לצפייה בנכס באתר</a>
+    ${l.sourceUrl ? `<p style="color:#555;font-size:13px;margin:12px 0 0">נכס מהשוק — <a href="${l.sourceUrl}" style="color:#1B2A41">למודעה המקורית</a>. הפנייה מנותבת לסוכן של סאן סיטי.</p>` : ""}
     <p style="color:#888;font-size:12px;margin-top:20px">התראה זו נשלחה לפי פרופיל החיפוש שלך: ${l.profileLabel}. אפשר לכבות התראות באזור האישי באתר.</p>
   </div></body></html>`;
 }

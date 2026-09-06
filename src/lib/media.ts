@@ -9,7 +9,7 @@ export const isVideoUrl = (url: string): boolean => {
   } catch {
     pathname = url.split("?")[0] ?? url;
   }
-  return /\.(mp4|webm)$/i.test(pathname);
+  return /\.(mp4|webm|mov|m4v)$/i.test(pathname);
 };
 
 /** מקור אמת יחיד: סוג MIME → הסיומות המוכרות לו (משמש להעלאות בניהול) */
@@ -18,8 +18,9 @@ export const MIME_EXTENSIONS: Record<string, string[]> = {
   "image/png": ["png"],
   "image/webp": ["webp"],
   "image/svg+xml": ["svg"],
-  "video/mp4": ["mp4"],
+  "video/mp4": ["mp4", "m4v"],
   "video/webm": ["webm"],
+  "video/quicktime": ["mov"],
 };
 
 const EXT_TO_MIME: Record<string, string> = Object.fromEntries(

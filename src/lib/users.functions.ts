@@ -405,9 +405,26 @@ async function createAgentSiteForUser(data: AgentSiteInput) {
   let previous: AgentBusiness = {};
   let previousTexts: Record<string, unknown> = {};
   if (adopted) {
+    // ערוצי ההתראות של הסוכן: אם טרם הוגדרו — המייל של החשבון החדש
+    const { data: agentProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("email")
+      .eq("id", data.userId)
+      .maybeSingle();
+    const { data: currentSite } = await supabaseAdmin
+      .from("sites")
+      .select("notify_email")
+      .eq("id", adopted)
+      .maybeSingle();
     const { error: transferError } = await supabaseAdmin
       .from("sites")
-      .update({ owner_id: data.userId, name: data.agentName })
+      .update({
+        owner_id: data.userId,
+        name: data.agentName,
+        ...(!currentSite?.notify_email && agentProfile?.email
+          ? { notify_email: agentProfile.email }
+          : {}),
+      })
       .eq("id", adopted);
     if (transferError) throw new Error(transferError.message);
     siteId = adopted;

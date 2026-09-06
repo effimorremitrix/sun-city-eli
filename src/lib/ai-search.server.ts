@@ -74,8 +74,10 @@ export async function extractFilters(
   userId: string | null = null,
   streets: string[] = [],
   lang: string = "he",
+  modelOverride: string | null = null,
 ): Promise<AiFilterResult> {
-  const { AI_MODEL, logAiUsage } = await import("@/lib/ai-usage.server");
+  const { AI_MODEL: DEFAULT_MODEL, logAiUsage } = await import("@/lib/ai-usage.server");
+  const AI_MODEL = modelOverride || DEFAULT_MODEL;
   const apiKey = process.env["ANTHROPIC_API_KEY"];
   if (!apiKey) {
     await logAiUsage({

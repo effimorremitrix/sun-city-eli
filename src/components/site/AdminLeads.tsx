@@ -455,6 +455,8 @@ export default function AdminLeads({
           siteId={siteId}
           leadId={creating ? null : openLeadId}
           listings={listings}
+          sites={sites}
+          isSuperAdmin={isSuperAdmin}
           onClose={() => {
             setOpenLeadId(null);
             setCreating(false);

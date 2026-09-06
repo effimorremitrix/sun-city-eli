@@ -7,6 +7,7 @@ import prop6 from "@/assets/prop-6.jpg";
 import prop7 from "@/assets/prop-7.jpg";
 import prop8 from "@/assets/prop-8.jpg";
 import { DICTS, formatPrice, type Locale } from "@/lib/i18n";
+import { toListingDeal } from "@/lib/deal-type";
 
 /** פריט מדיה בגלריית הנכס — תמונה או סרטון */
 export type ListingImage = {
@@ -140,7 +141,9 @@ export const LISTING_FEATURES = [
 
 /** סינון בצד הלקוח — אותם כללים בדיוק כמו בהתאמת ההתראות */
 export function matchesFilters(l: Listing, f: ListingFilters): boolean {
-  if (f.deal_type && l.deal_type !== f.deal_type) return false;
+  // "קנייה" (כוונת לקוח) = נכסי "מכירה"; ערך לא מוכר = בלי סינון
+  const wantedDeal = toListingDeal(f.deal_type);
+  if (wantedDeal && l.deal_type !== wantedDeal) return false;
   if (f.neighborhoods?.length && !(l.neighborhood && f.neighborhoods.includes(l.neighborhood)))
     return false;
   if (f.street && f.street.trim()) {

@@ -17,6 +17,7 @@ export const en: Dict = {
       { id: "properties", label: "Properties" },
       { id: "sellers", label: "Selling a Home" },
       { id: "sold", label: "Sold" },
+      { id: "testimonials", label: "Testimonials" },
       { id: "buyers", label: "For Buyers" },
       { id: "services", label: "Our Services" },
       { id: "team", label: "Our Team" },
@@ -125,7 +126,7 @@ export const en: Dict = {
     aiClear: "Clear smart search",
     aiFallbackExplain: "We filtered the properties according to your request.",
     aiDisclaimer:
-      "The search only filters real properties that exist in the office database. No invented listings.",
+      "The search only filters real properties: the office's own listings plus real listings from the market (yad2, komo and others) with links to the source. No invented listings.",
     aiFailed: "Search failed",
     filterDeal: "Deal type",
     filterAll: "All",
@@ -265,8 +266,8 @@ export const en: Dict = {
     errName: "Please enter a name",
     notSpecified: "Not specified",
     dealType: "What are you looking for?",
-    dealBuy: "To buy",
-    dealRent: "To rent",
+    dealBuy: "Buy",
+    dealRent: "Rent",
     propertyType: "Property type",
     budgetMax: "Budget up to (₪)",
     roomsMin: "Rooms (from)",
@@ -337,6 +338,10 @@ export const en: Dict = {
     kicker: "Clients' stories",
     title: "Client Testimonials",
     watchVideo: "Watch the video testimonial",
+    kindText: "Text",
+    kindImage: "Image",
+    kindVideo: "Video",
+    imageAlt: (name: string) => `Testimonial from ${name}`,
     items: [
       {
         quote:
@@ -506,6 +511,17 @@ export const en: Dict = {
 
   misc: {
     noInfo: "No info",
+    backHome: "Back to home",
+    legalHebrewNotice:
+      "The binding version of this page is the Hebrew one; this translation is provided for convenience.",
+    legalPrivacy: "Privacy Policy",
+    legalTerms: "Terms of Service",
+    legalDataDeletion: "Data Deletion",
+    legalAccessibility: "Accessibility statement",
+    legalAccessibilityHe: "Accessibility statement (Hebrew)",
+    legalLastUpdated: "Last updated:",
+    legalOtherDocs: "Other legal documents",
+    legalLangSwitch: "Document language",
     phoneError: "Please enter a valid Israeli phone number (e.g. 050-1234567)",
     consentMarketing:
       "I agree to receive updates about matching properties by email and WhatsApp (you can withdraw consent at any time)",
@@ -616,9 +632,9 @@ export const en: Dict = {
     newProfile: "New search profile",
     profileLabel: "Profile name",
     dealTypeLabel: "What are you looking for?",
-    dealBuy: "To buy",
+    dealBuy: "Buy",
     dealSaleLegacy: "For sale (legacy — same as buy)",
-    dealRent: "To rent",
+    dealRent: "Rent",
     city: "City",
     streetOptional: "Street (optional)",
     streetPlaceholder: "e.g. Golda Meir",
@@ -673,6 +689,17 @@ export const en: Dict = {
       parking: "Parking",
       balcony: "Balcony",
     } as Record<string, string>,
+    marketMatchesTitle: "Matches from the market",
+    noMarketMatches:
+      "No market listings match your search profile right now — the pool refreshes every night and a matching listing will appear here.",
+    marketTag: "From the market",
+    marketSource: "Original listing",
+    aiSearchTitle: "Smart search across the whole market",
+    aiSearchHint:
+      "Describe what you're looking for in your own words — we'll filter the office listings and real listings from the boards (yad2, komo and more).",
+    aiOfficeResults: "Office listings",
+    aiMarketResults: "Market listings",
+    aiNoResults: "No properties match your request. Try rephrasing or widening the criteria.",
   },
 
   accountSettings: {
@@ -711,6 +738,56 @@ export const en: Dict = {
       { day: "Friday", value: "09:00 – 13:00" },
       { day: "Saturday", value: "Closed" },
     ],
+  },
+
+  market: {
+    title: "More properties from the market",
+    subtitle:
+      "Real listings from other boards (yad2, komo and more) we found for you based on your search. Contact goes through a Sun City agent, who will check the property and guide you.",
+    found: (n: number) => `${n} market listings found`,
+    tag: "From the market",
+    source: "Original listing",
+    callback: "Have an agent call me back",
+    callbackSent: "Got it! The agent will get back to you shortly.",
+    send: "Send",
+    cancel: "Cancel",
+    match: (n: number) => `${n}% match`,
+    showMore: "Show more",
+    waMsg: (agent: string, title: string, url: string) =>
+      `Hello ${agent}, I saw a market listing on the site that interests me and would love a call back about it:\n${title}\n${url}`,
+  },
+
+  search: {
+    pickAreas: "Choose neighborhoods",
+    areasSelected: (n: number) => `${n} neighborhoods selected`,
+    selectAll: "Select all",
+    clear: "Clear",
+    done: "Done",
+  },
+
+  media: {
+    compressing: "Converting and compressing in the browser…",
+    uploading: (percent: number) => `Uploading… ${percent}%`,
+    tooLarge: "The file exceeds the limit (up to 500MB per video)",
+    unsupported: "Unsupported file type",
+  },
+
+  zod: {
+    required: "Required field",
+    tooLong: (max: number) => `Up to ${max} characters`,
+    httpsRequired: "The link must start with https://",
+    invalid: "Invalid value",
+  },
+
+  limits: {
+    signupLimit: "Too many sign-up attempts from this device. Please try again later.",
+    aiDaily:
+      "You've reached today's smart-search quota. Sign up for the Smart Agent and it keeps searching for you, or contact us directly.",
+    aiBurst: "Too many searches in a row. Please try again in a minute.",
+    aiDisabled: "Smart search is currently unavailable. Use the regular filters or contact us.",
+    blocked: "Unusual activity was detected from this device and access is temporarily limited.",
+    leadLimit: "Too many requests in a row. Please try again in a minute.",
+    actionLimit: "Too many actions in a row. Please try again shortly.",
   },
 
   maps: {

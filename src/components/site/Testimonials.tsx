@@ -2,7 +2,7 @@ import { DataSource } from "@/components/site/DataSource";
 import { useState } from "react";
 import { ChevronRight, ChevronLeft, Quote, Plus, Minus, PlayCircle } from "lucide-react";
 import { useLang } from "@/lib/i18n";
-import { useLive } from "@/lib/site-live";
+import { useLive, type LiveTestimonial } from "@/lib/site-live";
 import { isVideoUrl } from "@/lib/media";
 
 /** חילוץ מזהה סרטון YouTube מקישור (watch / youtu.be / shorts / embed) */
@@ -21,19 +21,34 @@ const youTubeId = (url: string): string | null => {
   }
 };
 
+/** פריט ממליץ — מהמסד (עם מדיה) או מהמילון הסטטי (טקסט בלבד) */
+type TestimonialLike = Pick<LiveTestimonial, "name" | "type" | "quote"> &
+  Partial<Pick<LiveTestimonial, "mediaKind" | "videoUrl" | "imageUrl" | "posterUrl">>;
+
+/** סוג המדיה בפועל — המלצות ישנות בלי mediaKind נגזרות מהקישור השמור */
+const mediaKindOf = (item: TestimonialLike): NonNullable<LiveTestimonial["mediaKind"]> =>
+  item.mediaKind ?? (item.videoUrl ? "video" : item.imageUrl ? "image" : "text");
+
 export function Testimonials() {
   const { dir, t } = useLang();
   const live = useLive();
   const [i, setI] = useState(0);
   const [playing, setPlaying] = useState(false);
   // תוכן שנשמר באזור הניהול מנצח; אחרת התוכן הקבוע מהמילון
-  const items = live.testimonials?.length ? live.testimonials : t.testimonials.items;
+  const items: TestimonialLike[] = live.testimonials?.length
+    ? live.testimonials
+    : t.testimonials.items;
   const item = items[Math.min(i, items.length - 1)]!;
-  // בתוכן הסטטי מהמילון אין videoUrl — קיים רק בממליצים שנשמרו במסד
-  const videoUrl = (item as { videoUrl?: string }).videoUrl ?? "";
+  const kind = mediaKindOf(item);
+  const videoUrl = kind === "video" ? (item.videoUrl ?? "") : "";
+  const imageUrl = kind === "image" ? (item.imageUrl ?? "") : "";
+  const posterUrl = item.posterUrl ?? "";
   const videoId = videoUrl ? youTubeId(videoUrl) : null;
-  // קובץ סרטון (mp4/webm) — הועלה מאזור הניהול או קישור ישיר; מנוגן בנגן מובנה
+  // קובץ סרטון (mp4/webm/mov) — הועלה מאזור הניהול או קישור ישיר; מנוגן בנגן מובנה
   const fileVideo = videoUrl ? isVideoUrl(videoUrl) : false;
+  // תמונת פתיחה ל-YouTube: מהניהול, ואם אין — התמונה של YouTube עצמו
+  const youTubePoster =
+    videoId && (posterUrl || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`);
 
   const go = (fn: (v: number) => number) => {
     setPlaying(false);
@@ -43,12 +58,22 @@ export function Testimonials() {
   const next = () => go((v) => (v + 1) % items.length);
 
   return (
-    <section className="mx-auto max-w-3xl px-4 py-14 md:py-20">
+    <section id="testimonials" className="mx-auto max-w-3xl scroll-mt-24 px-4 py-14 md:py-20">
       <p className="text-sm font-bold text-sun">{t.testimonials.kicker}</p>
       <h2 className="mt-2 text-3xl md:text-4xl">{t.testimonials.title}</h2>
       <DataSource updatedAt={live.testimonials?.length ? live.updatedAt : null} className="mt-2" />
 
       <div className="soft-card mt-6 p-6">
+        {/* המלצה עם תמונה — התמונה מעל הציטוט */}
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt={t.testimonials.imageAlt(item.name)}
+            loading="lazy"
+            className="mb-4 max-h-80 w-full rounded-xl border border-border object-cover"
+          />
+        )}
+
         <Quote className="size-7 text-sun" aria-hidden="true" />
         <blockquote className="mt-3 text-lg leading-relaxed text-foreground">
           "{item.quote}"
@@ -57,9 +82,22 @@ export function Testimonials() {
           {item.name} <span className="font-normal text-muted-foreground">· {item.type}</span>
         </p>
 
-        {/* סרטון המלצה — הטמעת YouTube, נגן מובנה לקובץ, או קישור חיצוני */}
+        {/* סרטון המלצה — קובץ מנוגן מיד בנגן מובנה; YouTube נפתח בלחיצה; אחר — קישור */}
         {videoUrl &&
-          (playing && videoId ? (
+          (fileVideo ? (
+            <div className="mt-4 overflow-hidden rounded-xl border border-border">
+              {/* object-contain על רקע כהה כדי שסרטון אנכי מהנייד יוצג יפה */}
+              <video
+                key={videoUrl}
+                src={videoUrl}
+                controls
+                playsInline
+                preload="metadata"
+                poster={posterUrl || undefined}
+                className="aspect-video w-full bg-primary object-contain"
+              />
+            </div>
+          ) : playing && videoId ? (
             <div className="mt-4 overflow-hidden rounded-xl border border-border">
               <iframe
                 title={`${t.testimonials.title} — ${item.name}`}
@@ -69,32 +107,28 @@ export function Testimonials() {
                 className="aspect-video w-full"
               />
             </div>
-          ) : playing && fileVideo ? (
-            <div className="mt-4 overflow-hidden rounded-xl border border-border">
-              {/* autoPlay בעקבות לחיצה מפורשת — כמו autoplay=1 בענף ה-YouTube;
-                  object-contain על רקע כהה כדי שסרטון אנכי מהנייד יוצג יפה */}
-              <video
-                src={videoUrl}
-                controls
-                autoPlay
-                playsInline
-                preload="metadata"
-                className="aspect-video w-full bg-primary object-contain"
+          ) : videoId ? (
+            <button
+              type="button"
+              onClick={() => setPlaying(true)}
+              className="group relative mt-4 block w-full overflow-hidden rounded-xl border border-border bg-primary"
+              aria-label={t.testimonials.watchVideo}
+            >
+              <img
+                src={youTubePoster || undefined}
+                alt=""
+                loading="lazy"
+                className="aspect-video w-full object-cover opacity-90 transition group-hover:opacity-100"
               />
-            </div>
+              <span className="absolute inset-0 flex items-center justify-center gap-2 text-sm font-bold text-white">
+                <PlayCircle className="size-12 text-sun drop-shadow" aria-hidden="true" />
+              </span>
+            </button>
           ) : (
             <a
-              href={videoId || fileVideo ? undefined : videoUrl}
-              target={videoId || fileVideo ? undefined : "_blank"}
-              rel={videoId || fileVideo ? undefined : "noopener noreferrer"}
-              onClick={
-                videoId || fileVideo
-                  ? (e) => {
-                      e.preventDefault();
-                      setPlaying(true);
-                    }
-                  : undefined
-              }
+              href={videoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className="mt-4 inline-flex cursor-pointer items-center gap-2 text-sm font-bold text-primary underline"
             >
               <PlayCircle className="size-5 text-sun" aria-hidden="true" />
@@ -134,7 +168,8 @@ export function Testimonials() {
 export function Faq() {
   const { t } = useLang();
   const live = useLive();
-  const [open, setOpen] = useState<number | null>(0);
+  // כל השאלות סגורות בטעינה — הגולש פותח מה שמעניין אותו
+  const [open, setOpen] = useState<number | null>(null);
   const items = live.faq?.length ? live.faq : t.faq.items;
 
   return (

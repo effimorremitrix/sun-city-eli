@@ -38,6 +38,16 @@ export type NotificationRow = {
   response_at: string | null;
   created_at: string;
   listing: Listing | null;
+  /** התראה על מודעה מהשוק (במקום נכס של המשרד) */
+  market: {
+    id: string;
+    title: string;
+    source_url: string;
+    source_site: string | null;
+    price: number | null;
+    neighborhood: string | null;
+    rooms: number | null;
+  } | null;
 };
 
 export const getMyAccount = createServerFn({ method: "GET" })
@@ -72,7 +82,7 @@ export const getMyAccount = createServerFn({ method: "GET" })
       supabase
         .from("listing_notifications")
         .select(
-          `id, reason, read_at, email_sent_at, response, response_at, created_at, listing:listing_id(${LISTING_COLUMNS})`,
+          `id, reason, read_at, email_sent_at, response, response_at, created_at, listing:listing_id(${LISTING_COLUMNS}), market:market_listing_id(id, title, source_url, source_site, price, neighborhood, rooms)`,
         )
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
@@ -109,22 +119,74 @@ export const saveMySearchProfile = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => searchProfileSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { id, ...fields } = data;
-    if (id) {
+    // כוונת הלקוח: 'קנייה' / 'השכרה' בלבד ('מכירה' הישן = קנייה)
+    const dealType = fields.deal_type === "השכרה" ? "השכרה" : "קנייה";
+
+    // הפרופיל שייך ללקוח (contact) — אותו כרטיס שמזין את הלידים וההתראות
+    let contactId: string | null = null;
+    try {
+      const { resolveContact } = await import("@/lib/contacts.server");
+      const { data: profile } = await context.supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", context.userId)
+        .maybeSingle();
+      const { contact } = await resolveContact({
+        userId: context.userId,
+        email: profile?.email ?? null,
+        fullName: profile?.full_name ?? null,
+        phone: fields.whatsapp_phone ?? null,
+        source: "הסוכן האישי",
+      });
+      contactId = contact.id;
+    } catch (e) {
+      console.error("profile contact link failed", e instanceof Error ? e.message : e);
+    }
+
+    let profileId = id ?? null;
+    if (profileId) {
       const { error } = await context.supabase
         .from("search_profiles")
-        .update(fields)
-        .eq("id", id)
+        .update({ ...fields, deal_type: dealType, ...(contactId ? { contact_id: contactId } : {}) })
+        .eq("id", profileId)
         .eq("user_id", context.userId);
       if (error) throw new Error(error.message);
-      return { ok: true, id };
+    } else {
+      const { data: row, error } = await context.supabase
+        .from("search_profiles")
+        .insert({
+          ...fields,
+          deal_type: dealType,
+          user_id: context.userId,
+          ...(contactId ? { contact_id: contactId } : {}),
+        })
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message);
+      profileId = row.id as string;
     }
-    const { data: row, error } = await context.supabase
-      .from("search_profiles")
-      .insert({ ...fields, user_id: context.userId })
-      .select("id")
-      .single();
-    if (error) throw new Error(error.message);
-    return { ok: true, id: row.id as string };
+
+    // התאמה מיידית מול המלאי הקיים (משרד + שוק) — הלקוח לא מחכה לפרסום הבא
+    let matched = 0;
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: count } = await supabaseAdmin.rpc("match_profile_to_listings", {
+        p_profile_id: profileId,
+      });
+      matched = Number(count ?? 0);
+      const { logActivity } = await import("@/lib/activity.server");
+      await logActivity({
+        kind: "client",
+        event: id ? "profile_updated" : "profile_created",
+        contactId,
+        actorUserId: context.userId,
+        message: `${id ? "עדכון" : "הפעלת"} הסוכן החכם: ${fields.label} (${matched} התאמות מיידיות)`,
+        metadata: { profile_id: profileId, matched },
+      });
+    } catch (e) {
+      console.error("match_profile_to_listings failed", e instanceof Error ? e.message : e);
+    }
+    return { ok: true, id: profileId, matched };
   });
 
 export const deleteMySearchProfile = createServerFn({ method: "POST" })
@@ -156,6 +218,7 @@ export const markNotificationRead = createServerFn({ method: "POST" })
 /* ---------------- התאמות, מועדפים והסוכן המטפל (האזור האישי) ---------------- */
 
 import type { MatchResult } from "@/lib/match-score";
+import { MARKET_COLUMNS, type MarketListing } from "@/lib/market";
 
 export type PortalMatch = {
   listing: Listing;
@@ -172,8 +235,16 @@ export type PortalAgent = {
   slug: string | null;
 };
 
+export type PortalMarketMatch = {
+  listing: MarketListing;
+  match: MatchResult;
+  profileLabel: string;
+};
+
 export type PortalExtras = {
   matches: PortalMatch[];
+  /** התאמות מהמאגר המשותף של השוק (מודעות מהלוחות) */
+  marketMatches: PortalMarketMatch[];
   favorites: Listing[];
   /** מיפוי נכס → תגובות המשוב של הלקוח עליו */
   feedback: Record<string, string[]>;
@@ -192,33 +263,45 @@ export const getMyPortalExtras = createServerFn({ method: "GET" })
     const { scoreListingForProfile } = await import("@/lib/match-score");
     const { attachListingImages } = await import("@/lib/listing-images.server");
 
-    const [{ data: profiles }, { data: rows }, { data: feedbackRows }, { data: leadRows }] =
-      await Promise.all([
-        supabase
-          .from("search_profiles")
-          .select(
-            "id, label, deal_type, city, neighborhoods, min_price, max_price, min_rooms, rooms, max_rooms, street, min_size, needs_mamad, needs_elevator, needs_parking, needs_balcony",
-          )
-          .eq("user_id", userId)
-          .eq("is_active", true),
-        supabase
-          .from("listings")
-          .select(LISTING_COLUMNS)
-          .eq("is_published", true)
-          .order("sort_order", { ascending: true }),
-        supabase
-          .from("listing_feedback")
-          .select("listing_id, reaction")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(300),
-        supabase
-          .from("leads")
-          .select("site_id, created_at")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(1),
-      ]);
+    const [
+      { data: profiles },
+      { data: rows },
+      { data: feedbackRows },
+      { data: leadRows },
+      { data: marketRows },
+    ] = await Promise.all([
+      supabase
+        .from("search_profiles")
+        .select(
+          "id, label, deal_type, city, neighborhoods, min_price, max_price, min_rooms, rooms, max_rooms, street, min_size, needs_mamad, needs_elevator, needs_parking, needs_balcony",
+        )
+        .eq("user_id", userId)
+        .eq("is_active", true),
+      supabase
+        .from("listings")
+        .select(LISTING_COLUMNS)
+        .eq("is_published", true)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("listing_feedback")
+        .select("listing_id, reaction")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(300),
+      supabase
+        .from("leads")
+        .select("site_id, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1),
+      supabase
+        .from("market_listings")
+        .select(MARKET_COLUMNS)
+        .eq("is_active", true)
+        .eq("hidden_by_admin", false)
+        .order("first_seen_at", { ascending: false })
+        .limit(400),
+    ]);
 
     const listings = await attachListingImages((rows ?? []) as unknown as Listing[]);
 
@@ -248,6 +331,55 @@ export const getMyPortalExtras = createServerFn({ method: "GET" })
       matches.sort((a, b) => (b.match.score ?? 0) - (a.match.score ?? 0));
     }
 
+    // התאמות מהשוק — אותו ניקוד, על מודעות מהלוחות (מתקן לא מדווח = לא נפסל)
+    const marketMatches: PortalMarketMatch[] = [];
+    if (activeProfiles.length) {
+      const { matchesMarketFilters } = await import("@/lib/market");
+      for (const m of (marketRows ?? []) as unknown as MarketListing[]) {
+        let best: PortalMarketMatch | null = null;
+        for (const p of activeProfiles) {
+          // סינון קשיח לפי הפרופיל, ואז ניקוד להצגת אחוז התאמה
+          if (!matchesMarketFilters(m, { ...p, neighborhoods: p.neighborhoods ?? [] })) continue;
+          const asListing: Listing = {
+            id: m.id,
+            site_id: null,
+            deal_type: m.deal_type,
+            title: m.title,
+            description: m.description,
+            city: m.city,
+            neighborhood: m.neighborhood,
+            address: m.address,
+            lat: null,
+            lng: null,
+            price: m.price,
+            rooms: m.rooms,
+            size_sqm: m.size_sqm,
+            floor: m.floor,
+            has_mamad: m.has_mamad !== false,
+            has_elevator: m.has_elevator !== false,
+            has_parking: m.has_parking !== false,
+            has_balcony: m.has_balcony !== false,
+            has_storage: false,
+            storage_count: null,
+            parking_count: null,
+            tag: null,
+            image_url: m.image_url,
+            image_key: null,
+            is_published: true,
+            sort_order: 0,
+            created_at: m.first_seen_at,
+            updated_at: m.last_seen_at,
+          };
+          const match = scoreListingForProfile(p, asListing);
+          if (match.score == null) continue;
+          if (!best || (best.match.score ?? 0) < match.score)
+            best = { listing: m, match, profileLabel: p.label };
+        }
+        if (best && (best.match.score ?? 0) >= 50) marketMatches.push(best);
+      }
+      marketMatches.sort((a, b) => (b.match.score ?? 0) - (a.match.score ?? 0));
+    }
+
     const favoriteIds = new Set(
       Object.entries(feedback)
         .filter(([, reactions]) => reactions.includes("favorite"))
@@ -260,7 +392,16 @@ export const getMyPortalExtras = createServerFn({ method: "GET" })
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { OFFICE_SLUG } = await import("@/lib/site-data");
-      let siteId = (leadRows?.[0]?.site_id as string | undefined) ?? null;
+      // הסוכן המטפל הקבוע נשמר על ה-contact; הליד האחרון הוא גיבוי למי שטרם קושר
+      const { data: contact } = await supabaseAdmin
+        .from("contacts")
+        .select("assigned_site_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      let siteId =
+        (contact?.assigned_site_id as string | null | undefined) ??
+        (leadRows?.[0]?.site_id as string | undefined) ??
+        null;
       if (!siteId) {
         const { data: office } = await supabaseAdmin
           .from("sites")
@@ -293,5 +434,11 @@ export const getMyPortalExtras = createServerFn({ method: "GET" })
       console.error("portal agent lookup failed", e instanceof Error ? e.message : e);
     }
 
-    return { matches: matches.slice(0, 30), favorites, feedback, agent };
+    return {
+      matches: matches.slice(0, 30),
+      marketMatches: marketMatches.slice(0, 30),
+      favorites,
+      feedback,
+      agent,
+    };
   });

@@ -29,6 +29,10 @@ import AdminLeads from "@/components/site/AdminLeads";
 import AdminListingImages from "@/components/site/AdminListingImages";
 import AdminImageField from "@/components/site/AdminImageField";
 import AdminSitesPanel from "@/components/site/AdminSitesPanel";
+import AdminActivity from "@/components/site/AdminActivity";
+import AdminSettings from "@/components/site/AdminSettings";
+import AdminSystem from "@/components/site/AdminSystem";
+import AdminMarket from "@/components/site/AdminMarket";
 import { AdminContentExtras } from "@/components/site/AdminContentExtras";
 import AdminGuide, { TabHelp } from "@/components/site/AdminGuide";
 
@@ -43,6 +47,10 @@ export type AdminTabKey =
   | "agents"
   | "clients"
   | "usage"
+  | "activity"
+  | "settings"
+  | "system"
+  | "market"
   | "guide";
 
 type ListingForm = {
@@ -452,6 +460,16 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
       {tab === "usage" && isSuperAdmin && <AdminUsage />}
       {tab === "stats" && <AdminAnalytics />}
       {tab === "scout" && isSuperAdmin && <AdminScout />}
+      {tab === "activity" && (
+        <AdminActivity
+          sites={site.data?.sites ?? []}
+          isSuperAdmin={isSuperAdmin}
+          selectedSiteId={selectedSiteId}
+        />
+      )}
+      {tab === "settings" && isSuperAdmin && <AdminSettings />}
+      {tab === "system" && isSuperAdmin && <AdminSystem />}
+      {tab === "market" && isSuperAdmin && <AdminMarket />}
       {tab === "leads" &&
         (selectedSiteId ? (
           <AdminLeads
@@ -467,7 +485,7 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
         ))}
       {tab === "sold" &&
         (selectedSiteId ? (
-          <AdminSold siteId={selectedSiteId} />
+          <AdminSold siteId={selectedSiteId} sites={site.data?.sites ?? []} />
         ) : (
           <p className="mt-6 rounded-xl bg-secondary p-4 text-sm text-muted-foreground">
             לא נמצאה רשומת אתר במסד הנתונים — לא ניתן לנהל את מדור הנמכרים.
@@ -514,25 +532,27 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
                 <option value="השכרה">השכרה</option>
               </select>
             </label>
-            {/* שיוך לסוכן — לאדמין שמנהל כמה דפים: כך נכס שהמשרד מזין מגיע
-                ישירות לדף ולדשבורד של הסוכן המטפל */}
+            {/* שיוך לסוכן — למנהל שמנהל כמה דפים: כך נכס שהמשרד מזין מגיע
+                ישירות לדף ולדשבורד של הסוכן המטפל. ברירת המחדל: הדף הנבחר בבורר */}
             {(site.data?.sites ?? []).length > 1 && (
               <label className="block">
                 <span className="mb-1 block text-xs font-bold text-muted-foreground">
-                  שיוך לסוכן / דף
+                  שיוך לסוכן / דף (חובה)
                 </span>
                 <select
                   className="field"
-                  value={form.site_id}
+                  value={form.site_id || selectedSiteId || ""}
                   onChange={(e) => setForm({ ...form, site_id: e.target.value })}
                 >
-                  <option value="">הדף הנבחר למעלה (ברירת מחדל)</option>
                   {(site.data?.sites ?? []).map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name} — /{s.slug}
                     </option>
                   ))}
                 </select>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  הנכס יופיע לעריכה באזור הניהול של הסוכן שנבחר, ובאתר הציבורי לכל הסוכנים
+                </span>
               </label>
             )}
             <label className="block">
@@ -880,6 +900,11 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
                       {l.editable === false && (
                         <span className="ms-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-secondary-foreground">
                           מלאי המשרד — לצפייה בלבד
+                        </span>
+                      )}
+                      {site.data?.isAdmin !== true && l.editable !== false && (
+                        <span className="ms-1 rounded-full bg-sun/20 px-2 py-0.5 text-xs font-bold text-primary">
+                          שלי
                         </span>
                       )}
                     </p>

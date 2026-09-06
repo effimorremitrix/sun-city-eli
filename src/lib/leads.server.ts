@@ -5,6 +5,8 @@ import {
   type LeadStatus,
 } from "@/lib/leads";
 import { neighborhoods as canonical, canonicalNeighborhood } from "@/lib/neighborhoods";
+import type { ContactRecord } from "@/lib/contacts.server";
+import type { Attribution } from "@/lib/request-context.server";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- קליינט Supabase (של המשתמש או service role)
 type Db = any;
@@ -28,6 +30,12 @@ export type LeadRecord = {
   next_follow_up_at: string | null;
   created_at: string;
   updated_at: string;
+  contact_id: string | null;
+  marketing_consent?: boolean;
+  utm_source?: string | null;
+  utm_campaign?: string | null;
+  referrer?: string | null;
+  landing_path?: string | null;
 } & LeadCriteria;
 
 /**
@@ -57,7 +65,7 @@ export const LEAD_CRITERIA_COLUMNS =
 
 // מחרוזת אחת (לא שרשור) — כדי שמנתח הטיפוסים של postgrest יזהה את העמודות
 export const LEAD_COLUMNS =
-  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at,deal_type,city,neighborhoods,property_type,min_price,max_price,min_rooms,max_rooms,min_size,min_floor,max_floor,needs_mamad,needs_elevator,needs_parking,needs_balcony";
+  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at,contact_id,marketing_consent,utm_source,utm_campaign,referrer,landing_path,deal_type,city,neighborhoods,property_type,min_price,max_price,min_rooms,max_rooms,min_size,min_floor,max_floor,needs_mamad,needs_elevator,needs_parking,needs_balcony";
 
 /** כוונות עסקה חוקיות על ליד/פרופיל (כולל 'קנייה' — כוונת קונה) */
 export const LEAD_DEAL_TYPES = ["קנייה", "מכירה", "השכרה"] as const;
@@ -167,6 +175,9 @@ export type LeadPatch = Partial<{
   listing_id: string | null;
   user_id: string | null;
   search_profile_id: string | null;
+  contact_id: string | null;
+  marketing_consent: boolean;
+  consent_at: string | null;
 }>;
 
 /**
@@ -225,9 +236,170 @@ export async function applyLeadUpdate(
 }
 
 /**
- * איתור ליד פתוח קיים ללקוח רשום באתר נתון — ואם אין, יצירת כרטיס חדש
- * (עם אירוע 'created'). service role בלבד: משמש את הזרימות האוטומטיות
- * (התאמות הסוכן האישי, תגובות לקוח) שבהן הכותב אינו הסוכן.
+ * ============================================================
+ * נקודת הכניסה היחידה ליצירת/עדכון ליד מכל מקור: טופס ציבורי, אזור אישי,
+ * webhook של קמפיין, התאמת הסוכן החכם. תמיד דרך contact: ליד פתוח אחד
+ * ללקוח, אצל הסוכן המטפל שלו (ולא אצל הדף שבו במקרה נשלח הטופס).
+ * ============================================================
+ */
+export type IngestLeadInput = {
+  contact: ContactRecord;
+  fullName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  userId?: string | null;
+  source: string;
+  listingId?: string | null;
+  marketListingId?: string | null;
+  searchProfileId?: string | null;
+  message?: string | null;
+  criteria?: LeadCriteria | null;
+  criteriaExtra?: Record<string, unknown> | null;
+  marketingConsent?: boolean;
+  attribution?: Attribution | null;
+  sessionHash?: string | null;
+  createdNote?: string | null;
+  contactAgainNote?: string | null;
+};
+
+export async function ingestLead(
+  input: IngestLeadInput,
+): Promise<{ lead: LeadRecord; created: boolean; siteId: string }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { officeSiteId } = await import("@/lib/contacts.server");
+  const { logActivity } = await import("@/lib/activity.server");
+
+  const siteId = input.contact.assigned_site_id ?? (await officeSiteId());
+  if (!siteId) throw new Error("לא נמצא אתר לשיוך הליד");
+  const closed = [...CLOSED_LEAD_STATUSES] as string[];
+  const phoneNormalized = normalizePhone(input.phone) || input.contact.phone_normalized || null;
+
+  const { data: existing, error: findErr } = await supabaseAdmin
+    .from("leads")
+    .select(LEAD_COLUMNS)
+    .eq("contact_id", input.contact.id)
+    .not("status", "in", `(${closed.map((s) => `"${s}"`).join(",")})`)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (findErr) throw new Error(findErr.message);
+
+  if (existing) {
+    const lead = existing as unknown as LeadRecord;
+    const patch: Record<string, unknown> = {};
+    if (input.listingId) patch["listing_id"] = input.listingId;
+    if (input.criteria) Object.assign(patch, input.criteria);
+    if (input.criteriaExtra) patch["criteria_extra"] = input.criteriaExtra;
+    if (!lead.user_id && input.userId) patch["user_id"] = input.userId;
+    if (!lead.search_profile_id && input.searchProfileId)
+      patch["search_profile_id"] = input.searchProfileId;
+    if (!lead.phone && input.phone) {
+      patch["phone"] = input.phone;
+      patch["phone_normalized"] = phoneNormalized;
+    }
+    if (!lead.email && input.email) patch["email"] = input.email;
+    if (input.marketingConsent && !lead.marketing_consent) {
+      patch["marketing_consent"] = true;
+      patch["consent_at"] = new Date().toISOString();
+    }
+    // ליד שנשאר אצל סוכן אחר מהמטפל הקבוע (למשל לפני המעבר ל-contacts) — לא מזיזים
+    // אוטומטית; המנהל מעביר. אבל נגיעה קלה מעלה אותו לראש הרשימה.
+    const { error: updErr } = await supabaseAdmin
+      .from("leads")
+      .update(patch as never)
+      .eq("id", lead.id);
+    if (updErr) console.error("ingestLead update failed", updErr.message);
+    await logLeadEvent(supabaseAdmin, {
+      leadId: lead.id,
+      siteId: lead.site_id,
+      eventType: "contact_again",
+      note:
+        input.contactAgainNote ??
+        `פנייה חוזרת (${input.source})${input.message ? `: ${input.message}` : ""}`,
+      listingId: input.listingId ?? null,
+      metadata: input.marketListingId ? { market_listing_id: input.marketListingId } : {},
+    });
+    await logActivity({
+      kind: "client",
+      event: "lead_contact_again",
+      siteId: lead.site_id,
+      contactId: input.contact.id,
+      leadId: lead.id,
+      listingId: input.listingId ?? null,
+      marketListingId: input.marketListingId ?? null,
+      message: `פנייה חוזרת מ-${lead.full_name} (${input.source})`,
+    });
+    return {
+      lead: { ...lead, ...(patch as Partial<LeadRecord>) },
+      created: false,
+      siteId: lead.site_id,
+    };
+  }
+
+  const a = input.attribution ?? null;
+  const { data: inserted, error: insErr } = await supabaseAdmin
+    .from("leads")
+    .insert({
+      site_id: siteId,
+      contact_id: input.contact.id,
+      user_id: input.userId ?? input.contact.user_id ?? null,
+      listing_id: input.listingId ?? null,
+      search_profile_id: input.searchProfileId ?? null,
+      full_name: (input.fullName ?? input.contact.full_name ?? "").trim() || "לקוח",
+      phone: input.phone ?? null,
+      phone_normalized: phoneNormalized,
+      email: input.email ?? input.contact.email ?? null,
+      source: input.source,
+      notes: input.message ?? null,
+      ...(input.criteria ?? {}),
+      ...(input.criteriaExtra ? { criteria_extra: input.criteriaExtra as never } : {}),
+      ...(input.marketingConsent || input.contact.marketing_consent
+        ? {
+            marketing_consent: true,
+            consent_at: input.contact.consent_at ?? new Date().toISOString(),
+          }
+        : {}),
+      utm_source: a?.utmSource ?? input.contact.first_utm_source ?? null,
+      utm_campaign: a?.utmCampaign ?? input.contact.first_utm_campaign ?? null,
+      utm_content: a?.utmContent ?? input.contact.first_utm_content ?? null,
+      referrer: a?.referrer ?? input.contact.first_referrer ?? null,
+      landing_path: a?.landingPath ?? input.contact.first_landing_path ?? null,
+      session_hash: input.sessionHash ?? null,
+    })
+    .select(LEAD_COLUMNS)
+    .single();
+  if (insErr) {
+    // מרוץ: שתי פניות באותה שנייה — הראשונה ניצחה, מצרפים אליה
+    if (insErr.code === "23505") return ingestLead(input);
+    throw new Error(insErr.message);
+  }
+  const lead = inserted as unknown as LeadRecord;
+  await logLeadEvent(supabaseAdmin, {
+    leadId: lead.id,
+    siteId,
+    eventType: "created",
+    note:
+      input.createdNote ?? `ליד נכנס (${input.source})${input.message ? `: ${input.message}` : ""}`,
+    listingId: input.listingId ?? null,
+    metadata: input.marketListingId ? { market_listing_id: input.marketListingId } : {},
+  });
+  await logActivity({
+    kind: "client",
+    event: "lead_created",
+    siteId,
+    contactId: input.contact.id,
+    leadId: lead.id,
+    listingId: input.listingId ?? null,
+    marketListingId: input.marketListingId ?? null,
+    message: `ליד חדש: ${lead.full_name} (${input.source})`,
+    metadata: { source: input.source, utm_source: lead.utm_source ?? null },
+  });
+  return { lead, created: true, siteId };
+}
+
+/**
+ * איתור/יצירת ליד ללקוח רשום. siteId הוא הדף שבו התרחשה הפעולה ומשמש רק
+ * לשיוך ראשוני כשללקוח אין עדיין סוכן מטפל; אחרת הליד נמצא אצל הסוכן שלו.
  */
 export async function findOrCreateLeadForUser(
   siteId: string,
@@ -238,75 +410,213 @@ export async function findOrCreateLeadForUser(
     phone?: string | null;
     source: string;
     listingId?: string | null;
+    marketListingId?: string | null;
     searchProfileId?: string | null;
     createdNote?: string | null;
   },
-): Promise<{ lead: LeadRecord; created: boolean }> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+): Promise<{ lead: LeadRecord; created: boolean; contact: ContactRecord }> {
+  const { resolveContact } = await import("@/lib/contacts.server");
+  const { contact, attribution } = await resolveContact({
+    userId,
+    phone: seed.phone ?? null,
+    email: seed.email ?? null,
+    fullName: seed.fullName ?? null,
+    source: seed.source,
+    pageSiteId: siteId,
+  });
+  const result = await ingestLead({
+    contact,
+    userId,
+    fullName: seed.fullName ?? null,
+    phone: seed.phone ?? null,
+    email: seed.email ?? null,
+    source: seed.source,
+    listingId: seed.listingId ?? null,
+    marketListingId: seed.marketListingId ?? null,
+    searchProfileId: seed.searchProfileId ?? null,
+    createdNote: seed.createdNote ?? null,
+    contactAgainNote: seed.createdNote ?? null,
+    attribution,
+  });
+  return { ...result, contact };
+}
 
-  const closed = [...CLOSED_LEAD_STATUSES] as string[];
+/** תקציר קריטריוני החיפוש של הלקוח בשורה אחת — להתראת הסוכן */
+export function criteriaSummary(
+  c: Partial<LeadCriteria> & { rooms?: number | null; label?: string | null },
+): string | null {
+  const parts: string[] = [];
+  if (c.deal_type) parts.push(c.deal_type === "מכירה" ? "מוכר/ת נכס" : c.deal_type);
+  if (c.neighborhoods?.length) parts.push(c.neighborhoods.slice(0, 4).join(", "));
+  if (c.min_price != null || c.max_price != null) {
+    const f = (n: number) => `${n.toLocaleString("he-IL")} ₪`;
+    if (c.min_price != null && c.max_price != null)
+      parts.push(`${f(c.min_price)}–${f(c.max_price)}`);
+    else if (c.max_price != null) parts.push(`עד ${f(c.max_price)}`);
+    else if (c.min_price != null) parts.push(`מ-${f(c.min_price)}`);
+  }
+  if (c.rooms != null) parts.push(`${c.rooms} חדרים`);
+  else if (c.min_rooms != null || c.max_rooms != null) {
+    parts.push(
+      c.min_rooms != null && c.max_rooms != null
+        ? `${c.min_rooms}–${c.max_rooms} חדרים`
+        : c.min_rooms != null
+          ? `${c.min_rooms}+ חדרים`
+          : `עד ${c.max_rooms} חדרים`,
+    );
+  }
+  if (c.min_size != null) parts.push(`${c.min_size}+ מ"ר`);
+  const needs = [
+    c.needs_mamad ? 'ממ"ד' : null,
+    c.needs_elevator ? "מעלית" : null,
+    c.needs_parking ? "חניה" : null,
+    c.needs_balcony ? "מרפסת" : null,
+  ].filter(Boolean);
+  if (needs.length) parts.push(needs.join("/"));
+  return parts.length ? parts.join(" · ") : null;
+}
 
-  const { data: byUser, error: findErr } = await supabaseAdmin
-    .from("leads")
-    .select(LEAD_COLUMNS)
-    .eq("site_id", siteId)
-    .eq("user_id", userId)
-    .not("status", "in", `(${closed.map((s) => `"${s}"`).join(",")})`)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (findErr) throw new Error(findErr.message);
-  if (byUser) return { lead: byUser as unknown as LeadRecord, created: false };
-
-  const phoneNormalized = normalizePhone(seed.phone);
-  if (phoneNormalized) {
-    const { data: byPhone, error: phoneErr } = await supabaseAdmin
-      .from("leads")
-      .select(LEAD_COLUMNS)
-      .eq("site_id", siteId)
-      .eq("phone_normalized", phoneNormalized)
-      .not("status", "in", `(${closed.map((s) => `"${s}"`).join(",")})`)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (phoneErr) throw new Error(phoneErr.message);
-    if (byPhone) {
-      const lead = byPhone as unknown as LeadRecord;
-      // ליד שנקלט בעבר בלי חשבון — משלימים את הקישור ללקוח הרשום
-      if (!lead.user_id) {
-        await supabaseAdmin.from("leads").update({ user_id: userId }).eq("id", lead.id);
-        lead.user_id = userId;
+/** הקריטריונים העדכניים של הלקוח: הפרופיל הפעיל שלו, ואם אין — הליד */
+export async function contactCriteriaSummary(
+  contactId: string | null,
+  lead: LeadRecord | null,
+): Promise<string | null> {
+  if (contactId) {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: profile } = await supabaseAdmin
+        .from("search_profiles")
+        .select(
+          "label, deal_type, neighborhoods, min_price, max_price, min_rooms, rooms, max_rooms, min_size, needs_mamad, needs_elevator, needs_parking, needs_balcony",
+        )
+        .eq("contact_id", contactId)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (profile) {
+        const summary = criteriaSummary({
+          ...(profile as unknown as LeadCriteria),
+          rooms: (profile as { rooms?: number | null }).rooms ?? null,
+          city: null,
+          property_type: null,
+          min_floor: null,
+          max_floor: null,
+        });
+        if (summary) return summary;
       }
-      return { lead, created: false };
+    } catch {
+      // נופלים לקריטריוני הליד
+    }
+  }
+  return lead ? criteriaSummary(lead) : null;
+}
+
+export type ClientActionKind = "callback" | "interest" | "response";
+
+/**
+ * פעולת לקוח על נכס (מהאזור האישי / מהתראה / מדף ציבורי): ליד אצל הסוכן
+ * המטפל, אירוע בציר הזמן, Follow-up אוטומטי, והתראה מיידית לסוכן.
+ */
+export async function handleClientAction(input: {
+  kind: ClientActionKind;
+  responseLabel: string;
+  userId: string | null;
+  contact: ContactRecord;
+  lead: LeadRecord;
+  target: {
+    listingId: string | null;
+    marketListingId: string | null;
+    title: string;
+    siteId: string | null;
+    sourceUrl?: string | null;
+  };
+  siteUrl: string;
+  metadata?: Record<string, unknown>;
+}) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { notifyAgent } = await import("@/lib/notify.server");
+  const { logActivity } = await import("@/lib/activity.server");
+  const { lead, target } = input;
+
+  await logLeadEvent(supabaseAdmin, {
+    leadId: lead.id,
+    siteId: lead.site_id,
+    eventType: "client_response",
+    note: `הלקוח סימן "${input.responseLabel}" על הנכס: ${target.title}`,
+    listingId: target.listingId,
+    actorUserId: input.userId,
+    metadata: {
+      ...(input.metadata ?? {}),
+      market_listing_id: target.marketListingId,
+      kind: input.kind,
+    },
+  });
+  await logActivity({
+    kind: "client",
+    event:
+      input.kind === "callback"
+        ? "callback_requested"
+        : input.kind === "interest"
+          ? "interest"
+          : "notification_response",
+    siteId: lead.site_id,
+    contactId: input.contact.id,
+    leadId: lead.id,
+    listingId: target.listingId,
+    marketListingId: target.marketListingId,
+    actorUserId: input.userId,
+    message: `${lead.full_name}: "${input.responseLabel}" על ${target.title}`,
+  });
+
+  if (input.kind === "callback" || input.kind === "response") {
+    const followUpAt = tomorrowAt10Israel();
+    if (!lead.next_follow_up_at || lead.next_follow_up_at > followUpAt) {
+      await applyLeadUpdate(supabaseAdmin, null, lead, {
+        listing_id: target.listingId ?? lead.listing_id,
+        next_follow_up_at: followUpAt,
+        next_action: `לחזור ללקוח — "${input.responseLabel}" על: ${target.title}`,
+      });
     }
   }
 
-  const { data: inserted, error: insErr } = await supabaseAdmin
-    .from("leads")
-    .insert({
-      site_id: siteId,
-      user_id: userId,
-      listing_id: seed.listingId ?? null,
-      search_profile_id: seed.searchProfileId ?? null,
-      full_name: seed.fullName?.trim() || "לקוח רשום",
-      phone: seed.phone ?? null,
-      phone_normalized: phoneNormalized || null,
-      email: seed.email ?? null,
-      source: seed.source,
-    })
-    .select(LEAD_COLUMNS)
-    .single();
-  if (insErr) throw new Error(insErr.message);
+  const { data: site } = await supabaseAdmin
+    .from("sites")
+    .select("slug")
+    .eq("id", lead.site_id)
+    .maybeSingle();
+  const slug = (site?.slug as string | null) ?? null;
+  const listingUrl = target.listingId
+    ? `${input.siteUrl}/${slug ?? ""}?listing=${target.listingId}#properties`.replace("//?", "/?")
+    : `${input.siteUrl}/?market=${target.marketListingId}#properties`;
 
-  const lead = inserted as unknown as LeadRecord;
-  await logLeadEvent(supabaseAdmin, {
-    leadId: lead.id,
-    siteId,
-    eventType: "created",
-    note: seed.createdNote ?? `ליד נוצר אוטומטית (מקור: ${seed.source})`,
-    listingId: seed.listingId ?? null,
-  });
-  return { lead, created: true };
+  const criteria = await contactCriteriaSummary(input.contact.id, lead);
+  try {
+    return await notifyAgent({
+      kind: input.kind,
+      responseLabel: input.responseLabel,
+      siteId: lead.site_id,
+      contactId: input.contact.id,
+      leadId: lead.id,
+      clientName: lead.full_name,
+      clientPhone:
+        lead.phone ??
+        (input.contact.phone_normalized ? `0${input.contact.phone_normalized.slice(3)}` : null),
+      clientEmail: lead.email ?? input.contact.email,
+      listing: {
+        id: target.listingId,
+        marketId: target.marketListingId,
+        title: target.title,
+        url: listingUrl,
+        sourceUrl: target.sourceUrl ?? null,
+      },
+      criteriaSummary: criteria,
+      siteUrl: input.siteUrl,
+    });
+  } catch (e) {
+    console.error("notifyAgent failed", e instanceof Error ? e.message : e);
+    return { agentNotified: false };
+  }
 }
 
 /**
@@ -393,66 +703,37 @@ export async function syncListingMatchesToLeads(
   return { synced };
 }
 
-// ---- הגנת קצב לקליטת לידים ציבורית ----
-
-const RATE_WINDOW_MS = 60_000;
-const RATE_MAX_PER_WINDOW = 5;
-const rateHits = new Map<string, number[]>();
-
 /**
- * מגבלת קצב פשוטה לפי IP לטופסי הלידים הציבוריים — Best-effort לכל מופע שרת
- * (אין תלות חיצונית; מספיק נגד הצפה תמימה, בהתאמה לרמת ההגנות בפרויקט).
+ * תאימות לאחור: התראה לסוכן על תגובת לקוח — עוברת דרך notifyAgent
+ * (מייל + וואטסאפ + עותק מנהל + רישום ביומן).
  */
-export function checkPublicLeadRateLimit(ip: string, now: number = Date.now()): boolean {
-  const hits = (rateHits.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
-  if (hits.length >= RATE_MAX_PER_WINDOW) {
-    rateHits.set(ip, hits);
-    return false;
-  }
-  hits.push(now);
-  rateHits.set(ip, hits);
-  if (rateHits.size > 5000) rateHits.clear(); // בלם זיכרון גס
-  return true;
-}
-
-/** מייל לסוכן המטפל (בעל האתר) כשלקוח מגיב על התראת נכס */
 export async function notifyAgentOfClientResponse(
   lead: LeadRecord,
   siteId: string,
   listingTitle: string,
   responseLabel: string,
+  siteUrl = "https://sun-city-eli.lovable.app",
 ) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { sendNotificationEmail } = await import("@/lib/email.server");
-
-  const { data: site } = await supabaseAdmin
-    .from("sites")
-    .select("owner_id")
-    .eq("id", siteId)
-    .maybeSingle();
-  const ownerId = site?.owner_id as string | undefined;
-  if (!ownerId) return;
-  const { data: profile } = await supabaseAdmin
-    .from("profiles")
-    .select("email")
-    .eq("id", ownerId)
-    .maybeSingle();
-  const email = (profile?.email as string | null) ?? null;
-  if (!email) return;
-
-  const html = `<!doctype html><html lang="he" dir="rtl"><body style="font-family:Assistant,Arial,sans-serif;background:#FAF8F5;padding:24px">
-  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:24px">
-    <p style="color:#E8A33D;font-weight:700;margin:0">לקוח הגיב על נכס</p>
-    <h1 style="color:#1B2A41;font-size:20px;margin:8px 0 4px">${lead.full_name}</h1>
-    <p style="color:#333;margin:0">סימן/ה: <strong>"${responseLabel}"</strong> על הנכס: ${listingTitle}</p>
-    <p style="color:#555;margin:8px 0 0">${lead.phone ?? ""}${lead.email ? ` · ${lead.email}` : ""}</p>
-    <p style="color:#1B2A41;font-weight:700;margin:16px 0 0">נקבעה משימת Follow-up בכרטיס הליד — היכנסו לאזור הניהול, טאב "לידים".</p>
-  </div></body></html>`;
-
-  await sendNotificationEmail({
-    to: email,
-    subject: `לקוח הגיב "${responseLabel}" על הנכס: ${listingTitle}`,
-    html,
+  const { notifyAgent } = await import("@/lib/notify.server");
+  return notifyAgent({
+    kind: "response",
+    responseLabel,
+    siteId,
+    contactId: lead.contact_id,
+    leadId: lead.id,
+    clientName: lead.full_name,
+    clientPhone: lead.phone,
+    clientEmail: lead.email,
+    listing: lead.listing_id
+      ? {
+          id: lead.listing_id,
+          marketId: null,
+          title: listingTitle,
+          url: `${siteUrl}/?listing=${lead.listing_id}#properties`,
+        }
+      : null,
+    criteriaSummary: criteriaSummary(lead),
+    siteUrl,
   });
 }
 
@@ -537,6 +818,7 @@ export async function upsertSearchProfileFromCriteria(
   db: Db,
   input: {
     userId: string;
+    contactId?: string | null;
     criteria: LeadCriteria;
     whatsappPhone?: string | null;
     notes?: string | null;
@@ -544,10 +826,19 @@ export async function upsertSearchProfileFromCriteria(
 ): Promise<string | null> {
   try {
     const label = "נכס לפי דרישה";
+    const dealType =
+      input.criteria.deal_type === "השכרה"
+        ? "השכרה"
+        : input.criteria.deal_type === "מכירה"
+          ? null
+          : "קנייה";
+    // מוכר/ת נכס אינו פרופיל חיפוש — אין מה לנטר עבורו
+    if (!dealType) return null;
     const fields = {
       user_id: input.userId,
+      ...(input.contactId ? { contact_id: input.contactId } : {}),
       label,
-      deal_type: input.criteria.deal_type ?? "קנייה",
+      deal_type: dealType,
       city: input.criteria.city ?? "נתניה",
       neighborhoods: input.criteria.neighborhoods,
       min_price: input.criteria.min_price,

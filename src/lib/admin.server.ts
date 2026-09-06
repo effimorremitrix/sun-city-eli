@@ -1,5 +1,9 @@
 import type { ListingInput } from "@/lib/listing-schema";
-import { sendPendingListingNotifications, notifyAgentOfMatches } from "@/lib/notify.server";
+import {
+  sendPendingListingNotifications,
+  notifyAgentOfMatches,
+  type NotifyTarget,
+} from "@/lib/notify.server";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- קליינט Supabase של המשתמש מה-middleware
 type Ctx = { supabase: any; userId: string };
@@ -169,7 +173,18 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
       console.error("match_listing_to_leads failed", e instanceof Error ? e.message : e);
     }
 
-    const minimal = {
+    // הסוכן המפרסם — לצירוף לינק יצירת קשר בהודעות ללקוחות, ו-slug הדף
+    // לקישור עמוק ישירות לנכס.
+    const siteId = fields.site_id ?? null;
+    const { agentChannels } = await import("@/lib/notify.server");
+    const channels = await agentChannels(siteId).catch(() => null);
+    const agent = channels ? { name: channels.name, phoneTel: channels.publicPhone } : null;
+    const listingUrl = channels?.slug
+      ? `${siteUrl}/${channels.slug}?listing=${listingId}#properties`
+      : `${siteUrl}/?listing=${listingId}#properties`;
+
+    const minimal: NotifyTarget = {
+      kind: "listing",
       id: listingId,
       title: fields.title,
       neighborhood: fields.neighborhood,
@@ -177,34 +192,9 @@ export async function saveListingAndNotify(context: Ctx, input: ListingInput, si
       rooms: fields.rooms,
       size_sqm: fields.size_sqm,
       description: fields.description,
+      url: listingUrl,
+      siteId,
     };
-
-    // הסוכן המפרסם — לצירוף לינק יצירת קשר בהודעות ללקוחות. באותה קריאה
-    // נשלף גם ה-slug של הדף, לבניית קישור עמוק ישירות לנכס.
-    let agent: { name: string; phoneTel: string | null } | null = null;
-    let listingUrl = `${siteUrl}/?listing=${listingId}#properties`;
-    const siteId = fields.site_id ?? null;
-    if (siteId) {
-      try {
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const [{ data: content }, { data: site }] = await Promise.all([
-          supabaseAdmin.from("site_content").select("business").eq("site_id", siteId).maybeSingle(),
-          supabaseAdmin.from("sites").select("slug").eq("id", siteId).maybeSingle(),
-        ]);
-        const business = (content?.business ?? {}) as {
-          agentName?: string;
-          name?: string;
-          phoneTel?: string;
-        };
-        agent = {
-          name: business.agentName || business.name || "הסוכן",
-          phoneTel: business.phoneTel ?? null,
-        };
-        if (site?.slug) listingUrl = `${siteUrl}/${site.slug}?listing=${listingId}#properties`;
-      } catch {
-        agent = null;
-      }
-    }
 
     const result = await sendPendingListingNotifications(minimal, listingUrl, agent);
     emailsSent = result.sent;

@@ -17,12 +17,13 @@ import { adminLeadsAttentionCount, respondToNotification } from "@/lib/leads.fun
 import { CLIENT_RESPONSES, type ClientResponse } from "@/lib/leads";
 import { LangProvider, useLang, useStoredLocale } from "@/lib/i18n";
 import { formatListingPrice } from "@/lib/listings";
-import { neighborhoods } from "@/lib/site-data";
+import { listingDealToIntent, toListingDeal } from "@/lib/deal-type";
 import { formatUpdated } from "@/lib/site-live";
 import { useAuth } from "@/hooks/useAuth";
 import { useBackToSiteHref } from "@/lib/back-to-site";
 import AccountSettings from "@/components/site/AccountSettings";
-import { PortalExtrasSections } from "@/components/portal/PortalSections";
+import { NeighborhoodPicker } from "@/components/site/NeighborhoodPicker";
+import { PortalAiSearch, PortalExtrasSections } from "@/components/portal/PortalSections";
 import { AdminPanel, type AdminTabKey } from "@/components/site/AdminPanel";
 
 const title = 'האזור האישי | סאן סיטי נדל"ן';
@@ -43,6 +44,10 @@ const TAB_KEYS: TabKey[] = [
   "agents",
   "clients",
   "usage",
+  "activity",
+  "settings",
+  "system",
+  "market",
   "guide",
 ];
 
@@ -122,7 +127,8 @@ const emptyProfile: ProfileForm = {
 const toForm = (p: SearchProfileRow): ProfileForm => ({
   id: p.id,
   label: p.label,
-  deal_type: p.deal_type,
+  // הטופס מציע רק "קנייה" / "שכירות"; ערך ישן "מכירה" בפרופיל = קנייה
+  deal_type: listingDealToIntent(toListingDeal(p.deal_type)),
   city: p.city,
   neighborhoods: p.neighborhoods ?? [],
   street: p.street ?? "",
@@ -223,14 +229,6 @@ function AccountContent() {
       setBusy(false);
     }
   };
-
-  const toggleHood = (n: string) =>
-    setForm({
-      ...form,
-      neighborhoods: form.neighborhoods.includes(n)
-        ? form.neighborhoods.filter((x) => x !== n)
-        : [...form.neighborhoods, n],
-    });
 
   const submit = () =>
     run(async () => {
@@ -333,11 +331,15 @@ function AccountContent() {
                   : []),
                 ["content", "תוכן העסק"],
                 ["publish", "פרסום"],
+                ["activity", "יומן פעילות"],
                 ...(isSuperAdmin
                   ? ([
+                      ["market", "מאגר השוק"],
                       ["agents", "סוכנים וצוות"],
                       ["clients", "לקוחות רשומים"],
                       ["usage", "שימוש (Usage)"],
+                      ["settings", "הגדרות"],
+                      ["system", "מערכת"],
                     ] as Array<[TabKey, string]>)
                   : []),
                 ["guide", "מדריך"],
@@ -455,6 +457,9 @@ function AccountContent() {
 
             {!isAdmin && (
               <>
+                {/* חיפוש חכם בכל השוק — נכסי המשרד + מודעות מהלוחות */}
+                <PortalAiSearch onMessage={setMsg} />
+
                 {/* התראות */}
                 <section className="soft-card mt-6 p-5">
                   <h2 className="flex items-center gap-2 text-lg font-extrabold text-primary">
@@ -476,18 +481,24 @@ function AccountContent() {
                         key={n.id}
                         className={`rounded-xl border p-3 ${n.read_at ? "border-border" : "border-sun bg-secondary/60"}`}
                       >
+                        {/* התראה על מודעה מהשוק מגיעה בלי listing — הכותרת היא הסיבה;
+                            "נכס הוסר" רק כשאין לא נכס ולא סיבה */}
                         <p className="font-bold text-primary">
-                          {n.listing?.title ?? t.portal.listingRemoved}
+                          {n.listing?.title ?? n.reason ?? t.portal.listingRemoved}
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {n.listing?.neighborhood
-                            ? (t.maps.neighborhoods[n.listing.neighborhood] ??
-                              n.listing.neighborhood)
-                            : t.misc.noInfo}{" "}
-                          · {formatListingPrice(n.listing?.price ?? null)} ·{" "}
+                          {n.listing && (
+                            <>
+                              {n.listing.neighborhood
+                                ? (t.maps.neighborhoods[n.listing.neighborhood] ??
+                                  n.listing.neighborhood)
+                                : t.misc.noInfo}{" "}
+                              · {formatListingPrice(n.listing.price)} ·{" "}
+                            </>
+                          )}
                           {formatUpdated(n.created_at)}
                         </p>
-                        {n.reason && (
+                        {n.listing && n.reason && (
                           <p className="mt-1 text-xs text-muted-foreground">{n.reason}</p>
                         )}
                         {/* תגובה מהירה — יוצרת משימת Follow-up אצל הסוכן המטפל */}
@@ -646,7 +657,6 @@ function AccountContent() {
                       >
                         {/* "קנייה" = כוונת קונה — תואמת נכסים שעומדים למכירה */}
                         <option value="קנייה">{t.portal.dealBuy}</option>
-                        <option value="מכירה">{t.portal.dealSaleLegacy}</option>
                         <option value="השכרה">{t.portal.dealRent}</option>
                       </select>
                     </label>
@@ -761,28 +771,13 @@ function AccountContent() {
                     </label>
                   </div>
 
-                  <fieldset className="mt-4">
-                    <legend className="mb-2 text-xs font-bold text-muted-foreground">
-                      {t.portal.areasLegend}
-                    </legend>
-                    <div className="flex flex-wrap gap-2">
-                      {neighborhoods.map((n) => (
-                        <button
-                          type="button"
-                          key={n}
-                          onClick={() => toggleHood(n)}
-                          aria-pressed={form.neighborhoods.includes(n)}
-                          className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                            form.neighborhoods.includes(n)
-                              ? "border-sun bg-sun text-sun-foreground"
-                              : "border-border text-foreground"
-                          }`}
-                        >
-                          {t.maps.neighborhoods[n] ?? n}
-                        </button>
-                      ))}
-                    </div>
-                  </fieldset>
+                  <div className="mt-4">
+                    <NeighborhoodPicker
+                      value={form.neighborhoods}
+                      onChange={(next) => setForm({ ...form, neighborhoods: next })}
+                      label={t.portal.areasLegend}
+                    />
+                  </div>
 
                   <div className="mt-4 flex flex-wrap gap-4 text-sm">
                     {(

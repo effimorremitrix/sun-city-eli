@@ -2,7 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { LISTING_COLUMNS, type Listing } from "@/lib/listings";
-import { listingInputSchema } from "@/lib/listing-schema";
+import { listingInputSchema, type ListingInput } from "@/lib/listing-schema";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import type { ManagedSite } from "@/lib/admin.server";
 import { OFFICE_SLUG } from "@/lib/site-data";
 
@@ -155,9 +157,84 @@ export const adminSaveListing = createServerFn({ method: "POST" })
       }
     }
 
+    // תרגום אוטומטי של כותרת ותיאור לשפות האתר — רק לשדות חסרים או כשהעברית
+    // השתנתה; תרגום ידני מהטופס (AdminTranslateTabs) מנצח. ראו translate.server.ts
+    const translations = await translateListingFields(context, data);
+
     const origin = new URL(getRequest().url).origin;
-    return saveListingAndNotify(context, { ...data, site_id: siteId, lat, lng }, origin);
+    return saveListingAndNotify(
+      context,
+      { ...data, site_id: siteId, lat, lng, translations: translations as never },
+      origin,
+    );
   });
+
+/**
+ * ממזג את תרגומי הטופס עם הקיימים במסד ומשלים אוטומטית מה שחסר.
+ * שדה שהמנהל שינה ידנית בטופס (שונה מהשמור) נשמר ומחתום בעברית הנוכחית;
+ * שדה ריק, או כזה שהעברית שלו השתנתה מאז התרגום — מתורגם מחדש.
+ */
+async function translateListingFields(
+  context: { supabase: SupabaseClient<Database>; userId: string },
+  data: ListingInput,
+): Promise<Record<string, Record<string, unknown>>> {
+  type Stored = Record<
+    string,
+    { title?: string; description?: string; _hash?: Record<string, string> }
+  >;
+  let stored: Stored = {};
+  if (data.id) {
+    const { data: row } = await context.supabase
+      .from("listings")
+      .select("translations")
+      .eq("id", data.id)
+      .maybeSingle();
+    stored = ((row?.translations as Stored | null) ?? {}) || {};
+  }
+
+  const { autoTranslate, AUTO_TRANSLATE_TARGETS } = await import("@/lib/translate.server");
+  const existing: Record<string, Record<string, unknown>> = {};
+  for (const lang of AUTO_TRANSLATE_TARGETS) {
+    const prev = stored[lang] ?? {};
+    const manual = data.translations[lang] ?? {};
+    const hash = { ...(prev._hash ?? {}) };
+    const entry: Record<string, unknown> = {};
+    for (const key of ["title", "description"] as const) {
+      const manualValue = manual[key]?.trim() ?? "";
+      const prevValue = prev[key]?.trim() ?? "";
+      entry[key] = manualValue;
+      // ערך שהוקלד ידנית עכשיו (שונה מהשמור) — מוחקים את החתימה כדי
+      // ש-autoTranslate ישמור אותו ויחתים אותו בעברית הנוכחית
+      if (manualValue && manualValue !== prevValue) delete hash[key];
+    }
+    entry["_hash"] = hash;
+    existing[lang] = entry;
+  }
+
+  const auto = await autoTranslate(
+    { title: data.title, description: data.description ?? "" },
+    existing,
+    context.userId,
+  );
+
+  // שפות שאינן מתורגמות אוטומטית (אם יגיעו מהטופס) נשמרות כמות שהן
+  const out: Record<string, Record<string, unknown>> = {};
+  for (const [lang, tr] of Object.entries(data.translations)) {
+    if (!(AUTO_TRANSLATE_TARGETS as readonly string[]).includes(lang)) out[lang] = { ...tr };
+  }
+  for (const lang of AUTO_TRANSLATE_TARGETS) {
+    const entry: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(auto[lang])) {
+      if (key === "_hash") {
+        if (value && typeof value === "object" && Object.keys(value).length) entry["_hash"] = value;
+      } else if (typeof value === "string" && value) {
+        entry[key] = value;
+      }
+    }
+    if (Object.keys(entry).length) out[lang] = entry;
+  }
+  return out;
+}
 
 /**
  * השלמת מיקומים לנכסים שאין להם קואורדינטות — לנכסים שנשמרו לפני הוספת

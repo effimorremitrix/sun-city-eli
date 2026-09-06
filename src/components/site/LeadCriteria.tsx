@@ -4,11 +4,24 @@ import type { LeadCriteria } from "@/lib/leads.server";
  * תקציר "מה הלקוח מחפש" מהקריטריונים המובנים של הליד — רשימת תגיות קצרות
  * לכרטיס הליד ולמגירה. מחזיר [] כשאין אף קריטריון (ליד ישן / טופס חופשי).
  */
+/**
+ * תווית כוונת הלקוח בסגנון צד-הלקוח: 'קנייה' = קונה, 'השכרה' = שוכר,
+ * 'מכירה' על ליד = הלקוח מוכר נכס (ולא "נכס למכירה").
+ */
+export function intentLabel(dealType: string | null | undefined): string | null {
+  if (!dealType) return null;
+  if (dealType === "קנייה") return "קנייה";
+  if (dealType === "השכרה") return "שכירות";
+  if (dealType === "מכירה") return "מוכר/ת נכס";
+  return dealType;
+}
+
 export function leadCriteriaChips(lead: Partial<LeadCriteria>): string[] {
   const chips: string[] = [];
   const fmt = (n: number) => n.toLocaleString("he-IL");
 
-  if (lead.deal_type) chips.push(lead.deal_type);
+  const intent = intentLabel(lead.deal_type);
+  if (intent) chips.push(intent);
   if (lead.property_type) chips.push(lead.property_type);
   if (lead.city && lead.city !== "נתניה") chips.push(lead.city);
   for (const hood of lead.neighborhoods ?? []) chips.push(hood);
