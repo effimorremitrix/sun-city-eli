@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -40,7 +40,7 @@ export type Database = {
           created_at?: string
           error?: string | null
           event: string
-          id?: number
+          id?: never
           kind: string
           lead_id?: string | null
           listing_id?: string | null
@@ -58,7 +58,7 @@ export type Database = {
           created_at?: string
           error?: string | null
           event?: string
-          id?: number
+          id?: never
           kind?: string
           lead_id?: string | null
           listing_id?: string | null
@@ -68,6 +68,81 @@ export type Database = {
           recipient?: string | null
           site_id?: string | null
           status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_log_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_log_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_log_market_listing_id_fkey"
+            columns: ["market_listing_id"]
+            isOneToOne: false
+            referencedRelation: "market_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_log_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_usage_events: {
+        Row: {
+          cost_usd: number
+          created_at: string
+          error_message: string | null
+          feature: string
+          id: string
+          input_tokens: number
+          model: string
+          output_tokens: number
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          cost_usd?: number
+          created_at?: string
+          error_message?: string | null
+          feature?: string
+          id?: string
+          input_tokens?: number
+          model: string
+          output_tokens?: number
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          cost_usd?: number
+          created_at?: string
+          error_message?: string | null
+          feature?: string
+          id?: string
+          input_tokens?: number
+          model?: string
+          output_tokens?: number
+          status?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -183,226 +258,22 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
-      }
-      job_runs: {
-        Row: {
-          error: string | null
-          finished_at: string | null
-          id: number
-          job: string
-          started_at: string
-          status: string
-          summary: Json
-          trigger: string | null
-        }
-        Insert: {
-          error?: string | null
-          finished_at?: string | null
-          id?: number
-          job: string
-          started_at?: string
-          status?: string
-          summary?: Json
-          trigger?: string | null
-        }
-        Update: {
-          error?: string | null
-          finished_at?: string | null
-          id?: number
-          job?: string
-          started_at?: string
-          status?: string
-          summary?: Json
-          trigger?: string | null
-        }
-        Relationships: []
-      }
-      market_listings: {
-        Row: {
-          address: string | null
-          city: string
-          created_at: string
-          created_listing_id: string | null
-          deal_type: string
-          description: string | null
-          external_id: string | null
-          first_seen_at: string
-          floor: string | null
-          has_balcony: boolean | null
-          has_elevator: boolean | null
-          has_mamad: boolean | null
-          has_parking: boolean | null
-          hidden_by_admin: boolean
-          id: string
-          image_url: string | null
-          is_active: boolean
-          last_seen_at: string
-          match_score: number | null
-          neighborhood: string | null
-          price: number | null
-          raw: Json
-          rooms: number | null
-          size_sqm: number | null
-          source: string
-          source_site: string | null
-          source_url: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          address?: string | null
-          city?: string
-          created_at?: string
-          created_listing_id?: string | null
-          deal_type?: string
-          description?: string | null
-          external_id?: string | null
-          first_seen_at?: string
-          floor?: string | null
-          has_balcony?: boolean | null
-          has_elevator?: boolean | null
-          has_mamad?: boolean | null
-          has_parking?: boolean | null
-          hidden_by_admin?: boolean
-          id?: string
-          image_url?: string | null
-          is_active?: boolean
-          last_seen_at?: string
-          match_score?: number | null
-          neighborhood?: string | null
-          price?: number | null
-          raw?: Json
-          rooms?: number | null
-          size_sqm?: number | null
-          source: string
-          source_site?: string | null
-          source_url: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          address?: string | null
-          city?: string
-          created_at?: string
-          created_listing_id?: string | null
-          deal_type?: string
-          description?: string | null
-          external_id?: string | null
-          first_seen_at?: string
-          floor?: string | null
-          has_balcony?: boolean | null
-          has_elevator?: boolean | null
-          has_mamad?: boolean | null
-          has_parking?: boolean | null
-          hidden_by_admin?: boolean
-          id?: string
-          image_url?: string | null
-          is_active?: boolean
-          last_seen_at?: string
-          match_score?: number | null
-          neighborhood?: string | null
-          price?: number | null
-          raw?: Json
-          rooms?: number | null
-          size_sqm?: number | null
-          source?: string
-          source_site?: string | null
-          source_url?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      market_scan_tasks: {
-        Row: {
-          deal_type: string
-          demand: number
-          key: string
-          last_error: string | null
-          last_found: number | null
-          last_scanned_at: string | null
-          neighborhood: string
-          updated_at: string
-        }
-        Insert: {
-          deal_type: string
-          demand?: number
-          key: string
-          last_error?: string | null
-          last_found?: number | null
-          last_scanned_at?: string | null
-          neighborhood: string
-          updated_at?: string
-        }
-        Update: {
-          deal_type?: string
-          demand?: number
-          key?: string
-          last_error?: string | null
-          last_found?: number | null
-          last_scanned_at?: string | null
-          neighborhood?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      rate_limits: {
-        Row: {
-          count: number
-          key: string
-          window_start: string
-        }
-        Insert: {
-          count?: number
-          key: string
-          window_start: string
-        }
-        Update: {
-          count?: number
-          key?: string
-          window_start?: string
-        }
-        Relationships: []
-      }
-      ai_usage_events: {
-        Row: {
-          cost_usd: number
-          created_at: string
-          error_message: string | null
-          feature: string
-          id: string
-          input_tokens: number
-          model: string
-          output_tokens: number
-          status: string
-          user_id: string | null
-        }
-        Insert: {
-          cost_usd?: number
-          created_at?: string
-          error_message?: string | null
-          feature?: string
-          id?: string
-          input_tokens?: number
-          model: string
-          output_tokens?: number
-          status?: string
-          user_id?: string | null
-        }
-        Update: {
-          cost_usd?: number
-          created_at?: string
-          error_message?: string | null
-          feature?: string
-          id?: string
-          input_tokens?: number
-          model?: string
-          output_tokens?: number
-          status?: string
-          user_id?: string | null
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contacts_assigned_site_id_fkey"
+            columns: ["assigned_site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_first_site_id_fkey"
+            columns: ["first_site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       facebook_connections: {
         Row: {
@@ -477,6 +348,39 @@ export type Database = {
           },
         ]
       }
+      job_runs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: number
+          job: string
+          started_at: string
+          status: string
+          summary: Json
+          trigger: string | null
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: never
+          job: string
+          started_at?: string
+          status?: string
+          summary?: Json
+          trigger?: string | null
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: never
+          job?: string
+          started_at?: string
+          status?: string
+          summary?: Json
+          trigger?: string | null
+        }
+        Relationships: []
+      }
       lead_events: {
         Row: {
           actor_user_id: string | null
@@ -537,17 +441,10 @@ export type Database = {
       }
       leads: {
         Row: {
-          contact_id: string | null
-          utm_source: string | null
-          utm_campaign: string | null
-          utm_content: string | null
-          referrer: string | null
-          landing_path: string | null
-          session_hash: string | null
-          reassigned_from_site_id: string | null
           buy_categories: string[]
           city: string | null
           consent_at: string | null
+          contact_id: string | null
           created_at: string
           created_by: string | null
           criteria_extra: Json | null
@@ -555,6 +452,7 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          landing_path: string | null
           listing_id: string | null
           marketing_consent: boolean
           max_floor: number | null
@@ -575,29 +473,28 @@ export type Database = {
           phone: string | null
           phone_normalized: string | null
           property_type: string | null
+          reassigned_from_site_id: string | null
+          referrer: string | null
           reminder_email_sent_at: string | null
           reminder_whatsapp_sent_at: string | null
           score: number | null
           search_profile_id: string | null
           sell_categories: string[]
+          session_hash: string | null
           site_id: string
           source: string
           status: string
           updated_at: string
           user_id: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_source: string | null
         }
         Insert: {
-          contact_id?: string | null
-          utm_source?: string | null
-          utm_campaign?: string | null
-          utm_content?: string | null
-          referrer?: string | null
-          landing_path?: string | null
-          session_hash?: string | null
-          reassigned_from_site_id?: string | null
           buy_categories?: string[]
           city?: string | null
           consent_at?: string | null
+          contact_id?: string | null
           created_at?: string
           created_by?: string | null
           criteria_extra?: Json | null
@@ -605,6 +502,7 @@ export type Database = {
           email?: string | null
           full_name: string
           id?: string
+          landing_path?: string | null
           listing_id?: string | null
           marketing_consent?: boolean
           max_floor?: number | null
@@ -625,29 +523,28 @@ export type Database = {
           phone?: string | null
           phone_normalized?: string | null
           property_type?: string | null
+          reassigned_from_site_id?: string | null
+          referrer?: string | null
           reminder_email_sent_at?: string | null
           reminder_whatsapp_sent_at?: string | null
           score?: number | null
           search_profile_id?: string | null
           sell_categories?: string[]
+          session_hash?: string | null
           site_id: string
           source?: string
           status?: string
           updated_at?: string
           user_id?: string | null
-        }
-        Update: {
-          contact_id?: string | null
-          utm_source?: string | null
           utm_campaign?: string | null
           utm_content?: string | null
-          referrer?: string | null
-          landing_path?: string | null
-          session_hash?: string | null
-          reassigned_from_site_id?: string | null
+          utm_source?: string | null
+        }
+        Update: {
           buy_categories?: string[]
           city?: string | null
           consent_at?: string | null
+          contact_id?: string | null
           created_at?: string
           created_by?: string | null
           criteria_extra?: Json | null
@@ -655,6 +552,7 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          landing_path?: string | null
           listing_id?: string | null
           marketing_consent?: boolean
           max_floor?: number | null
@@ -675,23 +573,43 @@ export type Database = {
           phone?: string | null
           phone_normalized?: string | null
           property_type?: string | null
+          reassigned_from_site_id?: string | null
+          referrer?: string | null
           reminder_email_sent_at?: string | null
           reminder_whatsapp_sent_at?: string | null
           score?: number | null
           search_profile_id?: string | null
           sell_categories?: string[]
+          session_hash?: string | null
           site_id?: string
           source?: string
           status?: string
           updated_at?: string
           user_id?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_source?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_reassigned_from_site_id_fkey"
+            columns: ["reassigned_from_site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
             referencedColumns: ["id"]
           },
           {
@@ -742,6 +660,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "listing_feedback_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "listing_feedback_lead_id_fkey"
             columns: ["lead_id"]
@@ -809,13 +734,13 @@ export type Database = {
       listing_notifications: {
         Row: {
           contact_id: string | null
-          market_listing_id: string | null
           created_at: string
           email_sent_at: string | null
           error: string | null
           id: string
           lead_id: string | null
           listing_id: string | null
+          market_listing_id: string | null
           read_at: string | null
           reason: string | null
           response: string | null
@@ -827,13 +752,13 @@ export type Database = {
         }
         Insert: {
           contact_id?: string | null
-          market_listing_id?: string | null
           created_at?: string
           email_sent_at?: string | null
           error?: string | null
           id?: string
           lead_id?: string | null
-          listing_id: string | null
+          listing_id?: string | null
+          market_listing_id?: string | null
           read_at?: string | null
           reason?: string | null
           response?: string | null
@@ -845,13 +770,13 @@ export type Database = {
         }
         Update: {
           contact_id?: string | null
-          market_listing_id?: string | null
           created_at?: string
           email_sent_at?: string | null
           error?: string | null
           id?: string
           lead_id?: string | null
           listing_id?: string | null
+          market_listing_id?: string | null
           read_at?: string | null
           reason?: string | null
           response?: string | null
@@ -862,6 +787,13 @@ export type Database = {
           whatsapp_sent_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "listing_notifications_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "listing_notifications_lead_id_fkey"
             columns: ["lead_id"]
@@ -874,6 +806,13 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_notifications_market_listing_id_fkey"
+            columns: ["market_listing_id"]
+            isOneToOne: false
+            referencedRelation: "market_listings"
             referencedColumns: ["id"]
           },
           {
@@ -1074,6 +1013,143 @@ export type Database = {
           },
         ]
       }
+      market_listings: {
+        Row: {
+          address: string | null
+          city: string
+          created_at: string
+          created_listing_id: string | null
+          deal_type: string
+          description: string | null
+          external_id: string | null
+          first_seen_at: string
+          floor: string | null
+          has_balcony: boolean | null
+          has_elevator: boolean | null
+          has_mamad: boolean | null
+          has_parking: boolean | null
+          hidden_by_admin: boolean
+          id: string
+          image_url: string | null
+          is_active: boolean
+          last_seen_at: string
+          match_score: number | null
+          neighborhood: string | null
+          price: number | null
+          raw: Json
+          rooms: number | null
+          size_sqm: number | null
+          source: string
+          source_site: string | null
+          source_url: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string
+          created_at?: string
+          created_listing_id?: string | null
+          deal_type?: string
+          description?: string | null
+          external_id?: string | null
+          first_seen_at?: string
+          floor?: string | null
+          has_balcony?: boolean | null
+          has_elevator?: boolean | null
+          has_mamad?: boolean | null
+          has_parking?: boolean | null
+          hidden_by_admin?: boolean
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          last_seen_at?: string
+          match_score?: number | null
+          neighborhood?: string | null
+          price?: number | null
+          raw?: Json
+          rooms?: number | null
+          size_sqm?: number | null
+          source: string
+          source_site?: string | null
+          source_url: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string
+          created_at?: string
+          created_listing_id?: string | null
+          deal_type?: string
+          description?: string | null
+          external_id?: string | null
+          first_seen_at?: string
+          floor?: string | null
+          has_balcony?: boolean | null
+          has_elevator?: boolean | null
+          has_mamad?: boolean | null
+          has_parking?: boolean | null
+          hidden_by_admin?: boolean
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          last_seen_at?: string
+          match_score?: number | null
+          neighborhood?: string | null
+          price?: number | null
+          raw?: Json
+          rooms?: number | null
+          size_sqm?: number | null
+          source?: string
+          source_site?: string | null
+          source_url?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_listings_created_listing_id_fkey"
+            columns: ["created_listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_scan_tasks: {
+        Row: {
+          deal_type: string
+          demand: number
+          key: string
+          last_error: string | null
+          last_found: number | null
+          last_scanned_at: string | null
+          neighborhood: string
+          updated_at: string
+        }
+        Insert: {
+          deal_type: string
+          demand?: number
+          key: string
+          last_error?: string | null
+          last_found?: number | null
+          last_scanned_at?: string | null
+          neighborhood: string
+          updated_at?: string
+        }
+        Update: {
+          deal_type?: string
+          demand?: number
+          key?: string
+          last_error?: string | null
+          last_found?: number | null
+          last_scanned_at?: string | null
+          neighborhood?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       page_views: {
         Row: {
           created_at: string
@@ -1148,6 +1224,24 @@ export type Database = {
           full_name?: string | null
           id?: string
           marketing_consent?: boolean
+        }
+        Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          count: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          window_start: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          window_start?: string
         }
         Relationships: []
       }
@@ -1327,8 +1421,8 @@ export type Database = {
       }
       search_profiles: {
         Row: {
-          contact_id: string | null
           city: string
+          contact_id: string | null
           created_at: string
           deal_type: string
           id: string
@@ -1354,8 +1448,8 @@ export type Database = {
           whatsapp_phone: string | null
         }
         Insert: {
-          contact_id?: string | null
           city?: string
+          contact_id?: string | null
           created_at?: string
           deal_type?: string
           id?: string
@@ -1381,8 +1475,8 @@ export type Database = {
           whatsapp_phone?: string | null
         }
         Update: {
-          contact_id?: string | null
           city?: string
+          contact_id?: string | null
           created_at?: string
           deal_type?: string
           id?: string
@@ -1407,7 +1501,15 @@ export type Database = {
           user_id?: string
           whatsapp_phone?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "search_profiles_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       site_content: {
         Row: {
@@ -1514,36 +1616,36 @@ export type Database = {
       }
       sites: {
         Row: {
-          notify_email: string | null
-          notify_whatsapp: string | null
           created_at: string
           id: string
           is_active: boolean
           name: string
+          notify_email: string | null
+          notify_whatsapp: string | null
           owner_id: string
           slug: string
           sort_order: number
           updated_at: string
         }
         Insert: {
-          notify_email?: string | null
-          notify_whatsapp?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
           name: string
+          notify_email?: string | null
+          notify_whatsapp?: string | null
           owner_id: string
           slug: string
           sort_order?: number
           updated_at?: string
         }
         Update: {
-          notify_email?: string | null
-          notify_whatsapp?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
           name?: string
+          notify_email?: string | null
+          notify_whatsapp?: string | null
           owner_id?: string
           slug?: string
           sort_order?: number
@@ -1553,7 +1655,6 @@ export type Database = {
       }
       sold_properties: {
         Row: {
-          translations: Json
           address: string
           created_at: string
           id: string
@@ -1565,10 +1666,10 @@ export type Database = {
           sold_at: string | null
           sort_order: number
           storage_path: string | null
+          translations: Json
           updated_at: string
         }
         Insert: {
-          translations?: Json
           address: string
           created_at?: string
           id?: string
@@ -1580,10 +1681,10 @@ export type Database = {
           sold_at?: string | null
           sort_order?: number
           storage_path?: string | null
+          translations?: Json
           updated_at?: string
         }
         Update: {
-          translations?: Json
           address?: string
           created_at?: string
           id?: string
@@ -1595,6 +1696,7 @@ export type Database = {
           sold_at?: string | null
           sort_order?: number
           storage_path?: string | null
+          translations?: Json
           updated_at?: string
         }
         Relationships: [
@@ -1678,22 +1780,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      can_view_contact: { Args: { _contact_id: string }; Returns: boolean }
-      consume_rate_limit: {
-        Args: { p_key: string; p_limit: number; p_window_seconds: number; p_cost?: number }
-        Returns: { allowed: boolean; remaining: number; current_count: number }[]
-      }
-      match_market_listings: {
-        Args: { p_since: string; p_profile_id?: string | null }
-        Returns: number
-      }
-      match_profile_to_listings: { Args: { p_profile_id: string }; Returns: number }
-      prune_activity_log: { Args: never; Returns: undefined }
-      run_scheduled_job: { Args: { p_job: string }; Returns: number }
-      scheduler_status: { Args: never; Returns: Json }
       analytics_overview: {
         Args: { p_from: string; p_to: string }
         Returns: Json
+      }
+      can_view_contact: { Args: { _contact_id: string }; Returns: boolean }
+      consume_rate_limit: {
+        Args: {
+          p_cost?: number
+          p_key: string
+          p_limit: number
+          p_window_seconds: number
+        }
+        Returns: {
+          allowed: boolean
+          current_count: number
+          remaining: number
+        }[]
       }
       get_public_agents: { Args: never; Returns: Json }
       get_public_site: { Args: { p_slug: string }; Returns: Json }
@@ -1714,8 +1817,19 @@ export type Database = {
         Args: { p_listing_id: string }
         Returns: number
       }
+      match_market_listings: {
+        Args: { p_profile_id?: string; p_since: string }
+        Returns: number
+      }
+      match_profile_to_listings: {
+        Args: { p_profile_id: string }
+        Returns: number
+      }
       owns_listing: { Args: { _listing_id: string }; Returns: boolean }
       owns_site: { Args: { _site_id: string }; Returns: boolean }
+      prune_activity_log: { Args: never; Returns: undefined }
+      run_scheduled_job: { Args: { p_job: string }; Returns: number }
+      scheduler_status: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "client" | "agent" | "super_admin"
@@ -1734,12 +1848,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1763,11 +1877,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1788,11 +1902,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1813,11 +1927,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1830,11 +1944,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
