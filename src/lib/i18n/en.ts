@@ -781,7 +781,8 @@ export const en: Dict = {
 
   limits: {
     signupLimit: "Too many sign-up attempts from this device. Please try again later.",
-    aiDaily: "You've reached today's smart-search quota. Sign up for the Smart Agent and it keeps searching for you, or contact us directly.",
+    aiDaily:
+      "You've reached today's smart-search quota. Sign up for the Smart Agent and it keeps searching for you, or contact us directly.",
     aiBurst: "Too many searches in a row. Please try again in a minute.",
     aiDisabled: "Smart search is currently unavailable. Use the regular filters or contact us.",
     blocked: "Unusual activity was detected from this device and access is temporarily limited.",

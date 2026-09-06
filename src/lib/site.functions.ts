@@ -211,10 +211,9 @@ async function mergeAutoTranslations(
   if (!touchesAuto) return merged;
 
   // שכבה 2: השדות המתורגמים אוטומטית — לפי מה שנשמר עכשיו (או הקיים במסד)
-  const business = (data.business ?? (row?.business as Record<string, unknown> | null) ?? {}) as Record<
-    string,
-    unknown
-  >;
+  const business = (data.business ??
+    (row?.business as Record<string, unknown> | null) ??
+    {}) as Record<string, unknown>;
   const testimonials =
     parsed.testimonials !== undefined
       ? parsed.testimonials

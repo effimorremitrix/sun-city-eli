@@ -12,7 +12,7 @@ type Props = {
   folder: string;
   /** לוגו מותר גם כ-SVG; תצלום סוכן לא */
   allowSvg?: boolean;
-  /** סליידר ההירו מקבל גם סרטונים (mp4/webm, עד 50MB) */
+  /** סליידר ההירו מקבל גם סרטונים (mp4/webm/mov, עד 500MB — גדולים נדחסים בדפדפן) */
   allowVideo?: boolean;
   hint?: string;
 };

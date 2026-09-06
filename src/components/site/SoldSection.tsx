@@ -14,6 +14,18 @@ import {
 
 type Props = { page: SoldPage };
 
+/**
+ * כתובת והערה בשפת העמוד — מהתרגומים שנוצרו אוטומטית בשמירה (sold.functions.ts);
+ * fallback פר-שדה לעברית כשאין תרגום.
+ */
+const localizeSold = (item: SoldProperty, lang: string) => {
+  const tr = lang === "he" ? undefined : item.translations?.[lang];
+  return {
+    address: tr?.address?.trim() || item.address,
+    note: tr?.note?.trim() || item.note,
+  };
+};
+
 /* ============================================================
  * פוסטר ה"נמכר" הרשמי של המשרד — משוחזר כקומפוזיציית SVG כך
  * שכל נכס מקבל את אותה תבנית, ורק התמונה בתוך השמש והכתובת
@@ -65,7 +77,8 @@ const rayPoints = ({ angle, len, hw }: Ray): string => {
 /** הפוסטר של נכס בודד — תמונה בשמש, חותמת "נמכר" וכתובת בסרט */
 function SoldPoster({ item }: { item: SoldProperty }) {
   const { business } = useLive();
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const { address } = localizeSold(item, lang);
 
   // מזהי גרדיאנט ייחודיים פר נכס — כמה פוסטרים חיים יחד באותו עמוד
   const ringId = `sold-ring-${item.id}`;
@@ -81,7 +94,7 @@ function SoldPoster({ item }: { item: SoldProperty }) {
       {item.url ? (
         <img
           src={item.url}
-          alt={`${t.sold.stamp} — ${item.address}`}
+          alt={`${t.sold.stamp} — ${address}`}
           width={400}
           height={400}
           loading="lazy"
@@ -205,7 +218,7 @@ function SoldPoster({ item }: { item: SoldProperty }) {
           נמוך ודק מספיק כדי לא לחפוף את פס "ע"י סאן סיטי" שמעליו. */}
       <div className="absolute bottom-[2.5%] right-[4%] max-w-[58%] -rotate-2 skew-x-[-8deg] rounded-md border-b-4 border-[#B97B00] bg-gradient-to-b from-[#FFCE45] to-[#F0A400] px-4 py-1 shadow-md">
         <p className="skew-x-[8deg] truncate font-display text-sm font-extrabold text-[#1F2430] sm:text-base">
-          {item.address}
+          {address}
         </p>
       </div>
     </div>
@@ -217,7 +230,7 @@ function SoldPoster({ item }: { item: SoldProperty }) {
  * הרשמי של המשרד: שמש עם התמונה בפנים, חותמת "נמכר" והכתובת בסרט.
  */
 export function SoldSection({ page }: Props) {
-  const { dir, t } = useLang();
+  const { dir, t, lang } = useLang();
   // עמודים נוספים שנטענו דרך "הצג עוד" — מעבר לעמוד הראשון שהגיע מה-loader
   const [extra, setExtra] = useState<SoldProperty[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -276,7 +289,11 @@ export function SoldSection({ page }: Props) {
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
-                {s.note && <p className="mt-1 text-sm font-semibold text-sun">{s.note}</p>}
+                {localizeSold(s, lang).note && (
+                  <p className="mt-1 text-sm font-semibold text-sun">
+                    {localizeSold(s, lang).note}
+                  </p>
+                )}
               </article>
             </CarouselItem>
           ))}

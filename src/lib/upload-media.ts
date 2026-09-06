@@ -154,8 +154,9 @@ async function uploadVideoResumable(
       },
       chunkSize: TUS_CHUNK_SIZE,
       onError: (error) => {
-        const res = (error as { originalResponse?: { getStatus?: () => number; getBody?: () => string } })
-          .originalResponse;
+        const res = (
+          error as { originalResponse?: { getStatus?: () => number; getBody?: () => string } }
+        ).originalResponse;
         const status = res?.getStatus?.();
         const body = res?.getBody?.() ?? "";
         reject(new Error(storageErrorMessage(`${status ?? ""} ${body || error.message}`.trim())));

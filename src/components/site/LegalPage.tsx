@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { SITE_URL } from "@/lib/i18n/seo";
+import { DICTS, useStoredLocale, type Locale } from "@/lib/i18n";
 import { useBackToSiteHref } from "@/lib/back-to-site";
 
 /**
@@ -9,6 +10,10 @@ import { useBackToSiteHref } from "@/lib/back-to-site";
  * נדרשת כי בודקי ה-App Review של Meta קוראים אנגלית. השפה נבחרת בפרמטר
  * `?lang=en` ולא ב-state, כדי ששני הנוסחים יגיעו מוכנים ב-HTML של השרת — הקרולר
  * facebookexternalhit לא מריץ JavaScript — וכדי שאפשר יהיה למסור לבודק קישור יציב.
+ *
+ * הגוף המשפטי קיים בעברית ובאנגלית בלבד; תוויות הניווט (חזרה, מסמכים נוספים,
+ * "עודכן לאחרונה") מגיעות מהמילונים, ולכן בנוסח האנגלי הן מוצגות בשפה שהגולש
+ * בחר באתר (אנגלית/צרפתית/רוסית) — יחד עם הערה שהנוסח המחייב הוא העברי.
  *
  * שימו לב: RootShell ב-__root.tsx גוזר את `<html lang dir>` מהסגמנט הראשון בכתובת
  * בלבד, ולכן /privacy?lang=en עדיין מקבל dir="rtl" מהשורש. מכאן שהכיווניות
@@ -66,11 +71,13 @@ export function LegalList({ children }: { children: ReactNode }) {
   return <ul className="list-disc space-y-1.5 pe-6">{children}</ul>;
 }
 
-const OTHER_PAGES: { path: LegalPath; he: string; en: string }[] = [
-  { path: "/privacy", he: "מדיניות פרטיות", en: "Privacy Policy" },
-  { path: "/terms", he: "תנאי שימוש", en: "Terms of Service" },
-  { path: "/data-deletion", he: "מחיקת מידע", en: "Data Deletion" },
-];
+/** מפתח התווית במילון (misc) לכל דף משפטי */
+const OTHER_PAGES: { path: LegalPath; key: "legalPrivacy" | "legalTerms" | "legalDataDeletion" }[] =
+  [
+    { path: "/privacy", key: "legalPrivacy" },
+    { path: "/terms", key: "legalTerms" },
+    { path: "/data-deletion", key: "legalDataDeletion" },
+  ];
 
 /** קישור שמשמר את השפה הנוכחית. עוגן רגיל ולא <Link> — עובד גם בלי JavaScript. */
 const hrefFor = (path: string, lang: LegalLang) => (lang === "en" ? `${path}?lang=en` : path);
@@ -93,17 +100,22 @@ export function LegalPage({
   const he = lang === "he";
   // חוזרים לדף הציבורי האחרון שביקרו בו (כולל דף אישי של סוכן), לא לאתר המשרד
   const backHref = useBackToSiteHref();
+  // תוויות הניווט: בנוסח האנגלי — בשפה שנבחרה באתר (אנגלית כברירת מחדל ב-SSR);
+  // בטוח להידרציה: הערך הזכור מתעדכן רק אחרי ה-mount
+  const stored = useStoredLocale();
+  const uiLang: Locale = he ? "he" : stored === "he" ? "en" : stored;
+  const t = DICTS[uiLang];
 
   return (
     <main lang={lang} dir={he ? "rtl" : "ltr"} className="mx-auto max-w-3xl px-4 py-14">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <a href={backHref} className="text-sm font-bold text-sun underline">
-          {he ? "חזרה לעמוד הבית" : "Back to home"}
+        <a href={backHref} className="text-sm font-bold text-sun underline" lang={uiLang}>
+          {t.misc.backHome}
         </a>
 
         {/* מתג שפה: עוגנים רגילים, כדי שגם קרולר בלי JS יגיע לנוסח האנגלי */}
         <nav
-          aria-label={he ? "בחירת שפת המסמך" : "Document language"}
+          aria-label={t.misc.legalLangSwitch}
           className="flex items-center gap-1 rounded-full border border-border p-0.5 text-sm"
         >
           <a
@@ -125,26 +137,36 @@ export function LegalPage({
         </nav>
       </div>
 
+      {/* הנוסח המחייב הוא העברי — מוצג רק בנוסחים שאינם עברית */}
+      {!he && (
+        <p
+          lang={uiLang}
+          className="mt-4 rounded-xl border border-sun/40 bg-sun/10 px-4 py-2 text-sm text-foreground"
+        >
+          {t.misc.legalHebrewNotice}
+        </p>
+      )}
+
       <h1 className="mt-4 text-3xl font-extrabold">{title}</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {he ? "עודכן לאחרונה: " : "Last updated: "}
-        <time dateTime={updated}>{updated}</time>
+      <p className="mt-1 text-sm text-muted-foreground" lang={uiLang}>
+        {t.misc.legalLastUpdated} <time dateTime={updated}>{updated}</time>
       </p>
 
       <div className="mt-6 space-y-4 leading-relaxed text-foreground">{children}</div>
 
       <nav
-        aria-label={he ? "מסמכים משפטיים נוספים" : "Other legal documents"}
+        aria-label={t.misc.legalOtherDocs}
+        lang={uiLang}
         className="mt-12 flex flex-wrap gap-x-4 gap-y-2 border-t border-border pt-6 text-sm"
       >
         {OTHER_PAGES.filter((p) => p.path !== path).map((p) => (
           <a key={p.path} href={hrefFor(p.path, lang)} className="text-sun underline">
-            {he ? p.he : p.en}
+            {t.misc[p.key]}
           </a>
         ))}
         {/* הצהרת הנגישות קיימת בעברית בלבד, ולכן בלי ?lang */}
-        <a href="/accessibility" lang="he" className="text-sun underline">
-          {he ? "הצהרת נגישות" : "Accessibility statement (Hebrew)"}
+        <a href="/accessibility" hrefLang="he" className="text-sun underline">
+          {he ? t.misc.legalAccessibility : t.misc.legalAccessibilityHe}
         </a>
       </nav>
     </main>

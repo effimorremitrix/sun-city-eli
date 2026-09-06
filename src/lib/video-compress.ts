@@ -91,7 +91,8 @@ const waitForEvent = (
   });
 
 /** סיומת קובץ לפי סוג הפלט של המקליט */
-export const compressedExt = (mime: string): "webm" | "mp4" => (mime.includes("mp4") ? "mp4" : "webm");
+export const compressedExt = (mime: string): "webm" | "mp4" =>
+  mime.includes("mp4") ? "mp4" : "webm";
 
 /**
  * דוחס קובץ סרטון ומחזיר Blob (type = סוג הפלט של המקליט).
@@ -193,7 +194,11 @@ export async function compressVideo(file: File, opts: CompressOptions = {}): Pro
       };
       // תקרה: אורך הסרטון + מרווח בטחון; בלי משך ידוע — עשר דקות
       const hardTimeout = setTimeout(
-        () => finish(() => reject(new Error("דחיסת הסרטון ארכה יותר מדי"))),
+        () =>
+          finish(() => {
+            if (rec.state !== "inactive") rec.stop();
+            reject(new Error("דחיסת הסרטון ארכה יותר מדי"));
+          }),
         (duration ? duration * 1000 * 1.5 : 10 * 60 * 1000) + 30_000,
       );
       const onAbort = () => finish(() => reject(new Error("ההעלאה בוטלה")));

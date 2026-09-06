@@ -514,11 +514,21 @@ export const createPublicLead = createServerFn({ method: "POST" })
       // הדף שבו נשלח הטופס — משמש לשיוך רק כשללקוח אין עדיין סוכן
       let pageSiteId: string | null = null;
       if (data.siteId) {
-        const { data: s } = await supabaseAdmin.from("sites").select("id").eq("id", data.siteId).eq("is_active", true).maybeSingle();
+        const { data: s } = await supabaseAdmin
+          .from("sites")
+          .select("id")
+          .eq("id", data.siteId)
+          .eq("is_active", true)
+          .maybeSingle();
         pageSiteId = (s?.id as string | undefined) ?? null;
       }
       if (!pageSiteId && data.siteSlug) {
-        const { data: s } = await supabaseAdmin.from("sites").select("id").eq("slug", data.siteSlug).eq("is_active", true).maybeSingle();
+        const { data: s } = await supabaseAdmin
+          .from("sites")
+          .select("id")
+          .eq("slug", data.siteSlug)
+          .eq("is_active", true)
+          .maybeSingle();
         pageSiteId = (s?.id as string | undefined) ?? null;
       }
 
@@ -552,13 +562,18 @@ export const createPublicLead = createServerFn({ method: "POST" })
         try {
           const { createHash } = await import("node:crypto");
           const salt = process.env["ANALYTICS_SALT"] || "sun-city-analytics";
-          sessionHash = createHash("sha256").update(`${salt}:${data.sessionId}`).digest("hex").slice(0, 32);
+          sessionHash = createHash("sha256")
+            .update(`${salt}:${data.sessionId}`)
+            .digest("hex")
+            .slice(0, 32);
         } catch {
           sessionHash = null;
         }
       }
 
-      const marketNote = data.marketListingId ? await marketListingNote(data.marketListingId) : null;
+      const marketNote = data.marketListingId
+        ? await marketListingNote(data.marketListingId)
+        : null;
 
       await ingestLead({
         contact,
@@ -575,7 +590,9 @@ export const createPublicLead = createServerFn({ method: "POST" })
         marketingConsent: data.marketingConsent,
         attribution,
         sessionHash,
-        ...(data.marketListingId ? { criteriaExtra: { market_listing_id: data.marketListingId } } : {}),
+        ...(data.marketListingId
+          ? { criteriaExtra: { market_listing_id: data.marketListingId } }
+          : {}),
       });
 
       // פנייה על נכס ("מעניין אותי" / "רוצה שסוכן יחזור אליי") — התראה מיידית לסוכן
@@ -594,7 +611,8 @@ export const createPublicLead = createServerFn({ method: "POST" })
           if (leadRow && target) {
             await handleClientAction({
               kind: data.source === "התעניינות בנכס" ? "interest" : "callback",
-              responseLabel: data.source === "התעניינות בנכס" ? "מעניין אותי" : "רוצה שסוכן יחזור אליי",
+              responseLabel:
+                data.source === "התעניינות בנכס" ? "מעניין אותי" : "רוצה שסוכן יחזור אליי",
               userId,
               contact,
               lead: leadRow as never,
@@ -634,17 +652,42 @@ async function marketListingNote(marketListingId: string): Promise<string | null
 async function resolveTarget(
   listingId: string | null,
   marketListingId: string | null,
-): Promise<{ listingId: string | null; marketListingId: string | null; title: string; siteId: string | null; sourceUrl?: string | null } | null> {
+): Promise<{
+  listingId: string | null;
+  marketListingId: string | null;
+  title: string;
+  siteId: string | null;
+  sourceUrl?: string | null;
+} | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   if (listingId) {
-    const { data: l } = await supabaseAdmin.from("listings").select("id, title, site_id").eq("id", listingId).maybeSingle();
+    const { data: l } = await supabaseAdmin
+      .from("listings")
+      .select("id, title, site_id")
+      .eq("id", listingId)
+      .maybeSingle();
     if (!l) return null;
-    return { listingId: l.id as string, marketListingId: null, title: l.title as string, siteId: (l.site_id as string | null) ?? null };
+    return {
+      listingId: l.id as string,
+      marketListingId: null,
+      title: l.title as string,
+      siteId: (l.site_id as string | null) ?? null,
+    };
   }
   if (marketListingId) {
-    const { data: m } = await supabaseAdmin.from("market_listings").select("id, title, source_url, source_site").eq("id", marketListingId).maybeSingle();
+    const { data: m } = await supabaseAdmin
+      .from("market_listings")
+      .select("id, title, source_url, source_site")
+      .eq("id", marketListingId)
+      .maybeSingle();
     if (!m) return null;
-    return { listingId: null, marketListingId: m.id as string, title: `${m.title} (${m.source_site ?? "מהשוק"})`, siteId: null, sourceUrl: m.source_url as string };
+    return {
+      listingId: null,
+      marketListingId: m.id as string,
+      title: `${m.title} (${m.source_site ?? "מהשוק"})`,
+      siteId: null,
+      sourceUrl: m.source_url as string,
+    };
   }
   return null;
 }
@@ -663,7 +706,11 @@ export const requestMarketCallback = createServerFn({ method: "POST" })
     const { enforceLimits, perMinute } = await import("@/lib/rate-limit.server");
     const { getSettings } = await import("@/lib/settings.server");
     const settings = await getSettings();
-    const limit = await enforceLimits({ scope: "feedback", userId: context.userId, user: perMinute(settings.feedback_per_minute, "feedback") });
+    const limit = await enforceLimits({
+      scope: "feedback",
+      userId: context.userId,
+      user: perMinute(settings.feedback_per_minute, "feedback"),
+    });
     if (!limit.allowed) throw new Error("יותר מדי פעולות. נסו שוב בעוד רגע");
 
     const target = await resolveTarget(null, data.marketListingId);
@@ -671,7 +718,11 @@ export const requestMarketCallback = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { findOrCreateLeadForUser, handleClientAction } = await import("@/lib/leads.server");
     const { officeSiteId } = await import("@/lib/contacts.server");
-    const { data: profile } = await supabaseAdmin.from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle();
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", context.userId)
+      .maybeSingle();
     const office = await officeSiteId();
     const { lead, contact } = await findOrCreateLeadForUser(office ?? "", context.userId, {
       fullName: (profile?.full_name as string | null) ?? null,
@@ -704,9 +755,17 @@ export const adminReassignLead = createServerFn({ method: "POST" })
     const { assertSuperAdmin } = await import("@/lib/admin.server");
     await assertSuperAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: lead } = await supabaseAdmin.from("leads").select("id, site_id, contact_id").eq("id", data.leadId).maybeSingle();
+    const { data: lead } = await supabaseAdmin
+      .from("leads")
+      .select("id, site_id, contact_id")
+      .eq("id", data.leadId)
+      .maybeSingle();
     if (!lead) throw new Error("הליד לא נמצא");
-    const { data: site } = await supabaseAdmin.from("sites").select("id").eq("id", data.toSiteId).maybeSingle();
+    const { data: site } = await supabaseAdmin
+      .from("sites")
+      .select("id")
+      .eq("id", data.toSiteId)
+      .maybeSingle();
     if (!site) throw new Error("הדף לא נמצא");
     if (lead.contact_id) {
       const { reassignContact } = await import("@/lib/contacts.server");
@@ -717,7 +776,10 @@ export const adminReassignLead = createServerFn({ method: "POST" })
       .update({ site_id: data.toSiteId, reassigned_from_site_id: lead.site_id })
       .eq("id", lead.id);
     if (error) throw new Error(error.message);
-    await supabaseAdmin.from("lead_events").update({ site_id: data.toSiteId }).eq("lead_id", lead.id);
+    await supabaseAdmin
+      .from("lead_events")
+      .update({ site_id: data.toSiteId })
+      .eq("lead_id", lead.id);
     await supabaseAdmin.from("lead_events").insert({
       lead_id: lead.id,
       site_id: data.toSiteId,
@@ -805,25 +867,32 @@ export const adminGetContact = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!contact) throw new Error("הלקוח לא נמצא");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [{ data: leads }, { data: profiles }, { data: activity }, { data: sites }] = await Promise.all([
-      supabaseAdmin
-        .from("leads")
-        .select("id, site_id, source, status, created_at, listing_id, next_follow_up_at, utm_source, utm_campaign, referrer, landing_path")
-        .eq("contact_id", data.contactId)
-        .order("created_at", { ascending: false }),
-      supabaseAdmin
-        .from("search_profiles")
-        .select("id, label, deal_type, neighborhoods, min_price, max_price, min_rooms, rooms, max_rooms, is_active, created_at")
-        .eq("contact_id", data.contactId)
-        .order("created_at", { ascending: false }),
-      supabaseAdmin
-        .from("activity_log")
-        .select("id, kind, event, status, channel, message, error, created_at, listing_id, market_listing_id")
-        .eq("contact_id", data.contactId)
-        .order("created_at", { ascending: false })
-        .limit(100),
-      supabaseAdmin.from("sites").select("id, name, slug"),
-    ]);
+    const [{ data: leads }, { data: profiles }, { data: activity }, { data: sites }] =
+      await Promise.all([
+        supabaseAdmin
+          .from("leads")
+          .select(
+            "id, site_id, source, status, created_at, listing_id, next_follow_up_at, utm_source, utm_campaign, referrer, landing_path",
+          )
+          .eq("contact_id", data.contactId)
+          .order("created_at", { ascending: false }),
+        supabaseAdmin
+          .from("search_profiles")
+          .select(
+            "id, label, deal_type, neighborhoods, min_price, max_price, min_rooms, rooms, max_rooms, is_active, created_at",
+          )
+          .eq("contact_id", data.contactId)
+          .order("created_at", { ascending: false }),
+        supabaseAdmin
+          .from("activity_log")
+          .select(
+            "id, kind, event, status, channel, message, error, created_at, listing_id, market_listing_id",
+          )
+          .eq("contact_id", data.contactId)
+          .order("created_at", { ascending: false })
+          .limit(100),
+        supabaseAdmin.from("sites").select("id, name, slug"),
+      ]);
     return {
       contact: contact as unknown as ContactCard["contact"],
       leads: (leads ?? []) as ContactCard["leads"],
@@ -864,8 +933,17 @@ export const respondToNotification = createServerFn({ method: "POST" })
     if (!notification) throw new Error("ההתראה לא נמצאה");
     if (notification.response) return { ok: true, already: true };
 
-    const listing = notification.listing as unknown as { id: string; title: string; site_id: string | null } | null;
-    const market = notification.market as unknown as { id: string; title: string; source_url: string; source_site: string | null } | null;
+    const listing = notification.listing as unknown as {
+      id: string;
+      title: string;
+      site_id: string | null;
+    } | null;
+    const market = notification.market as unknown as {
+      id: string;
+      title: string;
+      source_url: string;
+      source_site: string | null;
+    } | null;
     if (!listing && !market) throw new Error("הנכס אינו זמין");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -916,8 +994,19 @@ export const respondToNotification = createServerFn({ method: "POST" })
       contact,
       lead,
       target: listing
-        ? { listingId: listing.id, marketListingId: null, title: listing.title, siteId: listing.site_id }
-        : { listingId: null, marketListingId: market!.id, title: `${market!.title} (${market!.source_site ?? "מהשוק"})`, siteId: null, sourceUrl: market!.source_url },
+        ? {
+            listingId: listing.id,
+            marketListingId: null,
+            title: listing.title,
+            siteId: listing.site_id,
+          }
+        : {
+            listingId: null,
+            marketListingId: market!.id,
+            title: `${market!.title} (${market!.source_site ?? "מהשוק"})`,
+            siteId: null,
+            sourceUrl: market!.source_url,
+          },
       siteUrl: (await getSettings()).site_url,
       metadata: { response: data.response, notification_id: notification.id },
     });

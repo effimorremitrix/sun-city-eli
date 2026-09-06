@@ -178,7 +178,10 @@ async function translateListingFields(
   context: { supabase: SupabaseClient<Database>; userId: string },
   data: ListingInput,
 ): Promise<Record<string, Record<string, unknown>>> {
-  type Stored = Record<string, { title?: string; description?: string; _hash?: Record<string, string> }>;
+  type Stored = Record<
+    string,
+    { title?: string; description?: string; _hash?: Record<string, string> }
+  >;
   let stored: Stored = {};
   if (data.id) {
     const { data: row } = await context.supabase

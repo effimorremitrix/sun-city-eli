@@ -194,7 +194,8 @@ export const adminSaveSoldProperty = createServerFn({ method: "POST" })
         .select("translations")
         .eq("id", data.id)
         .maybeSingle();
-      existingTr = ((row?.translations as Record<string, Record<string, unknown>> | null) ?? {}) || {};
+      existingTr =
+        ((row?.translations as Record<string, Record<string, unknown>> | null) ?? {}) || {};
     }
     const { autoTranslate } = await import("@/lib/translate.server");
     const auto = await autoTranslate(
@@ -207,7 +208,8 @@ export const adminSaveSoldProperty = createServerFn({ method: "POST" })
       const entry: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(tr)) {
         if (key === "_hash") {
-          if (value && typeof value === "object" && Object.keys(value).length) entry["_hash"] = value;
+          if (value && typeof value === "object" && Object.keys(value).length)
+            entry["_hash"] = value;
         } else if (typeof value === "string" && value) {
           entry[key] = value;
         }

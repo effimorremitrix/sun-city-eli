@@ -196,7 +196,8 @@ const asString = (v: unknown): string => (typeof v === "string" ? v : "");
  */
 export async function autoTranslate(
   fields: Record<string, string>,
-  existing: Partial<Record<string, TranslatedFields | Record<string, unknown> | undefined>> | undefined,
+  existing:
+    Partial<Record<string, TranslatedFields | Record<string, unknown> | undefined>> | undefined,
   userId: string | null = null,
 ): Promise<AutoTranslations> {
   // רק שדות עם טקסט עברי — שדה ריק לא מתורגם ולא נשמר
@@ -242,7 +243,8 @@ export async function autoTranslate(
 
   if (!process.env["ANTHROPIC_API_KEY"]) {
     // בלי מפתח — התוכן העברי נשמר, התרגומים יושלמו כשהמפתח יוגדר
-    for (const lang of AUTO_TRANSLATE_TARGETS) keepUntranslated(result[lang], existing?.[lang], pending[lang]);
+    for (const lang of AUTO_TRANSLATE_TARGETS)
+      keepUntranslated(result[lang], existing?.[lang], pending[lang]);
     return result;
   }
 

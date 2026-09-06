@@ -791,10 +791,13 @@ export const fr: Dict = {
 
   limits: {
     signupLimit: "Trop de tentatives d'inscription depuis cet appareil. Réessayez plus tard.",
-    aiDaily: "Vous avez atteint le quota quotidien de recherches intelligentes. Activez l'Agent intelligent pour qu'il continue à chercher pour vous, ou contactez-nous directement.",
+    aiDaily:
+      "Vous avez atteint le quota quotidien de recherches intelligentes. Activez l'Agent intelligent pour qu'il continue à chercher pour vous, ou contactez-nous directement.",
     aiBurst: "Trop de recherches d'affilée. Réessayez dans une minute.",
-    aiDisabled: "La recherche intelligente est indisponible pour le moment. Utilisez les filtres classiques ou contactez-nous.",
-    blocked: "Une activité inhabituelle a été détectée depuis cet appareil ; l'accès est temporairement limité.",
+    aiDisabled:
+      "La recherche intelligente est indisponible pour le moment. Utilisez les filtres classiques ou contactez-nous.",
+    blocked:
+      "Une activité inhabituelle a été détectée depuis cet appareil ; l'accès est temporairement limité.",
     leadLimit: "Trop de demandes d'affilée. Réessayez dans une minute.",
     actionLimit: "Trop d'actions d'affilée. Réessayez dans un instant.",
   },

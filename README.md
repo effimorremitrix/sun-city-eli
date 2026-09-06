@@ -53,7 +53,6 @@ This project was built with [Lovable](https://lovable.dev). Continue developing 
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.
 - **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
-
 ## מערכת אחת: לקוח, סוכן, שוק, התראות
 
 מגרסה זו האתר עובד כמערכת עבודה אחת סביב שתי ישויות:
@@ -105,14 +104,14 @@ This project was built with [Lovable](https://lovable.dev). Continue developing 
 ל-`POST /api/public/jobs/<name>` עם הכותרת `x-cron-secret` (הסוד נוצר במסד,
 `app_settings.data.cron_secret`; לא נדרש משתנה סביבה). המשימות:
 
-| משימה | מתי (UTC) | מה |
-| --- | --- | --- |
-| `market-scan` | כל 10 דק' 00:00–04:59 | סריקת הלוחות לפי ביקוש הלקוחות, עד N משימות לריצה |
-| `scout` | 04:00 | סוכן הסריקה של האדמין (הנתיב הישן `/api/public/scout-cron` נשאר) |
-| `match-profiles` | 05:10 | התאמת מודעות שוק חדשות לפרופילים/לידים + שליחת ההתראות |
-| `notify-pending` | :20/:50 בין 05–19 | שליחת התראות שנוצרו וטרם נשלחו |
-| `backup` | 23:30 | גיבוי JSON דחוס ל-bucket `backups` |
-| `health-check` | כל שעה | בדיקת רכיבים; התראה למנהל רק במעבר מצב |
+| משימה            | מתי (UTC)             | מה                                                               |
+| ---------------- | --------------------- | ---------------------------------------------------------------- |
+| `market-scan`    | כל 10 דק' 00:00–04:59 | סריקת הלוחות לפי ביקוש הלקוחות, עד N משימות לריצה                |
+| `scout`          | 04:00                 | סוכן הסריקה של האדמין (הנתיב הישן `/api/public/scout-cron` נשאר) |
+| `match-profiles` | 05:10                 | התאמת מודעות שוק חדשות לפרופילים/לידים + שליחת ההתראות           |
+| `notify-pending` | :20/:50 בין 05–19     | שליחת התראות שנוצרו וטרם נשלחו                                   |
+| `backup`         | 23:30                 | גיבוי JSON דחוס ל-bucket `backups`                               |
+| `health-check`   | כל שעה                | בדיקת רכיבים; התראה למנהל רק במעבר מצב                           |
 
 אם `pg_cron` אינו זמין בסביבה, טאב "מערכת" מציג זאת ואת ההוראות למתזמן חיצוני
 (למשל cron-job.org): `POST https://<site>/api/public/jobs/<name>` עם
@@ -179,12 +178,12 @@ WHATSAPP_* / GREEN_API_* / META_WABA_* / WA_TEMPLATE_*   # ראו מדור וו�
 
 ארבע התבניות (שפה `he`):
 
-| מפתח                 | שם במטא                  | קטגוריה   | מתי נשלחת                             |
-| -------------------- | ------------------------ | --------- | ------------------------------------- |
-| `new_listing_client` | `sun_city_new_listing`   | MARKETING | לקוח שפרופיל החיפוש שלו תואם לנכס חדש |
-| `agent_matches`      | `sun_city_agent_matches` | UTILITY   | לסוכן שפרסם את הנכס                   |
-| `admin_copy`         | `sun_city_admin_copy`    | UTILITY   | עותק למספר המשרד הראשי                |
-| `client_callback`    | `sun_city_client_callback` | UTILITY | לסוכן המטפל (ועותק למשרד) כשלקוח מבקש חזרה / מתעניין / מגיב על התראה |
+| מפתח                 | שם במטא                    | קטגוריה   | מתי נשלחת                                                            |
+| -------------------- | -------------------------- | --------- | -------------------------------------------------------------------- |
+| `new_listing_client` | `sun_city_new_listing`     | MARKETING | לקוח שפרופיל החיפוש שלו תואם לנכס חדש                                |
+| `agent_matches`      | `sun_city_agent_matches`   | UTILITY   | לסוכן שפרסם את הנכס                                                  |
+| `admin_copy`         | `sun_city_admin_copy`      | UTILITY   | עותק למספר המשרד הראשי                                               |
+| `client_callback`    | `sun_city_client_callback` | UTILITY   | לסוכן המטפל (ועותק למשרד) כשלקוח מבקש חזרה / מתעניין / מגיב על התראה |
 
 בעת עריכת נוסח יש לשמור על כללי מטא: הגוף לא מתחיל ולא מסתיים במשתנה, אין שני
 משתנים צמודים, המספור רציף מ-`{{1}}`, ופרמטר לא יכול להכיל שורה חדשה, טאב או
