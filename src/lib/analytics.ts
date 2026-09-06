@@ -11,10 +11,30 @@ export type TrackEventType =
   | "whatsapp_click"
   | "phone_click"
   | "property_view"
+  | "market_view"
   | "lead_submit"
   | "login"
   | "search"
-  | "signup";
+  | "ai_search"
+  | "signup"
+  | "interest"
+  | "callback"
+  | "agent_cta";
+
+/** ה-site של הדף הנוכחי — נקבע ב-SiteLiveProvider, משמש כברירת מחדל לאירועים */
+let currentSiteId: string | null = null;
+export const setCurrentSiteId = (siteId: string | null) => {
+  currentSiteId = siteId;
+};
+
+/** מזהה הסשן הגולמי (למסירה לשרת, למשל בהרשמה) — null כשאין אחסון */
+export function currentSessionId(): string | null {
+  try {
+    return localStorage.getItem(SESSION_KEY);
+  } catch {
+    return null;
+  }
+}
 
 const SESSION_KEY = "suncity:session-id";
 const SESSION_SEEN_KEY = "suncity:session-seen";
@@ -86,9 +106,42 @@ export function trackEvent(type: TrackEventType, siteId: string | null, listingI
   post({
     kind: "event",
     type,
-    siteId,
+    siteId: siteId ?? currentSiteId,
     listingId: listingId ?? null,
     path: window.location.pathname,
     sessionId: session.id,
   });
+}
+
+/* ------------------------------------------------------------------
+ * מדידת לחיצות וואטסאפ/טלפון בכל האתר — מאזין אחד ברמת המסמך במקום
+ * trackEvent בכל כפתור: כל קישור tel: או wa.me / api.whatsapp.com נספר,
+ * כולל אלה שנפתחים דרך openWa (ה-click מבעבע גם אחרי preventDefault).
+ * ------------------------------------------------------------------ */
+let clickTrackingInstalled = false;
+let lastClickAt = 0;
+
+export function installClickTracking() {
+  if (clickTrackingInstalled || typeof document === "undefined") return;
+  clickTrackingInstalled = true;
+  document.addEventListener(
+    "click",
+    (e) => {
+      const target = e.target as Element | null;
+      const anchor = target?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!anchor) return;
+      const href = anchor.getAttribute("href") ?? "";
+      // מניעת ספירה כפולה של אותה לחיצה (למשל כפתור בתוך קישור)
+      const now = Date.now();
+      if (now - lastClickAt < 300) return;
+      if (href.startsWith("tel:")) {
+        lastClickAt = now;
+        trackEvent("phone_click", null, anchor.dataset["listingId"] ?? null);
+      } else if (/wa\.me|api\.whatsapp\.com|whatsapp:\/\//i.test(href)) {
+        lastClickAt = now;
+        trackEvent("whatsapp_click", null, anchor.dataset["listingId"] ?? null);
+      }
+    },
+    { capture: true },
+  );
 }

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBackToSiteHref } from "@/lib/back-to-site";
 import { LangProvider, useLang, useStoredLocale } from "@/lib/i18n";
-import { trackEvent } from "@/lib/analytics";
+import { currentSessionId, trackEvent } from "@/lib/analytics";
 import { useServerFn } from "@tanstack/react-start";
 import { registerClient } from "@/lib/auth.functions";
 
@@ -128,6 +128,7 @@ function AuthContent() {
             fullName: fullName.trim(),
             redirectTo: `${window.location.origin}/account`,
             website: honeypot,
+            sessionId: currentSessionId(),
           },
         });
         if (!result.ok) {
@@ -139,7 +140,7 @@ function AuthContent() {
                 : (result.error ?? t.auth.signinFailed),
           );
         }
-        trackEvent("signup", null);
+        // אירוע ההרשמה נרשם בשרת עם הסוכן של הלקוח
         setMsg(t.auth.signupSuccess);
       }
     } catch (e) {

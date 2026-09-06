@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { OFFICE_SLUG, SITE_CONFIG, team } from "@/lib/site-data";
 import { DICTS, useLang, type Dict, type Locale } from "@/lib/i18n";
 import { rememberSitePath } from "@/lib/back-to-site";
-import { trackPageView } from "@/lib/analytics";
+import { installClickTracking, setCurrentSiteId, trackPageView } from "@/lib/analytics";
 
 /** ============================================================
  * תוכן חי (Live content) — הנתונים שמנוהלים באזור הניהול.
@@ -374,6 +374,8 @@ export function SiteLiveProvider({ value, children }: { value: LiveSite; childre
   // העצמית (פעם אחת לכל נתיב).
   useEffect(() => {
     if (!value.found) return;
+    setCurrentSiteId(value.siteId);
+    installClickTracking();
     rememberSitePath(window.location.pathname);
     if (lastTrackedPath !== window.location.pathname) {
       lastTrackedPath = window.location.pathname;

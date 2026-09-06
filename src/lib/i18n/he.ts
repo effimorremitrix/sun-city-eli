@@ -19,6 +19,7 @@ export const he = {
       { id: "sellers", label: "מוכרים דירה" },
       { id: "sold", label: "נמכרים" },
       { id: "testimonials", label: "ממליצים" },
+      { id: "field", label: "מהשטח" },
       { id: "buyers", label: "לקונים" },
       { id: "services", label: "השירותים שלנו" },
       { id: "team", label: "הצוות" },
@@ -144,7 +145,7 @@ export const he = {
       rooms: "מספר חדרים",
       size: "שטח (מ״ר)",
     },
-    personalAgent: "סוכן אישי: התראות על נכסים חדשים",
+    personalAgent: "הסוכן החכם: התראות על נכסים חדשים",
     viewList: "רשימה",
     viewMap: "מפה",
     mapOpenListing: "לפרטי המודעה",
@@ -571,6 +572,7 @@ export const he = {
 
   portal: {
     managerHeading: "האזור האישי ואזור הניהול",
+    draftPrefilled: "מילאנו את הפרופיל לפי החיפוש האחרון שלך באתר",
     helloName: (name: string) => `שלום, ${name}`,
     heading: "האזור האישי שלי",
     toSite: "לאתר",
