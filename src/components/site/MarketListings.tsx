@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   BedDouble,
@@ -112,6 +112,13 @@ export function MarketCard({
   const [form, setForm] = useState({ name: "", phone: "" });
   const [err, setErr] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  // צפייה במודעה מהשוק — נספרת פעם אחת לכרטיס (מקור או טופס חזרה)
+  const viewedRef = useRef(false);
+  const trackView = () => {
+    if (viewedRef.current) return;
+    viewedRef.current = true;
+    trackEvent("market_view", siteId, null);
+  };
 
   const noInfo = t.misc.noInfo;
   const hood = mapValue(t.maps.neighborhoods, m.neighborhood);
@@ -255,6 +262,7 @@ export function MarketCard({
             href={m.source_url}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={trackView}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-primary/30 py-2.5 text-sm font-bold text-primary"
           >
             <ExternalLink className="size-4" aria-hidden="true" />
@@ -263,7 +271,10 @@ export function MarketCard({
           {!sent && (
             <button
               type="button"
-              onClick={() => setFormOpen((o) => !o)}
+              onClick={() => {
+                if (!formOpen) trackView();
+                setFormOpen((o) => !o);
+              }}
               aria-expanded={formOpen}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-sun py-2.5 text-sm font-bold text-sun-foreground"
             >

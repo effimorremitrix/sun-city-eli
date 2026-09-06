@@ -18,6 +18,7 @@ export const en: Dict = {
       { id: "sellers", label: "Selling a Home" },
       { id: "sold", label: "Sold" },
       { id: "testimonials", label: "Testimonials" },
+      { id: "field", label: "From the field" },
       { id: "buyers", label: "For Buyers" },
       { id: "services", label: "Our Services" },
       { id: "team", label: "Our Team" },
@@ -148,7 +149,7 @@ export const en: Dict = {
       rooms: "Rooms",
       size: "Size (sqm)",
     },
-    personalAgent: "Personal agent: alerts for new properties",
+    personalAgent: "Smart agent: alerts for new properties",
     viewList: "List",
     viewMap: "Map",
     mapOpenListing: "View listing",
@@ -584,6 +585,7 @@ export const en: Dict = {
 
   portal: {
     managerHeading: "Personal & Management Area",
+    draftPrefilled: "We filled in the profile from your latest search on the site",
     helloName: (name: string) => `Hello, ${name}`,
     heading: "My Personal Area",
     toSite: "To the site",
@@ -777,6 +779,41 @@ export const en: Dict = {
     tooLong: (max: number) => `Up to ${max} characters`,
     httpsRequired: "The link must start with https://",
     invalid: "Invalid value",
+  },
+
+  smartAgent: {
+    kicker: "Smart agent",
+    title: "Didn't find the property you were looking for?",
+    subtitle:
+      "Turn on the smart agent and it will search for you 24/7 across the office's listings and the whole market",
+    stepsTitle: "How does it work?",
+    steps: [
+      "Define once what you're looking for",
+      "Your search is saved",
+      "The system keeps searching: office listings + the boards",
+      "A match is found: you get an alert",
+      "Your agent gets an alert too",
+    ],
+    cta: "Turn on my smart agent",
+    note: "Free, no commitment. You can turn it off any time from your personal area",
+    bannerText: "Nothing yet? The smart agent keeps searching 24/7 and alerts you on a match",
+    bannerCta: "Turn on the smart agent",
+  },
+
+  field: {
+    kicker: "From the field",
+    title: "Moments from our deals",
+    subtitle: "Signings, key handovers and happy clients — real moments from our work",
+    all: "All",
+    categories: {
+      signing: "Contract signing",
+      deal_closed: "Deal closed",
+      keys: "Key handover",
+      happy_clients: "Happy clients",
+      office: "From the office",
+      other: "From the field",
+    },
+    videoUnsupported: "Your browser does not support video playback",
   },
 
   limits: {

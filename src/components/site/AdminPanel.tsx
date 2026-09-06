@@ -34,6 +34,8 @@ import AdminSettings from "@/components/site/AdminSettings";
 import AdminSystem from "@/components/site/AdminSystem";
 import AdminMarket from "@/components/site/AdminMarket";
 import { AdminContentExtras } from "@/components/site/AdminContentExtras";
+import AdminTestimonials from "@/components/site/AdminTestimonials";
+import AdminFieldMedia from "@/components/site/AdminFieldMedia";
 import AdminGuide, { TabHelp } from "@/components/site/AdminGuide";
 
 export type AdminTabKey =
@@ -43,6 +45,8 @@ export type AdminTabKey =
   | "stats"
   | "scout"
   | "content"
+  | "testimonials"
+  | "field"
   | "publish"
   | "agents"
   | "clients"
@@ -459,6 +463,20 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
       {tab === "clients" && isSuperAdmin && <AdminUsers audience="clients" />}
       {tab === "usage" && isSuperAdmin && <AdminUsage />}
       {tab === "stats" && <AdminAnalytics />}
+      {tab === "testimonials" && (
+        <AdminTestimonials
+          sites={site.data?.sites ?? []}
+          selectedSiteId={selectedSiteId}
+          isAdmin={site.data?.isAdmin === true}
+        />
+      )}
+      {tab === "field" && (
+        <AdminFieldMedia
+          sites={site.data?.sites ?? []}
+          selectedSiteId={selectedSiteId}
+          isAdmin={site.data?.isAdmin === true}
+        />
+      )}
       {tab === "scout" && isSuperAdmin && <AdminScout />}
       {tab === "activity" && (
         <AdminActivity
@@ -1258,11 +1276,10 @@ export function AdminPanel({ tab, siteSlug }: { tab: AdminTabKey; siteSlug?: str
         </section>
       )}
 
-      {/* ממליצים ושאלות נפוצות — נשמרים בנפרד מהטופס הראשי */}
+      {/* שאלות נפוצות — נשמרות בנפרד מהטופס הראשי (הממליצים עברו לטאב "ממליצים") */}
       {tab === "content" && selectedSiteId && (
         <AdminContentExtras
           siteId={selectedSiteId}
-          testimonials={site.data?.live?.testimonials ?? null}
           faq={site.data?.live?.faq ?? null}
           onSaved={() => void site.refetch()}
         />

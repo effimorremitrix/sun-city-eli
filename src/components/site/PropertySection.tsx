@@ -52,7 +52,31 @@ import { trackEvent } from "@/lib/analytics";
 import { PropertyMap } from "@/components/site/PropertyMap";
 import { NeighborhoodPicker } from "@/components/site/NeighborhoodPicker";
 import { MarketListings } from "@/components/site/MarketListings";
+import { SmartAgentBanner } from "@/components/site/SmartAgentSection";
 import { Reveal } from "./Reveal";
+
+/**
+ * טיוטת חיפוש — הקריטריונים האחרונים (חיפוש חכם או סינון ידני) נשמרים
+ * בדפדפן, וכשהלקוח נרשם לסוכן החכם האזור האישי ממלא מהם את פרופיל החיפוש
+ * (account.tsx קורא ומוחק את המפתח). כשל אחסון לעולם לא מפריע לחיפוש.
+ */
+export const DRAFT_SEARCH_KEY = "suncity:draft-search";
+export type DraftSearch = { query: string; filters: ListingFilters; at: number };
+
+const saveDraftSearch = (draft: Omit<DraftSearch, "at">) => {
+  try {
+    localStorage.setItem(DRAFT_SEARCH_KEY, JSON.stringify({ ...draft, at: Date.now() }));
+  } catch {
+    /* אחסון חסום — מוותרים על הטיוטה */
+  }
+};
+
+const hasAnyFilter = (f: ListingFilters) =>
+  !!f.deal_type ||
+  (f.neighborhoods?.length ?? 0) > 0 ||
+  f.min_price != null ||
+  f.max_price != null ||
+  f.min_rooms != null;
 
 /** הודעת חסימה של החיפוש החכם בשפת הדף (spend = תקרת הוצאה → "לא זמין") */
 const aiLimitMessage = (t: Dict, reason: AiLimitReason): string => {
@@ -124,6 +148,12 @@ export function PropertySection({ listings, updatedAt, marketListings = [] }: Pr
     [listings, filters],
   );
 
+  // סינון ידני שהוגדר — נשמר כטיוטה לסוכן החכם (סינון ריק אינו דורס טיוטה
+  // מחיפוש חכם, שמאפס את התפריטים אחרי הצלחה)
+  useEffect(() => {
+    if (hasAnyFilter(filters)) saveDraftSearch({ query: "", filters });
+  }, [filters]);
+
   const filtered = useMemo(
     () => sortListings(ai ? manual.filter((l) => ai.ids.includes(l.id)) : manual, sort),
     [manual, ai, sort],
@@ -180,7 +210,7 @@ export function PropertySection({ listings, updatedAt, marketListings = [] }: Pr
     e.preventDefault();
     setAiErr(null);
     setAiBusy(true);
-    trackEvent("search", siteId);
+    trackEvent("ai_search", siteId);
     try {
       const res = await aiSearchListings({ data: { query, lang, website } });
       if (res.limited) {
@@ -196,6 +226,7 @@ export function PropertySection({ listings, updatedAt, marketListings = [] }: Pr
         filters: res.filters,
         web: res.web,
       });
+      saveDraftSearch({ query, filters: res.filters });
       // איפוס הסינון הידני — פילטר ישן שנשאר בתפריטים היה מצמצם בשקט את
       // תוצאות החיפוש החכם (חיתוך בין שתי הרשימות)
       setDeal("all");
@@ -425,6 +456,9 @@ export function PropertySection({ listings, updatedAt, marketListings = [] }: Pr
           </a>
         </div>
       )}
+
+      {/* הסוכן החכם — פעם אחת מתחת לנכסי המשרד (גם כשיש תוצאות וגם כשאין) */}
+      <SmartAgentBanner className="mt-4" />
 
       {/* מודעות אמיתיות מלוחות אחרים — מסוננות באותם פילטרים / אותו חיפוש חכם */}
       <MarketListings listings={filteredMarket} highlightId={marketHighlight} />

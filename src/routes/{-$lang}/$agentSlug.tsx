@@ -13,6 +13,10 @@ import { ItemsSection } from "@/components/site/ItemsSection";
 import { MobileBar } from "@/components/site/MobileBar";
 import { FloatingWhatsApp } from "@/components/site/FloatingWhatsApp";
 import { SoldSection } from "@/components/site/SoldSection";
+import { SmartAgentSection } from "@/components/site/SmartAgentSection";
+import { FieldMoments } from "@/components/site/FieldMoments";
+import { attachSiteExtras } from "@/components/site/HomePage";
+import type { FieldMediaItem } from "@/lib/field-media.functions";
 import { SiteLiveProvider, localizeLive, type LiveSite } from "@/lib/site-live";
 import { getPublicSite } from "@/lib/site.functions";
 import { listPublicListings, listPublicAgents } from "@/lib/listings.functions";
@@ -78,7 +82,16 @@ export const Route = createFileRoute("/{-$lang}/$agentSlug")({
       listPublicMarketListings({ data: { limit: 200 } }).catch((): MarketListing[] => []),
     ]);
     if (!live.found) throw notFound();
-    return { live, listings, agents, sold, marketListings };
+    // ממליצים ו"מהשטח" מהטבלאות — אחרי שה-siteId ידוע, בשפת הדף
+    const extras = await attachSiteExtras(live, langFromParam(params.lang));
+    return {
+      live: extras.live,
+      listings,
+      agents,
+      sold,
+      marketListings,
+      fieldMedia: extras.fieldMedia,
+    };
   },
   head: ({ loaderData, params }) => {
     const lang = langFromParam(params.lang);
@@ -134,12 +147,13 @@ function AgentPage() {
 
 function AgentPageContent() {
   const { lang, t } = useLang();
-  const { live, listings, agents, sold, marketListings } = Route.useLoaderData() as {
+  const { live, listings, agents, sold, marketListings, fieldMedia } = Route.useLoaderData() as {
     live: LiveSite;
     listings: Listing[];
     agents: PublicAgentRow[];
     sold: SoldPage;
     marketListings: MarketListing[];
+    fieldMedia: FieldMediaItem[];
   };
   const localizedLive = localizeLive(live, lang, t);
   const localizedListings = listings.map((l) => localizeListing(l, lang));
@@ -162,9 +176,11 @@ function AgentPageContent() {
             updatedAt={listingsUpdatedAt}
             marketListings={marketListings ?? []}
           />
+          <SmartAgentSection />
           <ItemsSection />
           <SellerSection />
           <SoldSection page={sold} />
+          <FieldMoments items={fieldMedia ?? []} />
           <BuyerSection />
           <Services />
           <WhyUs />
