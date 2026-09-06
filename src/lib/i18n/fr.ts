@@ -347,6 +347,10 @@ export const fr: Dict = {
     kicker: "Nos clients témoignent",
     title: "Témoignages clients",
     watchVideo: "Voir la vidéo de recommandation",
+    kindText: "Texte",
+    kindImage: "Image",
+    kindVideo: "Vidéo",
+    imageAlt: (name: string) => `Témoignage de ${name}`,
     items: [
       {
         quote:
@@ -516,6 +520,17 @@ export const fr: Dict = {
 
   misc: {
     noInfo: "Non renseigné",
+    backHome: "Retour à l'accueil",
+    legalHebrewNotice:
+      "La version faisant foi de cette page est la version en hébreu ; cette traduction est fournie à titre indicatif.",
+    legalPrivacy: "Politique de confidentialité",
+    legalTerms: "Conditions d'utilisation",
+    legalDataDeletion: "Suppression des données",
+    legalAccessibility: "Déclaration d'accessibilité",
+    legalAccessibilityHe: "Déclaration d'accessibilité (en hébreu)",
+    legalLastUpdated: "Dernière mise à jour :",
+    legalOtherDocs: "Autres documents juridiques",
+    legalLangSwitch: "Langue du document",
     phoneError: "Veuillez saisir un numéro de téléphone israélien valide (ex. 050-1234567)",
     consentMarketing:
       "J'accepte de recevoir des mises à jour sur des biens correspondants par e-mail et WhatsApp (consentement révocable à tout moment)",
@@ -758,6 +773,20 @@ export const fr: Dict = {
     selectAll: "Tout sélectionner",
     clear: "Effacer",
     done: "Terminer",
+  },
+
+  media: {
+    compressing: "Conversion et compression dans le navigateur…",
+    uploading: (percent: number) => `Envoi… ${percent}%`,
+    tooLarge: "Le fichier dépasse la limite (jusqu'à 500 Mo par vidéo)",
+    unsupported: "Type de fichier non pris en charge",
+  },
+
+  zod: {
+    required: "Champ obligatoire",
+    tooLong: (max: number) => `Jusqu'à ${max} caractères`,
+    httpsRequired: "Le lien doit commencer par https://",
+    invalid: "Valeur non valide",
   },
 
   limits: {

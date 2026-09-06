@@ -40,7 +40,8 @@ const KINDS: Array<{ key: string; label: string; icon: LucideIcon }> = [
   { key: "security", label: "אבטחה", icon: Lock },
 ];
 
-const kindMeta = (kind: string) => KINDS.find((k) => k.key === kind) ?? { key: kind, label: kind, icon: ListChecks };
+const kindMeta = (kind: string) =>
+  KINDS.find((k) => k.key === kind) ?? { key: kind, label: kind, icon: ListChecks };
 
 const fmtDateTime = (iso: string) =>
   new Date(iso).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" });
@@ -122,7 +123,8 @@ export default function AdminActivity({
     }
   };
 
-  const siteName = (id: string | null) => (id ? (sites.find((s) => s.id === id)?.name ?? null) : null);
+  const siteName = (id: string | null) =>
+    id ? (sites.find((s) => s.id === id)?.name ?? null) : null;
 
   return (
     <section className="soft-card mt-6 p-5">

@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { BedDouble, ExternalLink, MapPin, MessageCircle, PhoneCall, Ruler, Store } from "lucide-react";
+import {
+  BedDouble,
+  ExternalLink,
+  MapPin,
+  MessageCircle,
+  PhoneCall,
+  Ruler,
+  Store,
+} from "lucide-react";
 import { marketSourceLabel, type MarketListing } from "@/lib/market";
 import { formatListingPrice } from "@/lib/listings";
 import { createPublicLead } from "@/lib/leads.functions";

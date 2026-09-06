@@ -10,6 +10,7 @@ import {
   type SoldProperty,
 } from "@/lib/sold.functions";
 import { neighborhoods } from "@/lib/site-data";
+import type { ManagedSite } from "@/lib/admin.server";
 
 const BUCKET = "listing-images";
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -26,6 +27,8 @@ type Form = {
   storage_path: string | null;
   image_url: string;
   previewUrl: string | null;
+  /** שיוך לדף/סוכן — "" = הדף הנבחר בבורר */
+  target_site_id: string;
 };
 
 const emptyForm: Form = {
@@ -38,10 +41,11 @@ const emptyForm: Form = {
   storage_path: null,
   image_url: "",
   previewUrl: null,
+  target_site_id: "",
 };
 
 /** ניהול מדור "נמכר על ידינו": העלאת תמונה של דירה שנמכרה + פרטיה */
-export function AdminSold({ siteId }: { siteId: string }) {
+export function AdminSold({ siteId, sites = [] }: { siteId: string; sites?: ManagedSite[] }) {
   const listSold = useServerFn(adminListSoldProperties);
   const saveSold = useServerFn(adminSaveSoldProperty);
   const deleteSold = useServerFn(adminDeleteSoldProperty);
@@ -112,6 +116,7 @@ export function AdminSold({ siteId }: { siteId: string }) {
           sort_order: Number(form.sort_order) || 0,
           storage_path: form.storage_path,
           image_url: form.image_url || null,
+          targetSiteId: form.target_site_id || siteId,
         },
       });
       setForm(emptyForm);
@@ -129,6 +134,7 @@ export function AdminSold({ siteId }: { siteId: string }) {
       storage_path: s.storage_path,
       image_url: s.image_url ?? "",
       previewUrl: s.url,
+      target_site_id: s.site_id,
     });
 
   return (
@@ -220,6 +226,29 @@ export function AdminSold({ siteId }: { siteId: string }) {
           />
           מוצג באתר
         </label>
+        {/* שיוך לסוכן — למנהל שמנהל כמה דפים: הרשומה תופיע במדור ובאזור הניהול של הסוכן */}
+        {sites.length > 1 && (
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-xs font-bold text-muted-foreground">
+              שיוך לסוכן / דף
+            </span>
+            <select
+              className="field"
+              value={form.target_site_id || siteId}
+              onChange={(e) => setForm({ ...form, target_site_id: e.target.value })}
+            >
+              {sites.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} — /{s.slug}
+                </option>
+              ))}
+            </select>
+            <span className="mt-1 block text-xs text-muted-foreground">
+              הדירה תופיע במדור &quot;נמכר על ידינו&quot; של הדף שנבחר ותהיה ניתנת לעריכה באזור
+              הניהול שלו.
+            </span>
+          </label>
+        )}
       </div>
 
       {/* תמונה */}

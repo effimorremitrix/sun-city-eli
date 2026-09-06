@@ -65,6 +65,11 @@ export type LiveContentTranslation = {
   testimonials?: Record<string, { name?: string; type?: string; quote?: string }>;
   /** תרגומי שאלות נפוצות לפי מזהה השאלה */
   faq?: Record<string, { q?: string; a?: string }>;
+  /**
+   * חתימות (FNV-1a) של הטקסט העברי שממנו נוצר כל תרגום אוטומטי, לפי מפתח
+   * שטוח ("business.bio", "faq.<id>.q") — ראו autoTranslate ב-translate.server.ts
+   */
+  _hash?: Record<string, string>;
 };
 
 export type LiveTranslations = Partial<Record<string, LiveContentTranslation>>;

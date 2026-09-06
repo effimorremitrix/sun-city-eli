@@ -38,7 +38,11 @@ import {
 import { matchesMarketFilters, type MarketListing } from "@/lib/market";
 import { getPublicMarketListing } from "@/lib/market.functions";
 
-import { aiSearchListings, type AiLimitReason, type AiSearchResult } from "@/lib/ai-search.functions";
+import {
+  aiSearchListings,
+  type AiLimitReason,
+  type AiSearchResult,
+} from "@/lib/ai-search.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useLive } from "@/lib/site-live";
 import { isValidIsraeliPhone } from "@/lib/leads";
@@ -51,7 +55,7 @@ import { MarketListings } from "@/components/site/MarketListings";
 import { Reveal } from "./Reveal";
 
 /** הודעת חסימה של החיפוש החכם בשפת הדף (spend = תקרת הוצאה → "לא זמין") */
-export const aiLimitMessage = (t: Dict, reason: AiLimitReason): string => {
+const aiLimitMessage = (t: Dict, reason: AiLimitReason): string => {
   if (reason === "daily") return t.limits.aiDaily;
   if (reason === "burst") return t.limits.aiBurst;
   if (reason === "blocked") return t.limits.blocked;

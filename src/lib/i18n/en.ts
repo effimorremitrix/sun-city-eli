@@ -338,6 +338,10 @@ export const en: Dict = {
     kicker: "Clients' stories",
     title: "Client Testimonials",
     watchVideo: "Watch the video testimonial",
+    kindText: "Text",
+    kindImage: "Image",
+    kindVideo: "Video",
+    imageAlt: (name: string) => `Testimonial from ${name}`,
     items: [
       {
         quote:
@@ -507,6 +511,17 @@ export const en: Dict = {
 
   misc: {
     noInfo: "No info",
+    backHome: "Back to home",
+    legalHebrewNotice:
+      "The binding version of this page is the Hebrew one; this translation is provided for convenience.",
+    legalPrivacy: "Privacy Policy",
+    legalTerms: "Terms of Service",
+    legalDataDeletion: "Data Deletion",
+    legalAccessibility: "Accessibility statement",
+    legalAccessibilityHe: "Accessibility statement (Hebrew)",
+    legalLastUpdated: "Last updated:",
+    legalOtherDocs: "Other legal documents",
+    legalLangSwitch: "Document language",
     phoneError: "Please enter a valid Israeli phone number (e.g. 050-1234567)",
     consentMarketing:
       "I agree to receive updates about matching properties by email and WhatsApp (you can withdraw consent at any time)",
@@ -748,6 +763,20 @@ export const en: Dict = {
     selectAll: "Select all",
     clear: "Clear",
     done: "Done",
+  },
+
+  media: {
+    compressing: "Converting and compressing in the browser…",
+    uploading: (percent: number) => `Uploading… ${percent}%`,
+    tooLarge: "The file exceeds the limit (up to 500MB per video)",
+    unsupported: "Unsupported file type",
+  },
+
+  zod: {
+    required: "Required field",
+    tooLong: (max: number) => `Up to ${max} characters`,
+    httpsRequired: "The link must start with https://",
+    invalid: "Invalid value",
   },
 
   limits: {

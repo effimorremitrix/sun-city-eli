@@ -330,6 +330,10 @@ export const he = {
     kicker: "לקוחות מספרים",
     title: "עדויות לקוחות",
     watchVideo: "צפו בסרטון ההמלצה",
+    kindText: "טקסט",
+    kindImage: "תמונה",
+    kindVideo: "סרטון",
+    imageAlt: (name: string) => `המלצה של ${name}`,
     items: [
       {
         quote:
@@ -498,6 +502,16 @@ export const he = {
 
   misc: {
     noInfo: "אין מידע",
+    backHome: "חזרה לעמוד הבית",
+    legalHebrewNotice: "הנוסח המחייב של עמוד זה הוא הנוסח העברי.",
+    legalPrivacy: "מדיניות פרטיות",
+    legalTerms: "תנאי שימוש",
+    legalDataDeletion: "מחיקת מידע",
+    legalAccessibility: "הצהרת נגישות",
+    legalAccessibilityHe: "הצהרת נגישות (בעברית)",
+    legalLastUpdated: "עודכן לאחרונה:",
+    legalOtherDocs: "מסמכים משפטיים נוספים",
+    legalLangSwitch: "בחירת שפת המסמך",
     phoneError: "נא להזין מספר טלפון ישראלי תקין (לדוגמה 050-1234567)",
     consentMarketing:
       "אני מאשר/ת קבלת עדכונים על נכסים מתאימים במייל ובוואטסאפ (אפשר להסיר את ההסכמה בכל עת)",
@@ -738,6 +752,22 @@ export const he = {
   },
 
   /* מפות תצוגה לערכי מסד נתונים קנוניים (הערכים במסד נשארים בעברית) */
+  /* העלאת מדיה (סרטונים/תמונות) — התקדמות ושגיאות */
+  media: {
+    compressing: "המרה ודחיסה בדפדפן…",
+    uploading: (percent: number) => `מעלה… ${percent}%`,
+    tooLarge: "הקובץ גדול מהמותר (עד 500MB לסרטון)",
+    unsupported: "סוג הקובץ אינו נתמך",
+  },
+
+  /* הודעות ולידציה כלליות לטפסים */
+  zod: {
+    required: "שדה חובה",
+    tooLong: (max: number) => `עד ${max} תווים`,
+    httpsRequired: "הקישור חייב להתחיל ב-https://",
+    invalid: "ערך לא תקין",
+  },
+
   limits: {
     signupLimit: "יותר מדי ניסיונות הרשמה מהמכשיר הזה. נסו שוב מאוחר יותר.",
     aiDaily: "הגעתם למכסת החיפושים החכמים היומית. הירשמו לסוכן החכם והוא ימשיך לחפש עבורכם, או פנו אלינו ישירות.",

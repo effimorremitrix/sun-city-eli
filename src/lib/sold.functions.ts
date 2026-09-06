@@ -16,10 +16,16 @@ export type SoldProperty = {
   url: string | null;
   storage_path: string | null;
   image_url: string | null;
+  /** תרגומי כתובת/הערה לפי קוד שפה (נוצרים אוטומטית בשמירה) */
+  translations?: SoldTranslations | null;
 };
 
-const COLUMNS =
-  "id, site_id, address, neighborhood, note, image_url, storage_path, sold_at, is_published, sort_order";
+export type SoldTranslation = { address?: string; note?: string };
+export type SoldTranslations = Partial<Record<string, SoldTranslation>>;
+
+export const SOLD_COLUMNS =
+  "id, site_id, address, neighborhood, note, image_url, storage_path, sold_at, is_published, sort_order, translations";
+const COLUMNS = SOLD_COLUMNS;
 
 const BUCKET = "listing-images";
 const SIGNED_TTL = 60 * 60 * 24 * 7; // שבוע
@@ -44,6 +50,7 @@ type RawRow = {
   sold_at: string | null;
   is_published: boolean;
   sort_order: number;
+  translations?: SoldTranslations | null;
 };
 
 /** מצרף כתובות תמונה חתומות לרשומות (אותו דפוס כמו תמונות הנכסים) */
@@ -178,6 +185,36 @@ export const adminSaveSoldProperty = createServerFn({ method: "POST" })
       siteId = data.targetSiteId;
     }
 
+    // תרגום אוטומטי של הכתובת וההערה לשפות האתר — רק מה שחסר או שהעברית
+    // שלו השתנתה (ראו autoTranslate ב-translate.server.ts)
+    let existingTr: Record<string, Record<string, unknown>> = {};
+    if (data.id) {
+      const { data: row } = await context.supabase
+        .from("sold_properties")
+        .select("translations")
+        .eq("id", data.id)
+        .maybeSingle();
+      existingTr = ((row?.translations as Record<string, Record<string, unknown>> | null) ?? {}) || {};
+    }
+    const { autoTranslate } = await import("@/lib/translate.server");
+    const auto = await autoTranslate(
+      { address: data.address, note: data.note ?? "" },
+      existingTr,
+      context.userId,
+    );
+    const translations: Record<string, Record<string, unknown>> = {};
+    for (const [lang, tr] of Object.entries(auto)) {
+      const entry: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(tr)) {
+        if (key === "_hash") {
+          if (value && typeof value === "object" && Object.keys(value).length) entry["_hash"] = value;
+        } else if (typeof value === "string" && value) {
+          entry[key] = value;
+        }
+      }
+      if (Object.keys(entry).length) translations[lang] = entry;
+    }
+
     const fields = {
       site_id: siteId,
       address: data.address,
@@ -186,6 +223,7 @@ export const adminSaveSoldProperty = createServerFn({ method: "POST" })
       sold_at: data.sold_at,
       is_published: data.is_published,
       sort_order: data.sort_order,
+      translations: translations as never,
       ...(data.storage_path ? { storage_path: data.storage_path } : {}),
       ...(data.image_url ? { image_url: data.image_url } : {}),
     };

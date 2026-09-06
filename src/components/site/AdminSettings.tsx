@@ -34,32 +34,60 @@ const GROUPS: Group[] = [
       { key: "ai_search_enabled", label: "חיפוש חכם פעיל", type: "bool" },
       { key: "ai_search_anon_daily", label: "חיפושים ליום לגולש אנונימי", type: "num", min: 0 },
       { key: "ai_search_user_daily", label: "חיפושים ליום למשתמש רשום", type: "num", min: 0 },
-      { key: "ai_search_burst_per_minute", label: "חיפושים לדקה (מגן מפרצי בקשות)", type: "num", min: 0 },
+      {
+        key: "ai_search_burst_per_minute",
+        label: "חיפושים לדקה (מגן מפרצי בקשות)",
+        type: "num",
+        min: 0,
+      },
       { key: "ai_daily_usd_cap", label: "תקרת הוצאה יומית (דולר)", type: "num", min: 0, step: 0.5 },
-      { key: "ai_model", label: "מודל השפה", type: "model", hint: "מודל חזק יותר = תשובות טובות יותר אבל יקר יותר לכל חיפוש" },
-      { key: "web_search_user_daily", label: "סריקות רשת ליום למשתמש", type: "num", min: 0, hint: "חיפוש ברשת מתוך הסוכן האישי — יקר יותר מחיפוש רגיל" },
+      {
+        key: "ai_model",
+        label: "מודל השפה",
+        type: "model",
+        hint: "מודל חזק יותר = תשובות טובות יותר אבל יקר יותר לכל חיפוש",
+      },
+      {
+        key: "web_search_user_daily",
+        label: "סריקות רשת ליום למשתמש",
+        type: "num",
+        min: 0,
+        hint: "חיפוש ברשת מתוך הסוכן האישי — יקר יותר מחיפוש רגיל",
+      },
     ],
   },
   {
     title: "סריקת שוק",
     help: "הסריקה מביאה מודעות מהשוק לפי הביקוש של הלקוחות (פרופילי חיפוש). כל משימה = שכונה וסוג עסקה; ככל שיותר משימות בכל ריצה, הסריקה יקרה וארוכה יותר. מודעה שלא נראתה שוב אחרי ימי ה-TTL נעלמת מהאתר.",
-    warning: "מקורות LLM: סריקה דרך מודל שפה עם חיפוש ברשת עולה כסף אמיתי בכל ריצה (עשרות אגורות עד שקלים לכל משימה). מומלץ להשאיר כבוי אלא אם המקורות הרגילים לא מספקים.",
+    warning:
+      "מקורות LLM: סריקה דרך מודל שפה עם חיפוש ברשת עולה כסף אמיתי בכל ריצה (עשרות אגורות עד שקלים לכל משימה). מומלץ להשאיר כבוי אלא אם המקורות הרגילים לא מספקים.",
     fields: [
       { key: "market_scan_enabled", label: "סריקת שוק פעילה", type: "bool" },
       { key: "market_scan_llm_sources_enabled", label: "מקורות LLM (בתשלום) פעילים", type: "bool" },
       { key: "market_scan_tasks_per_run", label: "משימות בכל ריצה", type: "num", min: 0 },
-      { key: "market_listing_ttl_days", label: "ימים עד שמודעה שלא נראתה נעלמת (TTL)", type: "num", min: 0 },
+      {
+        key: "market_listing_ttl_days",
+        label: "ימים עד שמודעה שלא נראתה נעלמת (TTL)",
+        type: "num",
+        min: 0,
+      },
     ],
   },
   {
     title: "הגנות",
-    help: "מגבלות קצב לטפסים הציבוריים. מי שחוצה מגבלה פי (המכפיל) נחסם אוטומטית למספר השעות שנקבע; החסימות מופיעות בטאב \"מערכת\" ואפשר לשחרר אותן ידנית. ערכים נמוכים מדי עלולים לחסום לקוחות אמיתיים בשעות עומס.",
+    help: 'מגבלות קצב לטפסים הציבוריים. מי שחוצה מגבלה פי (המכפיל) נחסם אוטומטית למספר השעות שנקבע; החסימות מופיעות בטאב "מערכת" ואפשר לשחרר אותן ידנית. ערכים נמוכים מדי עלולים לחסום לקוחות אמיתיים בשעות עומס.',
     fields: [
       { key: "leads_per_minute", label: "פניות (לידים) לדקה מאותה כתובת", type: "num", min: 0 },
       { key: "signup_per_hour", label: "הרשמות לשעה מאותה כתובת", type: "num", min: 0 },
       { key: "feedback_per_minute", label: "משובים לדקה", type: "num", min: 0 },
       { key: "track_per_minute", label: "אירועי מדידה לדקה", type: "num", min: 0 },
-      { key: "auto_block_multiplier", label: "מכפיל לחסימה אוטומטית", type: "num", min: 0, hint: "למשל 3 = חסימה כשחוצים פי 3 מהמגבלה" },
+      {
+        key: "auto_block_multiplier",
+        label: "מכפיל לחסימה אוטומטית",
+        type: "num",
+        min: 0,
+        hint: "למשל 3 = חסימה כשחוצים פי 3 מהמגבלה",
+      },
       { key: "auto_block_hours", label: "משך חסימה אוטומטית (שעות)", type: "num", min: 0 },
     ],
   },
@@ -67,7 +95,12 @@ const GROUPS: Group[] = [
     title: "מערכת",
     help: "כתובת האתר משמשת בכל הקישורים שנשלחים ללקוחות (מייל, וואטסאפ) ולמתזמן. הגיבוי היומי נשמר באחסון ונמחק אחרי ימי השמירה; התראות בריאות שולחות מייל למנהל כשרכיב נופל.",
     fields: [
-      { key: "site_url", label: "כתובת האתר (site_url)", type: "text", hint: "בלי קו נטוי בסוף, למשל https://example.com" },
+      {
+        key: "site_url",
+        label: "כתובת האתר (site_url)",
+        type: "text",
+        hint: "בלי קו נטוי בסוף, למשל https://example.com",
+      },
       { key: "backup_retention_days", label: "ימי שמירת גיבויים", type: "num", min: 0 },
       { key: "health_alerts_enabled", label: "התראות בריאות למנהל", type: "bool" },
     ],
@@ -156,7 +189,10 @@ export default function AdminSettings() {
         <p className="mt-3 rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">{msg}</p>
       )}
       {err && (
-        <p role="alert" className="mt-3 rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive">
+        <p
+          role="alert"
+          className="mt-3 rounded-xl bg-destructive/10 p-3 text-sm font-semibold text-destructive"
+        >
           {err}
         </p>
       )}
@@ -187,7 +223,9 @@ export default function AdminSettings() {
                           onChange={(e) => set(f.key, e.target.checked)}
                         />
                         <span className={isDirty ? "text-sun" : ""}>{f.label}</span>
-                        {f.hint && <span className="text-xs text-muted-foreground">({f.hint})</span>}
+                        {f.hint && (
+                          <span className="text-xs text-muted-foreground">({f.hint})</span>
+                        )}
                       </label>
                     );
                   if (f.type === "model")
@@ -209,7 +247,9 @@ export default function AdminSettings() {
                             </option>
                           ))}
                         </select>
-                        {f.hint && <span className="mt-1 block text-xs text-muted-foreground">{f.hint}</span>}
+                        {f.hint && (
+                          <span className="mt-1 block text-xs text-muted-foreground">{f.hint}</span>
+                        )}
                       </label>
                     );
                   return (
@@ -224,7 +264,9 @@ export default function AdminSettings() {
                         value={String(value)}
                         onChange={(e) => set(f.key, e.target.value)}
                       />
-                      {f.hint && <span className="mt-1 block text-xs text-muted-foreground">{f.hint}</span>}
+                      {f.hint && (
+                        <span className="mt-1 block text-xs text-muted-foreground">{f.hint}</span>
+                      )}
                     </label>
                   );
                 })}
@@ -239,7 +281,11 @@ export default function AdminSettings() {
               onClick={() => void save()}
               className="rounded-xl bg-sun px-5 py-2.5 text-sm font-bold text-sun-foreground disabled:opacity-50"
             >
-              {busy ? "שומר…" : dirty ? `שמירת ${Object.keys(patch).length} שינויים` : "אין שינויים"}
+              {busy
+                ? "שומר…"
+                : dirty
+                  ? `שמירת ${Object.keys(patch).length} שינויים`
+                  : "אין שינויים"}
             </button>
             {dirty && (
               <button

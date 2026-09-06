@@ -13,13 +13,13 @@
 
 export type CompressOptions = {
   /** גובה מרבי של הפלט (ברירת מחדל 720 — רוחב נגזר לפי יחס התמונה) */
-  maxHeight?: number;
+  maxHeight?: number | undefined;
   /** קצב סיביות לווידאו (ברירת מחדל 2.5Mbps — מספיק ל-720p של המלצה) */
-  videoBitsPerSecond?: number;
+  videoBitsPerSecond?: number | undefined;
   /** התקדמות 0–100 לפי זמן הנגינה */
-  onProgress?: (percent: number) => void;
+  onProgress?: ((percent: number) => void) | undefined;
   /** ביטול (למשל כשהמשתמש סוגר את הטופס) */
-  signal?: AbortSignal;
+  signal?: AbortSignal | undefined;
 };
 
 /** סוגי פלט לפי סדר עדיפות — WebM/VP9 הכי יעיל; MP4/H.264 בסאפארי */
@@ -203,7 +203,7 @@ export async function compressVideo(file: File, opts: CompressOptions = {}): Pro
       rec.onstop = () => {
         clearTimeout(hardTimeout);
         opts.signal?.removeEventListener("abort", onAbort);
-        finish(() => resolve(new Blob(chunks, { type: mimeType.split(";")[0] })));
+        finish(() => resolve(new Blob(chunks, { type: mimeType.split(";")[0] ?? mimeType })));
       };
       video.onerror = () => {
         if (rec.state !== "inactive") rec.stop();

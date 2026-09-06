@@ -339,6 +339,10 @@ export const ru: Dict = {
     kicker: "Отзывы клиентов",
     title: "Клиенты рассказывают",
     watchVideo: "Смотреть видеоотзыв",
+    kindText: "Текст",
+    kindImage: "Фото",
+    kindVideo: "Видео",
+    imageAlt: (name: string) => `Отзыв: ${name}`,
     items: [
       {
         quote:
@@ -507,6 +511,17 @@ export const ru: Dict = {
 
   misc: {
     noInfo: "Нет данных",
+    backHome: "На главную",
+    legalHebrewNotice:
+      "Юридически обязательной является версия этой страницы на иврите; перевод приведён для удобства.",
+    legalPrivacy: "Политика конфиденциальности",
+    legalTerms: "Условия использования",
+    legalDataDeletion: "Удаление данных",
+    legalAccessibility: "Заявление о доступности",
+    legalAccessibilityHe: "Заявление о доступности (на иврите)",
+    legalLastUpdated: "Последнее обновление:",
+    legalOtherDocs: "Другие юридические документы",
+    legalLangSwitch: "Язык документа",
     phoneError:
       "Пожалуйста, укажите действующий израильский номер телефона (например, 050-1234567)",
     consentMarketing:
@@ -748,6 +763,20 @@ export const ru: Dict = {
     selectAll: "Выбрать все",
     clear: "Очистить",
     done: "Готово",
+  },
+
+  media: {
+    compressing: "Конвертация и сжатие в браузере…",
+    uploading: (percent: number) => `Загрузка… ${percent}%`,
+    tooLarge: "Файл превышает лимит (до 500 МБ на видео)",
+    unsupported: "Неподдерживаемый тип файла",
+  },
+
+  zod: {
+    required: "Обязательное поле",
+    tooLong: (max: number) => `До ${max} символов`,
+    httpsRequired: "Ссылка должна начинаться с https://",
+    invalid: "Недопустимое значение",
   },
 
   limits: {

@@ -27,9 +27,7 @@ export function NeighborhoodPicker({ value, onChange, label }: Props) {
 
   return (
     <div className="block">
-      {label && (
-        <span className="mb-1 block text-xs font-bold text-muted-foreground">{label}</span>
-      )}
+      {label && <span className="mb-1 block text-xs font-bold text-muted-foreground">{label}</span>}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button

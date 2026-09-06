@@ -24,7 +24,7 @@ export const RASTER_TYPES = ["image/jpeg", "image/png", "image/webp"];
 export const SVG_TYPE = "image/svg+xml";
 export const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 export const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-/** תקרת ה-bucket (20260906_site_media_video.sql) — מעבר לזה האחסון דוחה */
+/** תקרת ה-bucket (20260906100600_translations_and_media.sql) — מעבר לזה האחסון דוחה */
 export const MAX_VIDEO_SIZE = 500 * 1024 * 1024;
 /** מעל הגודל הזה מנסים לדחוס בדפדפן לפני ההעלאה */
 export const COMPRESS_VIDEO_ABOVE = 45 * 1024 * 1024;
@@ -181,14 +181,9 @@ async function uploadVideoResumable(
       );
     }
 
-    // המשך העלאה שנקטעה (רענון דף באמצע) — לפי טביעת האצבע של הקובץ
-    void upload
-      .findPreviousUploads()
-      .then((previous) => {
-        if (previous.length) upload.resumeFromPreviousUpload(previous[0]!);
-        upload.start();
-      })
-      .catch(() => upload.start());
+    // בלי resumeFromPreviousUpload: כל העלאה מקבלת נתיב אקראי חדש, וחידוש
+    // העלאה ישנה היה משלים אובייקט בנתיב אחר מזה שאנחנו חותמים עליו
+    upload.start();
   });
 }
 

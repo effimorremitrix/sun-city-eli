@@ -1,6 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { mergeLive, type LiveSite } from "@/lib/site-live";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
+import {
+  mergeLive,
+  type LiveContentTranslation,
+  type LiveFaqItem,
+  type LiveSite,
+  type LiveTestimonial,
+  type LiveTranslations,
+} from "@/lib/site-live";
 import { OFFICE_SLUG } from "@/lib/site-data";
 
 /** ברירת המחדל לקריאה ציבורית ולבחירת ה-site בניהול — אתר המשרד */
@@ -120,12 +129,19 @@ export const saveSiteContent = createServerFn({ method: "POST" })
       faq = data.faq === null ? null : data.faq.slice(0, 30).map((f) => faqItemSchema.parse(f));
     }
 
+    // תרגום אוטומטי של התוכן שנשמר (ממליצים, שאלות נפוצות, אודות ותפקיד
+    // הסוכן) לשלוש שפות האתר — ממוזג לתוך עמודת translations הקיימת
+    const translations = await mergeAutoTranslations(context, siteId, data, {
+      testimonials: testimonials as LiveTestimonial[] | null | undefined,
+      faq: faq as LiveFaqItem[] | null | undefined,
+    });
+
     const { error } = await context.supabase.from("site_content").upsert(
       {
         site_id: siteId,
         ...(data.business !== undefined ? { business: data.business as never } : {}),
         ...(data.texts !== undefined ? { texts: data.texts as never } : {}),
-        ...(data.translations ? { translations: data.translations as never } : {}),
+        ...(translations ? { translations: translations as never } : {}),
         ...(data.testimonials !== undefined ? { testimonials: testimonials as never } : {}),
         ...(data.faq !== undefined ? { faq: faq as never } : {}),
       },
@@ -134,6 +150,127 @@ export const saveSiteContent = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/* ------------------- תרגום אוטומטי של תוכן האתר בשמירה ------------------- */
+
+/** המפתחות שהעורך הידני (AdminTranslateTabs בלוח הניהול) שולט בהם במלואם */
+const MANUAL_BUSINESS_KEYS = ["name", "tagline", "subtitle", "address", "hours"] as const;
+
+/**
+ * בונה את עמודת translations החדשה: התרגומים הידניים שהגיעו מהלוח (אם הגיעו)
+ * מחליפים את המפתחות שלהם, ושאר המפתחות — בעיקר אלה שמתורגמים אוטומטית —
+ * נשמרים מהרשומה הקיימת ומתעדכנים לפי מה שנשמר עכשיו. מחזיר undefined כשאין
+ * מה לעדכן (שמירה שלא נגעה בשום שדה מתורגם).
+ */
+async function mergeAutoTranslations(
+  context: { supabase: SupabaseClient<Database>; userId: string },
+  siteId: string,
+  data: {
+    business?: Record<string, unknown>;
+    translations?: Record<string, unknown>;
+    testimonials?: unknown[] | null;
+    faq?: unknown[] | null;
+  },
+  parsed: {
+    testimonials: LiveTestimonial[] | null | undefined;
+    faq: LiveFaqItem[] | null | undefined;
+  },
+): Promise<LiveTranslations | undefined> {
+  const touchesAuto =
+    data.business !== undefined || data.testimonials !== undefined || data.faq !== undefined;
+  if (!touchesAuto && !data.translations) return undefined;
+
+  // המצב הנוכחי במסד — הבסיס למיזוג ולהשוואת החתימות
+  const { data: row } = await context.supabase
+    .from("site_content")
+    .select("business, testimonials, faq, translations")
+    .eq("site_id", siteId)
+    .maybeSingle();
+  const existing = ((row?.translations ?? {}) as LiveTranslations) || {};
+
+  // שכבה 1: תרגומים ידניים מהלוח מחליפים את המפתחות שבשליטתם
+  const merged: LiveTranslations = {};
+  const incoming = (data.translations ?? undefined) as LiveTranslations | undefined;
+  const locales = new Set([...Object.keys(existing), ...Object.keys(incoming ?? {})]);
+  for (const locale of locales) {
+    const prev = existing[locale] ?? {};
+    const next: LiveContentTranslation = { ...prev };
+    if (incoming) {
+      const manual = incoming[locale] ?? {};
+      if (manual.texts) next.texts = manual.texts;
+      else delete next.texts;
+      const business: NonNullable<LiveContentTranslation["business"]> = {
+        ...(prev.business ?? {}),
+      };
+      for (const k of MANUAL_BUSINESS_KEYS) delete business[k];
+      Object.assign(business, manual.business ?? {});
+      next.business = business;
+    }
+    merged[locale] = next;
+  }
+  if (!touchesAuto) return merged;
+
+  // שכבה 2: השדות המתורגמים אוטומטית — לפי מה שנשמר עכשיו (או הקיים במסד)
+  const business = (data.business ?? (row?.business as Record<string, unknown> | null) ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const testimonials =
+    parsed.testimonials !== undefined
+      ? parsed.testimonials
+      : ((row?.testimonials as LiveTestimonial[] | null) ?? null);
+  const faq = parsed.faq !== undefined ? parsed.faq : ((row?.faq as LiveFaqItem[] | null) ?? null);
+
+  const source: Record<string, string> = {};
+  const str = (v: unknown) => (typeof v === "string" ? v : "");
+  source["business.bio"] = str(business["bio"]);
+  source["business.roleTitle"] = str(business["roleTitle"]);
+  for (const t of Array.isArray(testimonials) ? testimonials : []) {
+    source[`testimonials.${t.id}.name`] = str(t.name);
+    source[`testimonials.${t.id}.type`] = str(t.type);
+    source[`testimonials.${t.id}.quote`] = str(t.quote);
+  }
+  for (const f of Array.isArray(faq) ? faq : []) {
+    source[`faq.${f.id}.q`] = str(f.q);
+    source[`faq.${f.id}.a`] = str(f.a);
+  }
+  const keys = Object.keys(source);
+
+  const { autoTranslate, flattenTranslatedFields, nestTranslatedFields, AUTO_TRANSLATE_TARGETS } =
+    await import("@/lib/translate.server");
+  const flatExisting = Object.fromEntries(
+    AUTO_TRANSLATE_TARGETS.map((lang) => [
+      lang,
+      flattenTranslatedFields(merged[lang] as Record<string, unknown> | undefined, keys),
+    ]),
+  );
+  const auto = await autoTranslate(source, flatExisting, context.userId);
+
+  for (const lang of AUTO_TRANSLATE_TARGETS) {
+    const nested = nestTranslatedFields(auto[lang]) as LiveContentTranslation & {
+      business?: Record<string, string>;
+    };
+    const prev = merged[lang] ?? {};
+    // המפתחות הידניים נשארים; bio/roleTitle, הממליצים והשאלות מוחלפים במלואם
+    // (ממליץ שנמחק — התרגום שלו נמחק איתו)
+    const prevBusiness = { ...(prev.business ?? {}) };
+    delete prevBusiness.bio;
+    delete prevBusiness.roleTitle;
+    const entry: LiveContentTranslation = { ...prev };
+    delete entry.testimonials;
+    delete entry.faq;
+    delete entry._hash;
+    const business = { ...prevBusiness, ...(nested.business ?? {}) };
+    if (Object.keys(business).length) entry.business = business;
+    else delete entry.business;
+    if (nested.testimonials) entry.testimonials = nested.testimonials;
+    if (nested.faq) entry.faq = nested.faq;
+    if (nested._hash) entry._hash = nested._hash;
+    if (!entry.texts || !Object.keys(entry.texts).length) delete entry.texts;
+    merged[lang] = entry;
+  }
+  return merged;
+}
 
 /* ------------------------- הקמת ה־ADMIN הראשון ------------------------- */
 

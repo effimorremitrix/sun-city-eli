@@ -86,10 +86,10 @@ export function AttributionChips({
   referrer,
   landing_path,
 }: {
-  utm_source?: string | null;
-  utm_campaign?: string | null;
-  referrer?: string | null;
-  landing_path?: string | null;
+  utm_source?: string | null | undefined;
+  utm_campaign?: string | null | undefined;
+  referrer?: string | null | undefined;
+  landing_path?: string | null | undefined;
 }) {
   const chips = [
     utm_source ? `מקור: ${utm_source}` : null,
@@ -123,7 +123,7 @@ export function ContactCardSection({
   sites,
 }: {
   contactId: string;
-  sites?: ManagedSite[];
+  sites?: ManagedSite[] | undefined;
 }) {
   const fetchContact = useServerFn(adminGetContact);
   const card = useQuery({
@@ -133,8 +133,7 @@ export function ContactCardSection({
 
   const siteName = (id: string | null) => {
     if (!id) return "אין מידע";
-    const s =
-      (sites ?? []).find((x) => x.id === id) ?? card.data?.sites.find((x) => x.id === id);
+    const s = (sites ?? []).find((x) => x.id === id) ?? card.data?.sites.find((x) => x.id === id);
     return s?.name ?? "דף לא מוכר";
   };
 
@@ -158,7 +157,11 @@ export function ContactCardSection({
         : min != null
           ? `מ-${fmtNum(min)} ₪`
           : "אין מידע";
-  const rooms = (p: { min_rooms: number | null; rooms: number | null; max_rooms: number | null }) =>
+  const rooms = (p: {
+    min_rooms: number | null;
+    rooms: number | null;
+    max_rooms: number | null;
+  }) =>
     p.min_rooms != null && p.max_rooms != null
       ? `${p.min_rooms}–${p.max_rooms} חדרים`
       : p.rooms != null
@@ -693,8 +696,8 @@ export default function AdminLeadDrawer({
             <div className="mt-3 rounded-xl border border-sun/50 p-3">
               <p className="text-sm font-extrabold text-primary">העברה לסוכן אחר</p>
               <p className="text-xs text-muted-foreground">
-                הליד (והלקוח, אם יש לו כרטיס לקוח) יעברו לדף של הסוכן שנבחר יחד עם ההיסטוריה.
-                ההעברה נרשמת בציר הזמן והכרטיס ייסגר.
+                הליד (והלקוח, אם יש לו כרטיס לקוח) יעברו לדף של הסוכן שנבחר יחד עם ההיסטוריה. ההעברה
+                נרשמת בציר הזמן והכרטיס ייסגר.
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <select
