@@ -1,10 +1,32 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Heart, MessageCircle, Phone, Star, Target, UserRound, X } from "lucide-react";
-import { getMyPortalExtras, type PortalMatch } from "@/lib/account.functions";
+import {
+  ExternalLink,
+  Heart,
+  MessageCircle,
+  Phone,
+  Sparkles,
+  Star,
+  Store,
+  Target,
+  UserRound,
+  X,
+} from "lucide-react";
+import {
+  getMyPortalExtras,
+  type PortalMarketMatch,
+  type PortalMatch,
+} from "@/lib/account.functions";
 import { setListingFeedback, type FeedbackReaction } from "@/lib/feedback.functions";
-import { formatListingPrice, listingImages, type Listing } from "@/lib/listings";
+import { requestMarketCallback } from "@/lib/leads.functions";
+import { listPublicListings } from "@/lib/listings.functions";
+import { listPublicMarketListings } from "@/lib/market.functions";
+import { aiSearchListings, type AiSearchResult } from "@/lib/ai-search.functions";
+import { aiLimitMessage } from "@/components/site/PropertySection";
+import { formatListingPrice, listingImages, localizeListing, type Listing } from "@/lib/listings";
+import { marketSourceLabel, type MarketListing } from "@/lib/market";
+import type { MatchResult } from "@/lib/match-score";
 import { getBackToSiteHref } from "@/lib/back-to-site";
 import { waProps } from "@/lib/site-data";
 import { useLang } from "@/lib/i18n";

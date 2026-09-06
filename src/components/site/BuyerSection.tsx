@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Users } from "lucide-react";
-import { business, neighborhoods, openWa } from "@/lib/site-data";
+import { business, openWa } from "@/lib/site-data";
 import { PROPERTY_CATEGORIES, isValidIsraeliPhone } from "@/lib/leads";
 import { createPublicLead } from "@/lib/leads.functions";
 import { useLang } from "@/lib/i18n";
 import { useLive } from "@/lib/site-live";
 import { trackEvent } from "@/lib/analytics";
+import { NeighborhoodPicker } from "@/components/site/NeighborhoodPicker";
 
 /** טופס "נכס לפי דרישה" — קריטריונים מובנים בסגנון הפילטרים של יד2 */
 type BuyerForm = {
@@ -58,12 +59,6 @@ export function BuyerSection() {
 
   /* קבוצת הקונים של סוכן הדף (מהאזור האישי); אם לא הוזנה — קבוצות המשרד */
   const agentGroup = live.social?.whatsappGroup?.trim() || "";
-
-  const toggleHood = (n: string) =>
-    setForm((f) => ({
-      ...f,
-      hoods: f.hoods.includes(n) ? f.hoods.filter((x) => x !== n) : [...f.hoods, n],
-    }));
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,26 +267,11 @@ export function BuyerSection() {
             </label>
           </div>
           <div className="sm:col-span-2">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">
-              {t.buyers.neighborhoodsLabel}
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {neighborhoods.map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => toggleHood(n)}
-                  aria-pressed={form.hoods.includes(n)}
-                  className={
-                    form.hoods.includes(n)
-                      ? "rounded-full bg-sun px-3 py-1 text-xs font-bold text-sun-foreground"
-                      : "rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground"
-                  }
-                >
-                  {t.maps.neighborhoods[n] ?? n}
-                </button>
-              ))}
-            </div>
+            <NeighborhoodPicker
+              value={form.hoods}
+              onChange={(hoods) => setForm((f) => ({ ...f, hoods }))}
+              label={t.buyers.neighborhoodsLabel}
+            />
           </div>
           <details className="sm:col-span-2">
             <summary className="cursor-pointer text-sm font-bold text-primary">

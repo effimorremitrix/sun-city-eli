@@ -41,7 +41,7 @@ export type LeadsDashboardCounts = {
 };
 
 const LEAD_ROW_COLUMNS =
-  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at,deal_type,city,neighborhoods,property_type,min_price,max_price,min_rooms,max_rooms,min_size,min_floor,max_floor,needs_mamad,needs_elevator,needs_parking,needs_balcony,listing:listing_id(id,title)";
+  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at,contact_id,utm_source,utm_campaign,referrer,landing_path,deal_type,city,neighborhoods,property_type,min_price,max_price,min_rooms,max_rooms,min_size,min_floor,max_floor,needs_mamad,needs_elevator,needs_parking,needs_balcony,listing:listing_id(id,title)";
 
 const str = (v: unknown, max = 200): string | null => {
   const s = typeof v === "string" ? v.trim() : "";
@@ -448,8 +448,10 @@ export const adminLeadsAttentionCount = createServerFn({ method: "GET" })
 
 /**
  * קליטת ליד מטופס ציבורי (ללא התחברות). הכתיבה ב-service role; הגנות:
- * שדה honeypot, מגבלת קצב לפי IP, קיצוץ אורכים ורשימת מקורות סגורה.
- * מחזירה תמיד ok — הטופס באתר לעולם לא נחסם על ידי הקליטה.
+ * שדה honeypot, מגבלות קצב במסד (IP + מכשיר), קיצוץ אורכים ורשימת מקורות
+ * סגורה. הליד נקשר ללקוח (contact) ונוצר אצל הסוכן המטפל הקבוע שלו —
+ * לא אצל הדף שבו במקרה נשלח הטופס. מחזירה תמיד ok — הטופס באתר לעולם לא
+ * נחסם על ידי הקליטה.
  */
 export const createPublicLead = createServerFn({ method: "POST" })
   .inputValidator(
@@ -462,11 +464,13 @@ export const createPublicLead = createServerFn({ method: "POST" })
       message?: string | null;
       source: string;
       listingId?: string | null;
+      marketListingId?: string | null;
       website?: string | null;
       /** קריטריוני חיפוש מובנים (טופס הקונים) — עוברים סניטציה בצד השרת */
       criteria?: unknown;
       /** הסכמת דיוור (מייל/וואטסאפ) — תנאי לקבלת התראות התאמה אוטומטיות */
       marketingConsent?: boolean;
+      sessionId?: string | null;
     }) => ({
       siteId: str(input?.siteId, 60),
       siteSlug: str(input?.siteSlug, 60),
@@ -476,9 +480,11 @@ export const createPublicLead = createServerFn({ method: "POST" })
       message: str(input?.message, 500),
       source: isSource(input?.source) ? input.source : ("אתר אישי" as LeadSource),
       listingId: str(input?.listingId, 60),
+      marketListingId: str(input?.marketListingId, 60),
       website: str(input?.website, 200), // honeypot — אמור להישאר ריק
       criteria: input?.criteria ?? null,
       marketingConsent: input?.marketingConsent === true,
+      sessionId: str(input?.sessionId, 60),
     }),
   )
   .handler(async ({ data }) => {
@@ -488,153 +494,343 @@ export const createPublicLead = createServerFn({ method: "POST" })
       if (!data.name) return { ok: true };
       if (data.phone && !isValidIsraeliPhone(data.phone)) return { ok: true };
 
-      const { getRequest } = await import("@tanstack/react-start/server");
-      const ip = getRequest()?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-      const {
-        checkPublicLeadRateLimit,
-        logLeadEvent,
-        sanitizeLeadCriteria,
-        upsertSearchProfileFromCriteria,
-        LEAD_COLUMNS,
-      } = await import("@/lib/leads.server");
-      if (!checkPublicLeadRateLimit(ip)) return { ok: true };
+      const { enforceLimits, perMinute } = await import("@/lib/rate-limit.server");
+      const { getSettings } = await import("@/lib/settings.server");
+      const settings = await getSettings();
+      const limit = await enforceLimits({
+        scope: "lead",
+        ip: perMinute(settings.leads_per_minute, "leads"),
+        device: perMinute(settings.leads_per_minute, "leads"),
+      });
+      if (!limit.allowed) return { ok: true };
+
+      const { ingestLead, sanitizeLeadCriteria, upsertSearchProfileFromCriteria } =
+        await import("@/lib/leads.server");
+      const { resolveContact } = await import("@/lib/contacts.server");
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
       const criteria = sanitizeLeadCriteria(data.criteria);
 
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-      // זיהוי האתר (הסוכן המטפל): לפי id, אחרת לפי slug, אחרת אתר המשרד הראשי
-      let site: { id: string } | null = null;
+      // הדף שבו נשלח הטופס — משמש לשיוך רק כשללקוח אין עדיין סוכן
+      let pageSiteId: string | null = null;
       if (data.siteId) {
-        const { data: s } = await supabaseAdmin
-          .from("sites")
-          .select("id")
-          .eq("id", data.siteId)
-          .eq("is_active", true)
-          .maybeSingle();
-        site = s ?? null;
+        const { data: s } = await supabaseAdmin.from("sites").select("id").eq("id", data.siteId).eq("is_active", true).maybeSingle();
+        pageSiteId = (s?.id as string | undefined) ?? null;
       }
-      if (!site && data.siteSlug) {
-        const { data: s } = await supabaseAdmin
-          .from("sites")
-          .select("id")
-          .eq("slug", data.siteSlug)
-          .eq("is_active", true)
-          .maybeSingle();
-        site = s ?? null;
+      if (!pageSiteId && data.siteSlug) {
+        const { data: s } = await supabaseAdmin.from("sites").select("id").eq("slug", data.siteSlug).eq("is_active", true).maybeSingle();
+        pageSiteId = (s?.id as string | undefined) ?? null;
       }
-      if (!site) {
-        const { data: s } = await supabaseAdmin
-          .from("sites")
-          .select("id")
-          .eq("slug", OFFICE_SLUG)
-          .maybeSingle();
-        site = s ?? null;
-      }
-      if (!site) return { ok: true };
 
       const { getOptionalUserId } = await import("@/lib/optional-auth.server");
       const userId = await getOptionalUserId();
 
-      const phoneNormalized = normalizePhone(data.phone);
-
-      // דדופ: פנייה חוזרת מאותו טלפון לאותו אתר מתועדת על הליד הפתוח הקיים
-      if (phoneNormalized) {
-        const { data: existing } = await supabaseAdmin
-          .from("leads")
-          .select(LEAD_COLUMNS)
-          .eq("site_id", site.id)
-          .eq("phone_normalized", phoneNormalized)
-          .not("status", "in", closedList())
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (existing) {
-          await logLeadEvent(supabaseAdmin, {
-            leadId: existing.id as string,
-            siteId: site.id,
-            eventType: "contact_again",
-            note: `פנייה חוזרת מהאתר (${data.source})${data.message ? `: ${data.message}` : ""}`,
-            listingId: data.listingId,
-          });
-          // נגיעה קלה בשורת הליד כדי שיעלה לראש הרשימה (הטריגר מעדכן updated_at).
-          // דרישות חיפוש חדשות מעדכנות את הקריטריונים המובנים של הליד הקיים.
-          await supabaseAdmin
-            .from("leads")
-            .update({
-              listing_id: data.listingId ?? existing.listing_id,
-              ...(criteria ?? {}),
-              // הסכמה רק נדלקת מטופס — הסרה נעשית מול הסוכן/המשרד
-              ...(data.marketingConsent
-                ? { marketing_consent: true, consent_at: new Date().toISOString() }
-                : {}),
-            })
-            .eq("id", existing.id);
-          if (criteria && userId) {
-            const profileId = await upsertSearchProfileFromCriteria(supabaseAdmin, {
-              userId,
-              criteria,
-              whatsappPhone: data.phone,
-              notes: data.message,
-            });
-            if (profileId) {
-              await supabaseAdmin
-                .from("leads")
-                .update({ search_profile_id: profileId, user_id: userId })
-                .eq("id", existing.id);
-            }
-          }
-          return { ok: true };
-        }
-      }
+      const { contact, attribution } = await resolveContact({
+        phone: data.phone,
+        email: data.email,
+        fullName: data.name,
+        userId,
+        source: data.source,
+        pageSiteId,
+        marketingConsent: data.marketingConsent,
+      });
 
       // לקוח מחובר עם דרישות חיפוש: הדרישות נשמרות גם כפרופיל חיפוש מאוחד
-      // (הסוכן האישי) — כך אותה הזנה משרתת גם את הליד וגם את ההתראות
       let searchProfileId: string | null = null;
       if (criteria && userId) {
         searchProfileId = await upsertSearchProfileFromCriteria(supabaseAdmin, {
           userId,
+          contactId: contact.id,
           criteria,
           whatsappPhone: data.phone,
           notes: data.message,
         });
       }
 
-      const { data: lead, error } = await supabaseAdmin
-        .from("leads")
-        .insert({
-          site_id: site.id,
-          user_id: userId,
-          listing_id: data.listingId,
-          search_profile_id: searchProfileId,
-          full_name: data.name,
-          phone: data.phone,
-          phone_normalized: phoneNormalized || null,
-          email: data.email,
-          source: data.source,
-          notes: data.message,
-          ...(criteria ?? {}),
-          ...(data.marketingConsent
-            ? { marketing_consent: true, consent_at: new Date().toISOString() }
-            : {}),
-        })
-        .select("id")
-        .single();
-      if (error) throw new Error(error.message);
+      let sessionHash: string | null = null;
+      if (data.sessionId) {
+        try {
+          const { createHash } = await import("node:crypto");
+          const salt = process.env["ANALYTICS_SALT"] || "sun-city-analytics";
+          sessionHash = createHash("sha256").update(`${salt}:${data.sessionId}`).digest("hex").slice(0, 32);
+        } catch {
+          sessionHash = null;
+        }
+      }
 
-      await logLeadEvent(supabaseAdmin, {
-        leadId: lead.id as string,
-        siteId: site.id,
-        eventType: "created",
-        note: `ליד נכנס מהאתר (${data.source})${data.message ? `: ${data.message}` : ""}`,
+      const marketNote = data.marketListingId ? await marketListingNote(data.marketListingId) : null;
+
+      await ingestLead({
+        contact,
+        fullName: data.name,
+        phone: data.phone,
+        email: data.email,
+        userId,
+        source: data.source,
         listingId: data.listingId,
+        marketListingId: data.marketListingId,
+        searchProfileId,
+        message: [data.message, marketNote].filter(Boolean).join("\n") || null,
+        criteria,
+        marketingConsent: data.marketingConsent,
+        attribution,
+        sessionHash,
+        ...(data.marketListingId ? { criteriaExtra: { market_listing_id: data.marketListingId } } : {}),
       });
+
+      // פנייה על נכס ("מעניין אותי" / "רוצה שסוכן יחזור אליי") — התראה מיידית לסוכן
+      if (data.listingId || data.marketListingId) {
+        try {
+          const { handleClientAction, LEAD_COLUMNS } = await import("@/lib/leads.server");
+          const { data: leadRow } = await supabaseAdmin
+            .from("leads")
+            .select(LEAD_COLUMNS)
+            .eq("contact_id", contact.id)
+            .not("status", "in", closedList())
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const target = await resolveTarget(data.listingId, data.marketListingId);
+          if (leadRow && target) {
+            await handleClientAction({
+              kind: data.source === "התעניינות בנכס" ? "interest" : "callback",
+              responseLabel: data.source === "התעניינות בנכס" ? "מעניין אותי" : "רוצה שסוכן יחזור אליי",
+              userId,
+              contact,
+              lead: leadRow as never,
+              target,
+              siteUrl: (await getSettings()).site_url,
+            });
+          }
+        } catch (e) {
+          console.error("lead agent alert failed", e instanceof Error ? e.message : e);
+        }
+      }
       return { ok: true };
     } catch (e) {
       // קליטת ליד היא Best-effort — כשל כאן לעולם לא שובר את חוויית הגולש
       console.error("createPublicLead failed", e instanceof Error ? e.message : e);
       return { ok: true };
     }
+  });
+
+/** שורת תיאור למודעה מהשוק — נכנסת להערות הליד כדי שהסוכן יראה את המקור */
+async function marketListingNote(marketListingId: string): Promise<string | null> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: m } = await supabaseAdmin
+      .from("market_listings")
+      .select("title, source_site, source_url")
+      .eq("id", marketListingId)
+      .maybeSingle();
+    if (!m) return null;
+    return `נכס מהשוק (${m.source_site ?? "לוח"}): ${m.title} — ${m.source_url}`;
+  } catch {
+    return null;
+  }
+}
+
+/** יעד הפעולה (נכס משרד או מודעה מהשוק) לצורך התראה לסוכן */
+async function resolveTarget(
+  listingId: string | null,
+  marketListingId: string | null,
+): Promise<{ listingId: string | null; marketListingId: string | null; title: string; siteId: string | null; sourceUrl?: string | null } | null> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  if (listingId) {
+    const { data: l } = await supabaseAdmin.from("listings").select("id, title, site_id").eq("id", listingId).maybeSingle();
+    if (!l) return null;
+    return { listingId: l.id as string, marketListingId: null, title: l.title as string, siteId: (l.site_id as string | null) ?? null };
+  }
+  if (marketListingId) {
+    const { data: m } = await supabaseAdmin.from("market_listings").select("id, title, source_url, source_site").eq("id", marketListingId).maybeSingle();
+    if (!m) return null;
+    return { listingId: null, marketListingId: m.id as string, title: `${m.title} (${m.source_site ?? "מהשוק"})`, siteId: null, sourceUrl: m.source_url as string };
+  }
+  return null;
+}
+
+/**
+ * לקוח מחובר מבקש חזרה / מסמן עניין על מודעה מהשוק (אין שורת listing_feedback
+ * כי הטבלה מצביעה על listings בלבד) — ליד אצל הסוכן המטפל + התראה.
+ */
+export const requestMarketCallback = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { marketListingId: string; kind?: "callback" | "interest" }) => ({
+    marketListingId: String(input?.marketListingId ?? ""),
+    kind: input?.kind === "interest" ? ("interest" as const) : ("callback" as const),
+  }))
+  .handler(async ({ data, context }) => {
+    const { enforceLimits, perMinute } = await import("@/lib/rate-limit.server");
+    const { getSettings } = await import("@/lib/settings.server");
+    const settings = await getSettings();
+    const limit = await enforceLimits({ scope: "feedback", userId: context.userId, user: perMinute(settings.feedback_per_minute, "feedback") });
+    if (!limit.allowed) throw new Error("יותר מדי פעולות. נסו שוב בעוד רגע");
+
+    const target = await resolveTarget(null, data.marketListingId);
+    if (!target) throw new Error("הנכס אינו זמין");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { findOrCreateLeadForUser, handleClientAction } = await import("@/lib/leads.server");
+    const { officeSiteId } = await import("@/lib/contacts.server");
+    const { data: profile } = await supabaseAdmin.from("profiles").select("full_name, email").eq("id", context.userId).maybeSingle();
+    const office = await officeSiteId();
+    const { lead, contact } = await findOrCreateLeadForUser(office ?? "", context.userId, {
+      fullName: (profile?.full_name as string | null) ?? null,
+      email: (profile?.email as string | null) ?? null,
+      source: "הסוכן האישי",
+      marketListingId: data.marketListingId,
+      createdNote: `הלקוח התעניין בנכס מהשוק: ${target.title}`,
+    });
+    const label = data.kind === "callback" ? "רוצה שסוכן יחזור אליי" : "מעניין אותי";
+    await handleClientAction({
+      kind: data.kind,
+      responseLabel: label,
+      userId: context.userId,
+      contact,
+      lead,
+      target,
+      siteUrl: settings.site_url,
+    });
+    return { ok: true };
+  });
+
+/** העברת ליד (והלקוח שלו) לסוכן אחר — מנהל ראשי בלבד */
+export const adminReassignLead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { leadId: string; toSiteId: string }) => ({
+    leadId: String(input?.leadId ?? ""),
+    toSiteId: String(input?.toSiteId ?? ""),
+  }))
+  .handler(async ({ data, context }) => {
+    const { assertSuperAdmin } = await import("@/lib/admin.server");
+    await assertSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: lead } = await supabaseAdmin.from("leads").select("id, site_id, contact_id").eq("id", data.leadId).maybeSingle();
+    if (!lead) throw new Error("הליד לא נמצא");
+    const { data: site } = await supabaseAdmin.from("sites").select("id").eq("id", data.toSiteId).maybeSingle();
+    if (!site) throw new Error("הדף לא נמצא");
+    if (lead.contact_id) {
+      const { reassignContact } = await import("@/lib/contacts.server");
+      return reassignContact(lead.contact_id as string, data.toSiteId, context.userId);
+    }
+    const { error } = await supabaseAdmin
+      .from("leads")
+      .update({ site_id: data.toSiteId, reassigned_from_site_id: lead.site_id })
+      .eq("id", lead.id);
+    if (error) throw new Error(error.message);
+    await supabaseAdmin.from("lead_events").update({ site_id: data.toSiteId }).eq("lead_id", lead.id);
+    await supabaseAdmin.from("lead_events").insert({
+      lead_id: lead.id,
+      site_id: data.toSiteId,
+      event_type: "note",
+      note: "הליד הועבר לסוכן אחר על ידי המנהל",
+      metadata: { from_site_id: lead.site_id, to_site_id: data.toSiteId },
+      actor_user_id: context.userId,
+    });
+    return { movedLeads: 1 };
+  });
+
+export type ContactCard = {
+  contact: {
+    id: string;
+    full_name: string | null;
+    phone_normalized: string | null;
+    email: string | null;
+    user_id: string | null;
+    assigned_site_id: string | null;
+    assigned_at: string | null;
+    first_source: string | null;
+    first_site_id: string | null;
+    first_utm_source: string | null;
+    first_utm_campaign: string | null;
+    first_utm_content: string | null;
+    first_referrer: string | null;
+    first_landing_path: string | null;
+    marketing_consent: boolean;
+    created_at: string;
+  };
+  leads: Array<{
+    id: string;
+    site_id: string;
+    source: string;
+    status: string;
+    created_at: string;
+    listing_id: string | null;
+    next_follow_up_at: string | null;
+    utm_source: string | null;
+    utm_campaign: string | null;
+    referrer: string | null;
+    landing_path: string | null;
+  }>;
+  profiles: Array<{
+    id: string;
+    label: string;
+    deal_type: string;
+    neighborhoods: string[];
+    min_price: number | null;
+    max_price: number | null;
+    min_rooms: number | null;
+    rooms: number | null;
+    max_rooms: number | null;
+    is_active: boolean;
+    created_at: string;
+  }>;
+  activity: Array<{
+    id: number;
+    kind: string;
+    event: string;
+    status: string;
+    channel: string | null;
+    message: string | null;
+    error: string | null;
+    created_at: string;
+    listing_id: string | null;
+    market_listing_id: string | null;
+  }>;
+  sites: Array<{ id: string; name: string; slug: string }>;
+};
+
+/** כרטיס הלקוח המלא: כל הלידים, הפרופילים, המשוב וההתראות של אותו אדם */
+export const adminGetContact = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { contactId: string }) => ({ contactId: String(input?.contactId ?? "") }))
+  .handler(async ({ data, context }): Promise<ContactCard> => {
+    const { assertManager } = await import("@/lib/admin.server");
+    await assertManager(context);
+    // RLS: can_view_contact — מנהל רואה רק לקוחות עם ליד/פרופיל אצלו
+    const { data: contact, error } = await context.supabase
+      .from("contacts")
+      .select("*")
+      .eq("id", data.contactId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!contact) throw new Error("הלקוח לא נמצא");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [{ data: leads }, { data: profiles }, { data: activity }, { data: sites }] = await Promise.all([
+      supabaseAdmin
+        .from("leads")
+        .select("id, site_id, source, status, created_at, listing_id, next_follow_up_at, utm_source, utm_campaign, referrer, landing_path")
+        .eq("contact_id", data.contactId)
+        .order("created_at", { ascending: false }),
+      supabaseAdmin
+        .from("search_profiles")
+        .select("id, label, deal_type, neighborhoods, min_price, max_price, min_rooms, rooms, max_rooms, is_active, created_at")
+        .eq("contact_id", data.contactId)
+        .order("created_at", { ascending: false }),
+      supabaseAdmin
+        .from("activity_log")
+        .select("id, kind, event, status, channel, message, error, created_at, listing_id, market_listing_id")
+        .eq("contact_id", data.contactId)
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabaseAdmin.from("sites").select("id, name, slug"),
+    ]);
+    return {
+      contact: contact as unknown as ContactCard["contact"],
+      leads: (leads ?? []) as ContactCard["leads"],
+      profiles: (profiles ?? []) as ContactCard["profiles"],
+      activity: (activity ?? []) as ContactCard["activity"],
+      sites: (sites ?? []) as ContactCard["sites"],
+    };
   });
 
 // ---- תגובת לקוח על התראת נכס (הסוכן האישי) ----
@@ -658,7 +854,9 @@ export const respondToNotification = createServerFn({ method: "POST" })
     // ההתראה נטענת עם קליינט המשתמש — כך מובטח שהיא באמת שלו (RLS)
     const { data: notification, error } = await context.supabase
       .from("listing_notifications")
-      .select("id, user_id, response, search_profile_id, listing:listing_id(id, title, site_id)")
+      .select(
+        "id, user_id, response, search_profile_id, listing:listing_id(id, title, site_id), market:market_listing_id(id, title, source_url, source_site)",
+      )
       .eq("id", data.notificationId)
       .eq("user_id", context.userId)
       .maybeSingle();
@@ -666,21 +864,14 @@ export const respondToNotification = createServerFn({ method: "POST" })
     if (!notification) throw new Error("ההתראה לא נמצאה");
     if (notification.response) return { ok: true, already: true };
 
-    const listing = notification.listing as unknown as {
-      id: string;
-      title: string;
-      site_id: string | null;
-    } | null;
-    if (!listing?.site_id) throw new Error("הנכס אינו זמין");
+    const listing = notification.listing as unknown as { id: string; title: string; site_id: string | null } | null;
+    const market = notification.market as unknown as { id: string; title: string; source_url: string; source_site: string | null } | null;
+    if (!listing && !market) throw new Error("הנכס אינו זמין");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const {
-      findOrCreateLeadForUser,
-      applyLeadUpdate,
-      logLeadEvent,
-      tomorrowAt10Israel,
-      notifyAgentOfClientResponse,
-    } = await import("@/lib/leads.server");
+    const { findOrCreateLeadForUser, handleClientAction } = await import("@/lib/leads.server");
+    const { officeSiteId } = await import("@/lib/contacts.server");
+    const { getSettings } = await import("@/lib/settings.server");
 
     const [{ data: profile }, { data: searchProfile }] = await Promise.all([
       supabaseAdmin.from("profiles").select("full_name, email").eq("id", context.userId).single(),
@@ -693,52 +884,43 @@ export const respondToNotification = createServerFn({ method: "POST" })
         : Promise.resolve({ data: null }),
     ]);
 
-    const { lead } = await findOrCreateLeadForUser(listing.site_id, context.userId, {
+    const pageSite = listing?.site_id ?? (await officeSiteId()) ?? "";
+    const { lead, contact } = await findOrCreateLeadForUser(pageSite, context.userId, {
       fullName: profile?.full_name ?? null,
       email: profile?.email ?? null,
       phone: (searchProfile as { whatsapp_phone?: string | null } | null)?.whatsapp_phone ?? null,
       source: "הסוכן האישי",
-      listingId: listing.id,
+      listingId: listing?.id ?? null,
+      marketListingId: market?.id ?? null,
       searchProfileId: notification.search_profile_id,
       createdNote: "ליד נוצר אוטומטית — הלקוח הגיב להתראת נכס",
     });
 
     const responseLabel = CLIENT_RESPONSES[data.response];
-    await logLeadEvent(supabaseAdmin, {
-      leadId: lead.id,
-      siteId: listing.site_id,
-      eventType: "client_response",
-      note: `הלקוח סימן "${responseLabel}" על הנכס: ${listing.title}`,
-      listingId: listing.id,
-      metadata: { response: data.response, notification_id: notification.id },
-    });
-
-    // משימת Follow-up אוטומטית לסוכן — מחר ב-10:00, אלא אם כבר נקבע מועד קרוב יותר
-    const followUpAt = tomorrowAt10Israel();
-    if (!lead.next_follow_up_at || lead.next_follow_up_at > followUpAt) {
-      await applyLeadUpdate(supabaseAdmin, null, lead, {
-        next_follow_up_at: followUpAt,
-        next_action: `לחזור ללקוח — הגיב "${responseLabel}" על: ${listing.title}`,
-      });
-    }
-
     const { error: stampError } = await supabaseAdmin
       .from("listing_notifications")
       .update({
         response: data.response,
         response_at: new Date().toISOString(),
         lead_id: lead.id,
+        contact_id: contact.id,
         read_at: new Date().toISOString(),
       })
       .eq("id", notification.id);
     if (stampError) throw new Error(stampError.message);
 
-    // עדכון הסוכן במייל — Best-effort, לא מפיל את התגובה
-    try {
-      await notifyAgentOfClientResponse(lead, listing.site_id, listing.title, responseLabel);
-    } catch (e) {
-      console.error("notifyAgentOfClientResponse failed", e instanceof Error ? e.message : e);
-    }
+    await handleClientAction({
+      kind: data.response === "talk_to_me" ? "callback" : "response",
+      responseLabel,
+      userId: context.userId,
+      contact,
+      lead,
+      target: listing
+        ? { listingId: listing.id, marketListingId: null, title: listing.title, siteId: listing.site_id }
+        : { listingId: null, marketListingId: market!.id, title: `${market!.title} (${market!.source_site ?? "מהשוק"})`, siteId: null, sourceUrl: market!.source_url },
+      siteUrl: (await getSettings()).site_url,
+      metadata: { response: data.response, notification_id: notification.id },
+    });
 
     return { ok: true };
   });

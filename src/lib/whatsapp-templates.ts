@@ -15,7 +15,8 @@
  * להיות מוצגים גם במדריך למנהל.
  */
 
-export type WaTemplateKey = "new_listing_client" | "agent_matches" | "admin_copy";
+export type WaTemplateKey =
+  "new_listing_client" | "agent_matches" | "admin_copy" | "client_callback";
 
 /** ערך גולמי לפרמטר — מנורמל למחרוזת חוקית ב-sanitizeParam */
 export type WaParamValue = string | number | null | undefined;
@@ -52,6 +53,15 @@ export type WaTemplateValues = {
     price: WaParamValue;
     clients: WaParamValue;
     siteUrl: WaParamValue;
+  };
+  client_callback: {
+    action: WaParamValue;
+    clientName: WaParamValue;
+    clientPhone: WaParamValue;
+    title: WaParamValue;
+    criteria: WaParamValue;
+    listingUrl: WaParamValue;
+    leadUrl: WaParamValue;
   };
 };
 
@@ -182,6 +192,35 @@ export const WA_TEMPLATES: { [K in WaTemplateKey]: WaTemplateSpec<K> } = {
       "2,450,000 ₪",
       "דנה כהן (4 חדרים) · ועוד 2",
       "https://sun-city-eli.lovable.app/#properties",
+    ],
+  },
+
+  // התראה מיידית לסוכן: לקוח ביקש שיחזרו אליו / סימן "מעניין אותי" על נכס.
+  // UTILITY: המשך ישיר לפעולה של הלקוח. אותה תבנית משמשת גם לעותק המנהל.
+  client_callback: {
+    envVar: "WA_TEMPLATE_CLIENT_CALLBACK",
+    metaName: "sun_city_client_callback",
+    language: "he",
+    category: "UTILITY",
+    fields: ["action", "clientName", "clientPhone", "title", "criteria", "listingUrl", "leadUrl"],
+    body: [
+      "לקוח {{1}}.",
+      "שם: {{2}}",
+      "טלפון: {{3}}",
+      "הנכס: {{4}}",
+      "מה מחפש: {{5}}",
+      "לנכס: {{6}}",
+      "לכרטיס הלקוח: {{7}}",
+      'סאן סיטי נדל"ן',
+    ].join("\n"),
+    samples: [
+      "ביקש שיחזרו אליו",
+      "דנה כהן",
+      "050-1234567",
+      "דירת 4 חדרים בעיר ימים",
+      "קנייה · עיר ימים, פארק הים · עד 2,500,000 ₪ · 4 חדרים",
+      "https://sun-city-eli.lovable.app/?listing=1234#properties",
+      "https://sun-city-eli.lovable.app/account?tab=leads",
     ],
   },
 };

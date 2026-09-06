@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBackToSiteHref } from "@/lib/back-to-site";
 import { LangProvider, useLang, useStoredLocale } from "@/lib/i18n";
 import { trackEvent } from "@/lib/analytics";
+import { useServerFn } from "@tanstack/react-start";
+import { registerClient } from "@/lib/auth.functions";
 
 const title = 'כניסה לאזור האישי | סאן סיטי נדל"ן';
 const description =
@@ -64,6 +66,8 @@ function AuthContent() {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [honeypot, setHoneypot] = useState("");
+  const register = useServerFn(registerClient);
 
   const sendOtp = async () => {
     setErr(null);
@@ -117,15 +121,24 @@ function AuthContent() {
         trackEvent("login", null);
         navigate({ to: "/account", replace: true });
       } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/account`,
-            data: { full_name: fullName.trim() },
+        const result = await register({
+          data: {
+            email,
+            password,
+            fullName: fullName.trim(),
+            redirectTo: `${window.location.origin}/account`,
+            website: honeypot,
           },
         });
-        if (error) throw error;
+        if (!result.ok) {
+          throw new Error(
+            result.error === "rate_limited"
+              ? t.limits.signupLimit
+              : result.error === "invalid"
+                ? t.auth.signinFailed
+                : (result.error ?? t.auth.signinFailed),
+          );
+        }
         trackEvent("signup", null);
         setMsg(t.auth.signupSuccess);
       }
@@ -219,6 +232,18 @@ function AuthContent() {
 
         {(!PHONE_AUTH_ENABLED || method === "email") && (
           <form onSubmit={submit} className="mt-5 grid gap-3" noValidate>
+            {mode === "signup" && (
+              <input
+                type="text"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                className="absolute -left-[9999px] h-0 w-0 opacity-0"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+              />
+            )}
             {mode === "signup" && (
               <label className="block">
                 <span className="mb-1 block text-xs font-bold text-muted-foreground">

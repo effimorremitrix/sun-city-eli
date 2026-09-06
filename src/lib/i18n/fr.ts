@@ -17,6 +17,7 @@ export const fr: Dict = {
       { id: "properties", label: "Biens" },
       { id: "sellers", label: "Vendre un bien" },
       { id: "sold", label: "Vendus" },
+      { id: "testimonials", label: "Témoignages" },
       { id: "buyers", label: "Acheteurs" },
       { id: "services", label: "Nos services" },
       { id: "team", label: "L'équipe" },
@@ -128,7 +129,7 @@ export const fr: Dict = {
     aiClear: "Effacer la recherche intelligente",
     aiFallbackExplain: "Nous avons filtré les biens selon votre demande.",
     aiDisclaimer:
-      "La recherche ne filtre que des biens réels présents dans la base de données de l'agence. Aucun bien inventé.",
+      "La recherche ne filtre que des biens réels : les biens de l'agence ainsi que de vraies annonces du marché (yad2, komo et autres) avec lien vers la source. Aucun bien inventé.",
     aiFailed: "La recherche a échoué",
     filterDeal: "Transaction",
     filterAll: "Tout",
@@ -270,8 +271,8 @@ export const fr: Dict = {
     errName: "Veuillez saisir un nom",
     notSpecified: "Non précisé",
     dealType: "Que cherchez-vous ?",
-    dealBuy: "Acheter",
-    dealRent: "Louer",
+    dealBuy: "Achat",
+    dealRent: "Location",
     propertyType: "Type de bien",
     budgetMax: "Budget jusqu'à (₪)",
     roomsMin: "Pièces (à partir de)",
@@ -625,9 +626,9 @@ export const fr: Dict = {
     newProfile: "Nouveau profil de recherche",
     profileLabel: "Nom du profil",
     dealTypeLabel: "Que cherchez-vous ?",
-    dealBuy: "Acheter",
+    dealBuy: "Achat",
     dealSaleLegacy: "Vente (ancienne valeur — identique à l'achat)",
-    dealRent: "Louer",
+    dealRent: "Location",
     city: "Ville",
     streetOptional: "Rue (facultatif)",
     streetPlaceholder: "ex. : Golda Meir",
@@ -683,6 +684,17 @@ export const fr: Dict = {
       parking: "Parking",
       balcony: "Balcon",
     } as Record<string, string>,
+    marketMatchesTitle: "Correspondances du marché",
+    noMarketMatches:
+      "Aucune annonce du marché ne correspond à votre profil pour le moment — la base est mise à jour chaque nuit et une annonce adaptée apparaîtra ici.",
+    marketTag: "Du marché",
+    marketSource: "Annonce d'origine",
+    aiSearchTitle: "Recherche intelligente sur tout le marché",
+    aiSearchHint:
+      "Décrivez ce que vous cherchez avec vos mots — nous filtrons les biens de l'agence et de vraies annonces des portails (yad2, komo et autres).",
+    aiOfficeResults: "Biens de l'agence",
+    aiMarketResults: "Annonces du marché",
+    aiNoResults: "Aucun bien ne correspond à votre demande. Reformulez ou élargissez les critères.",
   },
 
   accountSettings: {
@@ -721,6 +733,41 @@ export const fr: Dict = {
       { day: "Vendredi", value: "09:00 – 13:00" },
       { day: "Samedi", value: "Fermé" },
     ],
+  },
+
+  market: {
+    title: "Autres biens du marché",
+    subtitle:
+      "De vraies annonces d'autres portails (yad2, komo et autres) trouvées pour vous selon votre recherche. Le contact passe par un agent Sun City, qui vérifiera le bien et vous accompagnera.",
+    found: (n: number) => `${n} annonces du marché trouvées`,
+    tag: "Du marché",
+    source: "Annonce d'origine",
+    callback: "Je veux qu'un agent me rappelle",
+    callbackSent: "Bien reçu ! L'agent vous recontactera rapidement.",
+    send: "Envoyer",
+    cancel: "Annuler",
+    match: (n: number) => `${n}% de correspondance`,
+    showMore: "Afficher plus",
+    waMsg: (agent: string, title: string, url: string) =>
+      `Bonjour ${agent}, j'ai vu sur le site une annonce du marché qui m'intéresse et j'aimerais être rappelé(e) à son sujet :\n${title}\n${url}`,
+  },
+
+  search: {
+    pickAreas: "Choisir des quartiers",
+    areasSelected: (n: number) => `${n} quartiers sélectionnés`,
+    selectAll: "Tout sélectionner",
+    clear: "Effacer",
+    done: "Terminer",
+  },
+
+  limits: {
+    signupLimit: "Trop de tentatives d'inscription depuis cet appareil. Réessayez plus tard.",
+    aiDaily: "Vous avez atteint le quota quotidien de recherches intelligentes. Activez l'Agent intelligent pour qu'il continue à chercher pour vous, ou contactez-nous directement.",
+    aiBurst: "Trop de recherches d'affilée. Réessayez dans une minute.",
+    aiDisabled: "La recherche intelligente est indisponible pour le moment. Utilisez les filtres classiques ou contactez-nous.",
+    blocked: "Une activité inhabituelle a été détectée depuis cet appareil ; l'accès est temporairement limité.",
+    leadLimit: "Trop de demandes d'affilée. Réessayez dans une minute.",
+    actionLimit: "Trop d'actions d'affilée. Réessayez dans un instant.",
   },
 
   maps: {

@@ -25,7 +25,7 @@ import {
   List,
   Map as MapIcon,
 } from "lucide-react";
-import { neighborhoods, priceRanges, waProps, openWa, business } from "@/lib/site-data";
+import { priceRanges, waProps, openWa, business } from "@/lib/site-data";
 import {
   formatListingPrice,
   listingImages,
@@ -35,16 +35,28 @@ import {
   type ListingFilters,
   type ListingSortKey,
 } from "@/lib/listings";
+import { matchesMarketFilters, type MarketListing } from "@/lib/market";
+import { getPublicMarketListing } from "@/lib/market.functions";
 
-import { aiSearchListings, type AiSearchResult } from "@/lib/ai-search.functions";
+import { aiSearchListings, type AiLimitReason, type AiSearchResult } from "@/lib/ai-search.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useLive } from "@/lib/site-live";
 import { isValidIsraeliPhone } from "@/lib/leads";
 import { createPublicLead } from "@/lib/leads.functions";
-import { mapValue, useLang } from "@/lib/i18n";
+import { mapValue, useLang, type Dict } from "@/lib/i18n";
 import { trackEvent } from "@/lib/analytics";
 import { PropertyMap } from "@/components/site/PropertyMap";
+import { NeighborhoodPicker } from "@/components/site/NeighborhoodPicker";
+import { MarketListings } from "@/components/site/MarketListings";
 import { Reveal } from "./Reveal";
+
+/** הודעת חסימה של החיפוש החכם בשפת הדף (spend = תקרת הוצאה → "לא זמין") */
+export const aiLimitMessage = (t: Dict, reason: AiLimitReason): string => {
+  if (reason === "daily") return t.limits.aiDaily;
+  if (reason === "burst") return t.limits.aiBurst;
+  if (reason === "blocked") return t.limits.blocked;
+  return t.limits.aiDisabled;
+};
 
 const featureIcons = {
   has_mamad: { key: "mamad", Icon: ShieldCheck },
@@ -56,45 +68,75 @@ const featureIcons = {
 
 const SORT_KEYS: ListingSortKey[] = ["newest", "priceAsc", "priceDesc", "rooms", "size"];
 
-type Props = { listings: Listing[]; updatedAt: string | null };
+type Props = {
+  listings: Listing[];
+  updatedAt: string | null;
+  /** מודעות פעילות מהשוק (לוחות אחרים) — מסוננות יחד עם נכסי המשרד */
+  marketListings?: MarketListing[];
+};
 
-export function PropertySection({ listings, updatedAt }: Props) {
+export function PropertySection({ listings, updatedAt, marketListings = [] }: Props) {
   const { t, lang } = useLang();
   const { business: live, siteId } = useLive();
+  const fetchMarketListing = useServerFn(getPublicMarketListing);
   const [deal, setDeal] = useState("all");
   const [rooms, setRooms] = useState("all");
   const [range, setRange] = useState("all");
-  const [area, setArea] = useState("all");
+  const [areas, setAreas] = useState<string[]>([]);
   const [sort, setSort] = useState<ListingSortKey>("newest");
   const [view, setView] = useState<"list" | "map">("list");
   const [selected, setSelected] = useState<Listing | null>(null);
 
+  // קישור עמוק למודעה מהשוק (?market=<id>): הדגשה, ואם אינה ברשימה — טעינה נפרדת
+  const [marketExtra, setMarketExtra] = useState<MarketListing | null>(null);
+  const [marketHighlight, setMarketHighlight] = useState<string | null>(null);
+
   const [query, setQuery] = useState("");
+  // honeypot — שדה נסתר שבוטים ממלאים; אדם לעולם לא רואה אותו
+  const [website, setWebsite] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
   const [aiErr, setAiErr] = useState<string | null>(null);
   const [ai, setAi] = useState<{
     ids: string[];
+    marketIds: string[];
     explanation: string;
     filters: ListingFilters;
     web: AiSearchResult["web"];
   } | null>(null);
 
-  const manual = useMemo(() => {
+  const filters = useMemo<ListingFilters>(() => {
     const r = range === "all" ? null : priceRanges[Number(range)];
-    const filters: ListingFilters = {
+    return {
       deal_type: deal === "all" ? null : deal,
-      neighborhoods: area === "all" ? [] : [area],
+      neighborhoods: areas,
       min_price: r?.min ?? null,
       max_price: r?.max ?? null,
       min_rooms: rooms === "all" ? null : Number(rooms),
     };
-    return listings.filter((l) => matchesFilters(l, filters));
-  }, [listings, deal, rooms, range, area]);
+  }, [deal, rooms, range, areas]);
+
+  const manual = useMemo(
+    () => listings.filter((l) => matchesFilters(l, filters)),
+    [listings, filters],
+  );
 
   const filtered = useMemo(
     () => sortListings(ai ? manual.filter((l) => ai.ids.includes(l.id)) : manual, sort),
     [manual, ai, sort],
   );
+
+  // מודעות מהשוק — אותם פילטרים ידניים; בחיפוש חכם רק מה שהשרת התאים
+  const allMarket = useMemo(
+    () =>
+      marketExtra && !marketListings.some((m) => m.id === marketExtra.id)
+        ? [marketExtra, ...marketListings]
+        : marketListings,
+    [marketListings, marketExtra],
+  );
+  const filteredMarket = useMemo(() => {
+    const manualMarket = allMarket.filter((m) => matchesMarketFilters(m, filters));
+    return ai ? manualMarket.filter((m) => ai.marketIds.includes(m.id)) : manualMarket;
+  }, [allMarket, filters, ai]);
 
   // קישור עמוק לנכס: ?listing=<id> (מהתראות מייל/וואטסאפ ומהאזור האישי)
   // פותח את חלון פרטי הנכס וגולל אל מדור הנכסים
@@ -108,20 +150,54 @@ export function PropertySection({ listings, updatedAt }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- ריצה חד-פעמית בטעינת הרשימה
   }, [listings.length]);
 
+  // קישור עמוק למודעה מהשוק: ?market=<id> — הגלילה וההדגשה נעשות ב-MarketListings
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("market");
+    if (!id) return;
+    if (marketListings.some((m) => m.id === id)) {
+      setMarketHighlight(id);
+      return;
+    }
+    let cancelled = false;
+    fetchMarketListing({ data: { id } })
+      .then((m) => {
+        if (cancelled || !m) return;
+        setMarketExtra(m);
+        setMarketHighlight(m.id);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ריצה חד-פעמית בטעינת הרשימה
+  }, [marketListings.length]);
+
   const runAiSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setAiErr(null);
     setAiBusy(true);
     trackEvent("search", siteId);
     try {
-      const res = await aiSearchListings({ data: { query, lang } });
-      setAi({ ids: res.ids, explanation: res.explanation, filters: res.filters, web: res.web });
+      const res = await aiSearchListings({ data: { query, lang, website } });
+      if (res.limited) {
+        // נחסם (מכסה/קצב/חסימה) — הודעה בשפת הדף ובלי תוצאות
+        setAi(null);
+        setAiErr(aiLimitMessage(t, res.limited));
+        return;
+      }
+      setAi({
+        ids: res.ids,
+        marketIds: res.marketIds,
+        explanation: res.explanation,
+        filters: res.filters,
+        web: res.web,
+      });
       // איפוס הסינון הידני — פילטר ישן שנשאר בתפריטים היה מצמצם בשקט את
       // תוצאות החיפוש החכם (חיתוך בין שתי הרשימות)
       setDeal("all");
       setRooms("all");
       setRange("all");
-      setArea("all");
+      setAreas([]);
     } catch (err) {
       setAi(null);
       setAiErr(err instanceof Error ? err.message : t.properties.aiFailed);
@@ -137,7 +213,18 @@ export function PropertySection({ listings, updatedAt }: Props) {
       <DataSource updatedAt={updatedAt} className="mt-2" />
 
       {/* חיפוש חכם בטקסט חופשי */}
-      <form onSubmit={runAiSearch} className="soft-card mt-6 p-4" noValidate>
+      <form onSubmit={runAiSearch} className="soft-card relative mt-6 p-4" noValidate>
+        {/* honeypot — מחוץ למסך ומחוץ לסדר הטאבים; בוטים ממלאים אותו ונחסמים */}
+        <input
+          type="text"
+          name="website"
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          className="absolute -start-[9999px] top-0 h-px w-px opacity-0"
+        />
         <label className="block">
           <span className="mb-1 flex items-center gap-1.5 text-sm font-bold text-primary">
             <Sparkles className="size-4 text-sun" aria-hidden="true" />
@@ -241,24 +328,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
             ))}
           </select>
         </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-bold text-muted-foreground">
-            {t.properties.filterArea}
-          </span>
-          <select
-            className="field"
-            value={area}
-            onChange={(e) => setArea(e.target.value)}
-            aria-label={t.properties.filterAreaAria}
-          >
-            <option value="all">{t.properties.allAreas}</option>
-            {neighborhoods.map((n) => (
-              <option key={n} value={n}>
-                {t.maps.neighborhoods[n] ?? n}
-              </option>
-            ))}
-          </select>
-        </label>
+        <NeighborhoodPicker value={areas} onChange={setAreas} label={t.properties.filterArea} />
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -351,6 +421,9 @@ export function PropertySection({ listings, updatedAt }: Props) {
           </a>
         </div>
       )}
+
+      {/* מודעות אמיתיות מלוחות אחרים — מסוננות באותם פילטרים / אותו חיפוש חכם */}
+      <MarketListings listings={filteredMarket} highlightId={marketHighlight} />
 
       {ai && <WebCandidates web={ai.web} agentPhone={live.phoneTel} agentName={live.agentName} />}
 
@@ -774,6 +847,9 @@ function WebCandidates({
 }) {
   const { t } = useLang();
   const w = t.properties.web;
+
+  // הסריקה החיה לא רצה כלל (למשל חיפוש בלי אינטרנט) — אין מה להציג
+  if (web.status === "skipped") return null;
 
   if (web.status === "login_required") {
     return (

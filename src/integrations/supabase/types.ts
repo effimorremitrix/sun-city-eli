@@ -14,6 +14,357 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          actor_user_id: string | null
+          channel: string | null
+          contact_id: string | null
+          created_at: string
+          error: string | null
+          event: string
+          id: number
+          kind: string
+          lead_id: string | null
+          listing_id: string | null
+          market_listing_id: string | null
+          message: string | null
+          metadata: Json
+          recipient: string | null
+          site_id: string | null
+          status: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          channel?: string | null
+          contact_id?: string | null
+          created_at?: string
+          error?: string | null
+          event: string
+          id?: number
+          kind: string
+          lead_id?: string | null
+          listing_id?: string | null
+          market_listing_id?: string | null
+          message?: string | null
+          metadata?: Json
+          recipient?: string | null
+          site_id?: string | null
+          status?: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          channel?: string | null
+          contact_id?: string | null
+          created_at?: string
+          error?: string | null
+          event?: string
+          id?: number
+          kind?: string
+          lead_id?: string | null
+          listing_id?: string | null
+          market_listing_id?: string | null
+          message?: string | null
+          metadata?: Json
+          recipient?: string | null
+          site_id?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      app_settings: {
+        Row: {
+          data: Json
+          id: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          data?: Json
+          id: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          data?: Json
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      blocked_keys: {
+        Row: {
+          created_at: string
+          hits: number
+          key: string
+          reason: string | null
+          until: string
+        }
+        Insert: {
+          created_at?: string
+          hits?: number
+          key: string
+          reason?: string | null
+          until: string
+        }
+        Update: {
+          created_at?: string
+          hits?: number
+          key?: string
+          reason?: string | null
+          until?: string
+        }
+        Relationships: []
+      }
+      contacts: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_site_id: string | null
+          consent_at: string | null
+          created_at: string
+          email: string | null
+          first_landing_path: string | null
+          first_referrer: string | null
+          first_site_id: string | null
+          first_source: string | null
+          first_utm_campaign: string | null
+          first_utm_content: string | null
+          first_utm_source: string | null
+          full_name: string | null
+          id: string
+          marketing_consent: boolean
+          notes: string | null
+          phone_normalized: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_site_id?: string | null
+          consent_at?: string | null
+          created_at?: string
+          email?: string | null
+          first_landing_path?: string | null
+          first_referrer?: string | null
+          first_site_id?: string | null
+          first_source?: string | null
+          first_utm_campaign?: string | null
+          first_utm_content?: string | null
+          first_utm_source?: string | null
+          full_name?: string | null
+          id?: string
+          marketing_consent?: boolean
+          notes?: string | null
+          phone_normalized?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_site_id?: string | null
+          consent_at?: string | null
+          created_at?: string
+          email?: string | null
+          first_landing_path?: string | null
+          first_referrer?: string | null
+          first_site_id?: string | null
+          first_source?: string | null
+          first_utm_campaign?: string | null
+          first_utm_content?: string | null
+          first_utm_source?: string | null
+          full_name?: string | null
+          id?: string
+          marketing_consent?: boolean
+          notes?: string | null
+          phone_normalized?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      job_runs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: number
+          job: string
+          started_at: string
+          status: string
+          summary: Json
+          trigger: string | null
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: number
+          job: string
+          started_at?: string
+          status?: string
+          summary?: Json
+          trigger?: string | null
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: number
+          job?: string
+          started_at?: string
+          status?: string
+          summary?: Json
+          trigger?: string | null
+        }
+        Relationships: []
+      }
+      market_listings: {
+        Row: {
+          address: string | null
+          city: string
+          created_at: string
+          created_listing_id: string | null
+          deal_type: string
+          description: string | null
+          external_id: string | null
+          first_seen_at: string
+          floor: string | null
+          has_balcony: boolean | null
+          has_elevator: boolean | null
+          has_mamad: boolean | null
+          has_parking: boolean | null
+          hidden_by_admin: boolean
+          id: string
+          image_url: string | null
+          is_active: boolean
+          last_seen_at: string
+          match_score: number | null
+          neighborhood: string | null
+          price: number | null
+          raw: Json
+          rooms: number | null
+          size_sqm: number | null
+          source: string
+          source_site: string | null
+          source_url: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string
+          created_at?: string
+          created_listing_id?: string | null
+          deal_type?: string
+          description?: string | null
+          external_id?: string | null
+          first_seen_at?: string
+          floor?: string | null
+          has_balcony?: boolean | null
+          has_elevator?: boolean | null
+          has_mamad?: boolean | null
+          has_parking?: boolean | null
+          hidden_by_admin?: boolean
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          last_seen_at?: string
+          match_score?: number | null
+          neighborhood?: string | null
+          price?: number | null
+          raw?: Json
+          rooms?: number | null
+          size_sqm?: number | null
+          source: string
+          source_site?: string | null
+          source_url: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string
+          created_at?: string
+          created_listing_id?: string | null
+          deal_type?: string
+          description?: string | null
+          external_id?: string | null
+          first_seen_at?: string
+          floor?: string | null
+          has_balcony?: boolean | null
+          has_elevator?: boolean | null
+          has_mamad?: boolean | null
+          has_parking?: boolean | null
+          hidden_by_admin?: boolean
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          last_seen_at?: string
+          match_score?: number | null
+          neighborhood?: string | null
+          price?: number | null
+          raw?: Json
+          rooms?: number | null
+          size_sqm?: number | null
+          source?: string
+          source_site?: string | null
+          source_url?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      market_scan_tasks: {
+        Row: {
+          deal_type: string
+          demand: number
+          key: string
+          last_error: string | null
+          last_found: number | null
+          last_scanned_at: string | null
+          neighborhood: string
+          updated_at: string
+        }
+        Insert: {
+          deal_type: string
+          demand?: number
+          key: string
+          last_error?: string | null
+          last_found?: number | null
+          last_scanned_at?: string | null
+          neighborhood: string
+          updated_at?: string
+        }
+        Update: {
+          deal_type?: string
+          demand?: number
+          key?: string
+          last_error?: string | null
+          last_found?: number | null
+          last_scanned_at?: string | null
+          neighborhood?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          count: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          window_start: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       ai_usage_events: {
         Row: {
           cost_usd: number
@@ -186,6 +537,14 @@ export type Database = {
       }
       leads: {
         Row: {
+          contact_id: string | null
+          utm_source: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          referrer: string | null
+          landing_path: string | null
+          session_hash: string | null
+          reassigned_from_site_id: string | null
           buy_categories: string[]
           city: string | null
           consent_at: string | null
@@ -228,6 +587,14 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          contact_id?: string | null
+          utm_source?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          referrer?: string | null
+          landing_path?: string | null
+          session_hash?: string | null
+          reassigned_from_site_id?: string | null
           buy_categories?: string[]
           city?: string | null
           consent_at?: string | null
@@ -270,6 +637,14 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          contact_id?: string | null
+          utm_source?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          referrer?: string | null
+          landing_path?: string | null
+          session_hash?: string | null
+          reassigned_from_site_id?: string | null
           buy_categories?: string[]
           city?: string | null
           consent_at?: string | null
@@ -337,6 +712,7 @@ export type Database = {
       }
       listing_feedback: {
         Row: {
+          contact_id: string | null
           created_at: string
           id: string
           lead_id: string | null
@@ -346,6 +722,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          contact_id?: string | null
           created_at?: string
           id?: string
           lead_id?: string | null
@@ -355,6 +732,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          contact_id?: string | null
           created_at?: string
           id?: string
           lead_id?: string | null
@@ -430,12 +808,14 @@ export type Database = {
       }
       listing_notifications: {
         Row: {
+          contact_id: string | null
+          market_listing_id: string | null
           created_at: string
           email_sent_at: string | null
           error: string | null
           id: string
           lead_id: string | null
-          listing_id: string
+          listing_id: string | null
           read_at: string | null
           reason: string | null
           response: string | null
@@ -446,12 +826,14 @@ export type Database = {
           whatsapp_sent_at: string | null
         }
         Insert: {
+          contact_id?: string | null
+          market_listing_id?: string | null
           created_at?: string
           email_sent_at?: string | null
           error?: string | null
           id?: string
           lead_id?: string | null
-          listing_id: string
+          listing_id: string | null
           read_at?: string | null
           reason?: string | null
           response?: string | null
@@ -462,12 +844,14 @@ export type Database = {
           whatsapp_sent_at?: string | null
         }
         Update: {
+          contact_id?: string | null
+          market_listing_id?: string | null
           created_at?: string
           email_sent_at?: string | null
           error?: string | null
           id?: string
           lead_id?: string | null
-          listing_id?: string
+          listing_id?: string | null
           read_at?: string | null
           reason?: string | null
           response?: string | null
@@ -943,6 +1327,7 @@ export type Database = {
       }
       search_profiles: {
         Row: {
+          contact_id: string | null
           city: string
           created_at: string
           deal_type: string
@@ -969,6 +1354,7 @@ export type Database = {
           whatsapp_phone: string | null
         }
         Insert: {
+          contact_id?: string | null
           city?: string
           created_at?: string
           deal_type?: string
@@ -995,6 +1381,7 @@ export type Database = {
           whatsapp_phone?: string | null
         }
         Update: {
+          contact_id?: string | null
           city?: string
           created_at?: string
           deal_type?: string
@@ -1127,6 +1514,8 @@ export type Database = {
       }
       sites: {
         Row: {
+          notify_email: string | null
+          notify_whatsapp: string | null
           created_at: string
           id: string
           is_active: boolean
@@ -1137,6 +1526,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          notify_email?: string | null
+          notify_whatsapp?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1147,6 +1538,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          notify_email?: string | null
+          notify_whatsapp?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1160,6 +1553,7 @@ export type Database = {
       }
       sold_properties: {
         Row: {
+          translations: Json
           address: string
           created_at: string
           id: string
@@ -1174,6 +1568,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          translations?: Json
           address: string
           created_at?: string
           id?: string
@@ -1188,6 +1583,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          translations?: Json
           address?: string
           created_at?: string
           id?: string
@@ -1282,6 +1678,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_contact: { Args: { _contact_id: string }; Returns: boolean }
+      consume_rate_limit: {
+        Args: { p_key: string; p_limit: number; p_window_seconds: number; p_cost?: number }
+        Returns: { allowed: boolean; remaining: number; current_count: number }[]
+      }
+      match_market_listings: {
+        Args: { p_since: string; p_profile_id?: string | null }
+        Returns: number
+      }
+      match_profile_to_listings: { Args: { p_profile_id: string }; Returns: number }
+      prune_activity_log: { Args: never; Returns: undefined }
+      run_scheduled_job: { Args: { p_job: string }; Returns: number }
+      scheduler_status: { Args: never; Returns: Json }
       analytics_overview: {
         Args: { p_from: string; p_to: string }
         Returns: Json

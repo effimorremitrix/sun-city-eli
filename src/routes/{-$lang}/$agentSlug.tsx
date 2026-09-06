@@ -16,8 +16,10 @@ import { SoldSection } from "@/components/site/SoldSection";
 import { SiteLiveProvider, localizeLive, type LiveSite } from "@/lib/site-live";
 import { getPublicSite } from "@/lib/site.functions";
 import { listPublicListings, listPublicAgents } from "@/lib/listings.functions";
+import { listPublicMarketListings } from "@/lib/market.functions";
 import { listPublicSoldProperties, type SoldPage } from "@/lib/sold.functions";
 import { localizeListing, type Listing } from "@/lib/listings";
+import type { MarketListing } from "@/lib/market";
 import { RESERVED_AGENT_SLUGS } from "@/lib/reserved-slugs";
 import {
   DEFAULT_LOCALE,
@@ -67,14 +69,16 @@ export const Route = createFileRoute("/{-$lang}/$agentSlug")({
     const slug = params.agentSlug.toLowerCase();
     if (RESERVED_AGENT_SLUGS.has(slug)) throw notFound();
 
-    const [live, listings, agents, sold] = await Promise.all([
+    const [live, listings, agents, sold, marketListings] = await Promise.all([
       getPublicSite({ data: { slug } }),
       listPublicListings({ data: { slug } }),
       listPublicAgents(),
       listPublicSoldProperties({ data: {} }),
+      // מודעות מהשוק — כשל בטעינה אינו מפיל את הדף האישי
+      listPublicMarketListings({ data: { limit: 200 } }).catch((): MarketListing[] => []),
     ]);
     if (!live.found) throw notFound();
-    return { live, listings, agents, sold };
+    return { live, listings, agents, sold, marketListings };
   },
   head: ({ loaderData, params }) => {
     const lang = langFromParam(params.lang);
@@ -130,11 +134,12 @@ function AgentPage() {
 
 function AgentPageContent() {
   const { lang, t } = useLang();
-  const { live, listings, agents, sold } = Route.useLoaderData() as {
+  const { live, listings, agents, sold, marketListings } = Route.useLoaderData() as {
     live: LiveSite;
     listings: Listing[];
     agents: PublicAgentRow[];
     sold: SoldPage;
+    marketListings: MarketListing[];
   };
   const localizedLive = localizeLive(live, lang, t);
   const localizedListings = listings.map((l) => localizeListing(l, lang));
@@ -152,7 +157,11 @@ function AgentPageContent() {
           {/* הפרופיל של סוכן הדף מוצג כראשי; יתר הסוכנים בקרוסלה מתחתיו */}
           <AgentProfile />
           <Team agents={agents} variant="secondary" />
-          <PropertySection listings={localizedListings} updatedAt={listingsUpdatedAt} />
+          <PropertySection
+            listings={localizedListings}
+            updatedAt={listingsUpdatedAt}
+            marketListings={marketListings ?? []}
+          />
           <ItemsSection />
           <SellerSection />
           <SoldSection page={sold} />

@@ -1,9 +1,15 @@
 /** מחירון טוקנים (דולר למיליון טוקנים) לפי מודלים של Anthropic */
 const PRICING: Record<string, { input: number; output: number }> = {
   "claude-sonnet-4-5": { input: 3, output: 15 },
+  "claude-sonnet-4-6": { input: 3, output: 15 },
+  "claude-sonnet-5": { input: 2, output: 10 },
   "claude-haiku-4-5": { input: 1, output: 5 },
   "claude-opus-4-5": { input: 5, output: 25 },
+  "claude-opus-5": { input: 5, output: 25 },
 };
+
+/** המודלים שהמנהל יכול לבחור בטאב ההגדרות (מחיר לכל מיליון טוקנים) */
+export const SELECTABLE_MODELS = Object.keys(PRICING);
 
 export const AI_MODEL = "claude-sonnet-4-5";
 

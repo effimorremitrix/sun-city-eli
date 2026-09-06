@@ -58,7 +58,13 @@ export type LiveContentTranslation = {
     subtitle?: string;
     address?: string;
     hours?: LiveHour[];
+    bio?: string;
+    roleTitle?: string;
   };
+  /** תרגומי ממליצים לפי מזהה הממליץ */
+  testimonials?: Record<string, { name?: string; type?: string; quote?: string }>;
+  /** תרגומי שאלות נפוצות לפי מזהה השאלה */
+  faq?: Record<string, { q?: string; a?: string }>;
 };
 
 export type LiveTranslations = Partial<Record<string, LiveContentTranslation>>;
@@ -86,7 +92,12 @@ export type LiveTestimonial = {
   name: string;
   type: string;
   quote: string;
+  /** סוג המדיה המצורפת — ברירת מחדל "text" (המלצות ישנות ללא השדה) */
+  mediaKind?: "text" | "image" | "video";
   videoUrl?: string;
+  imageUrl?: string;
+  /** תמונת פתיחה לסרטון */
+  posterUrl?: string;
 };
 
 /** שאלה נפוצה — נערכת באזור הניהול */
@@ -289,6 +300,9 @@ export function localizeLive(live: LiveSite, lang: Locale, t: Dict): LiveSite {
       t.liveDefaults.address,
     ),
     hours: localizeHours(tr.business?.hours, live.business.hours, t),
+    // אודות ותפקיד הסוכן — תרגום מהמסד (אוטומטי בשמירה) או העברית כמות שהיא
+    bio: tr.business?.bio?.trim() || live.business.bio,
+    roleTitle: tr.business?.roleTitle?.trim() || live.business.roleTitle,
   };
 
   const texts: LiveTexts = {
@@ -317,7 +331,29 @@ export function localizeLive(live: LiveSite, lang: Locale, t: Dict): LiveSite {
     };
   });
 
-  return { ...live, business, texts, items };
+  // ממליצים ושאלות נפוצות מהמסד — תרגום לפי מזהה הפריט, fallback פר-שדה לעברית
+  const testimonials = live.testimonials
+    ? live.testimonials.map((item) => {
+        const itemTr = tr.testimonials?.[item.id];
+        if (!itemTr) return item;
+        return {
+          ...item,
+          name: itemTr.name?.trim() || item.name,
+          type: itemTr.type?.trim() || item.type,
+          quote: itemTr.quote?.trim() || item.quote,
+        };
+      })
+    : live.testimonials;
+
+  const faq = live.faq
+    ? live.faq.map((item) => {
+        const itemTr = tr.faq?.[item.id];
+        if (!itemTr) return item;
+        return { ...item, q: itemTr.q?.trim() || item.q, a: itemTr.a?.trim() || item.a };
+      })
+    : live.faq;
+
+  return { ...live, business, texts, items, testimonials, faq };
 }
 
 const LiveContext = createContext<LiveSite>(DEFAULT_LIVE);

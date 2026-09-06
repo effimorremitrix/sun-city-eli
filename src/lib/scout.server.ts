@@ -9,6 +9,7 @@
  */
 
 import { normalizeHebrew } from "@/lib/yad2.server";
+import { toListingDeal } from "@/lib/deal-type";
 
 export type ScoutProfile = {
   id: string;
@@ -204,8 +205,10 @@ export function hardCriteriaViolation(
   allNeighborhoods: string[],
 ): string | null {
   if (c.match_score < MIN_MATCH_SCORE) return `ציון התאמה ${c.match_score} מתחת לרף`;
-  if (c.deal_type && c.deal_type !== p.deal_type) {
-    return `סוג עסקה ${c.deal_type} במקום ${p.deal_type}`;
+  // כוונת הפרופיל ('קנייה') מנורמלת לצד המודעה ('מכירה') לפני ההשוואה
+  const wantedDeal = toListingDeal(p.deal_type);
+  if (c.deal_type && wantedDeal && c.deal_type !== wantedDeal) {
+    return `סוג עסקה ${c.deal_type} במקום ${wantedDeal}`;
   }
   if (p.min_rooms != null && (c.rooms == null || c.rooms < p.min_rooms)) {
     return c.rooms == null ? "מספר החדרים לא צוין" : `${c.rooms} חדרים — פחות מהנדרש`;

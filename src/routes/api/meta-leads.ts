@@ -103,58 +103,38 @@ export const Route = createFileRoute("/api/meta-leads")({
                 .filter(Boolean)
                 .join(" · ");
 
-              // דדופ בסיסי: ליד פתוח קיים עם אותו טלפון באותו site
-              const phoneNormalized = normalizePhone(phone);
-              if (phoneNormalized) {
-                const { data: existing } = await supabaseAdmin
-                  .from("leads")
-                  .select(LEAD_COLUMNS)
-                  .eq("site_id", conn.site_id as string)
-                  .eq("phone_normalized", phoneNormalized)
-                  .not("status", "in", '("נסגרה עסקה","לא רלוונטי")')
-                  .limit(1)
-                  .maybeSingle();
-                if (existing) {
-                  await logLeadEvent(supabaseAdmin, {
-                    leadId: existing.id as string,
-                    siteId: conn.site_id as string,
-                    eventType: "contact_again",
-                    note: `ליד חוזר מקמפיין ממומן${campaignNote ? ` (${campaignNote})` : ""}`,
-                  });
-                  continue;
-                }
-              }
-
-              const { data: created, error } = await supabaseAdmin
-                .from("leads")
-                .insert({
-                  site_id: conn.site_id as string,
-                  full_name: fullName || "ליד מקמפיין",
-                  phone,
-                  phone_normalized: phoneNormalized || null,
-                  email,
-                  source: "קמפיין",
-                  notes: campaignNote || null,
-                  criteria_extra: {
-                    meta_leadgen_id: leadgenId,
-                    campaign_id: lead.campaign_id ?? null,
-                    campaign_name: lead.campaign_name ?? null,
-                    ad_id: lead.ad_id ?? null,
-                    ad_name: lead.ad_name ?? null,
-                  },
-                })
-                .select("id")
-                .single();
-              if (error) {
-                console.error("meta lead insert failed", error.message);
-                continue;
-              }
-
-              await logLeadEvent(supabaseAdmin, {
-                leadId: created.id as string,
-                siteId: conn.site_id as string,
-                eventType: "created",
-                note: `ליד נכנס מקמפיין ממומן${campaignNote ? ` (${campaignNote})` : ""}`,
+              // לקוח אחד + ליד אצל הסוכן המטפל; ייחוס הקמפיין נשמר על הלקוח ועל הליד
+              const { resolveContact } = await import("@/lib/contacts.server");
+              const { ingestLead } = await import("@/lib/leads.server");
+              const { contact, attribution } = await resolveContact({
+                phone,
+                email,
+                fullName: fullName || "ליד מקמפיין",
+                source: "קמפיין",
+                pageSiteId: conn.site_id as string,
+                attribution: {
+                  utmSource: "Facebook",
+                  utmCampaign: lead.campaign_name ?? lead.campaign_id ?? null,
+                  utmContent: lead.ad_name ?? lead.ad_id ?? null,
+                },
+              });
+              await ingestLead({
+                contact,
+                fullName: fullName || "ליד מקמפיין",
+                phone,
+                email,
+                source: "קמפיין",
+                message: campaignNote || null,
+                attribution,
+                criteriaExtra: {
+                  meta_leadgen_id: leadgenId,
+                  campaign_id: lead.campaign_id ?? null,
+                  campaign_name: lead.campaign_name ?? null,
+                  ad_id: lead.ad_id ?? null,
+                  ad_name: lead.ad_name ?? null,
+                },
+                createdNote: `ליד נכנס מקמפיין ממומן${campaignNote ? ` (${campaignNote})` : ""}`,
+                contactAgainNote: `ליד חוזר מקמפיין ממומן${campaignNote ? ` (${campaignNote})` : ""}`,
               });
             }
           }

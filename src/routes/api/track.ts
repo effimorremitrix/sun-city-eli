@@ -53,7 +53,11 @@ export const Route = createFileRoute("/api/track")({
       POST: async ({ request }) => {
         const done = new Response(null, { status: 204 });
         try {
-          const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+          // ב-Cloudflare ה-IP האמיתי בכותרת cf-connecting-ip; x-forwarded-for ניתן לזיוף
+          const ip =
+            request.headers.get("cf-connecting-ip")?.trim() ||
+            request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+            "unknown";
           if (!allow(ip)) return done;
 
           const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;

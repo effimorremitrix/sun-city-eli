@@ -143,6 +143,8 @@ export const adminSaveSoldProperty = createServerFn({ method: "POST" })
       sort_order?: number;
       storage_path?: string | null;
       image_url?: string | null;
+      /** שיוך לדף/סוכן אחר מהנבחר בבורר (מנהל ראשי) */
+      targetSiteId?: string | null;
     }) => {
       const address = String(input.address ?? "")
         .trim()
@@ -163,15 +165,21 @@ export const adminSaveSoldProperty = createServerFn({ method: "POST" })
         sort_order: Number.isFinite(Number(input.sort_order)) ? Number(input.sort_order) : 0,
         storage_path: str(input.storage_path, 300),
         image_url: str(input.image_url, 500),
+        targetSiteId: str(input.targetSiteId, 60),
       };
     },
   )
   .handler(async ({ data, context }) => {
     const { assertSiteAccess } = await import("@/lib/admin.server");
     await assertSiteAccess(context, data.siteId);
+    let siteId = data.siteId;
+    if (data.targetSiteId && data.targetSiteId !== data.siteId) {
+      await assertSiteAccess(context, data.targetSiteId);
+      siteId = data.targetSiteId;
+    }
 
     const fields = {
-      site_id: data.siteId,
+      site_id: siteId,
       address: data.address,
       neighborhood: data.neighborhood,
       note: data.note,
