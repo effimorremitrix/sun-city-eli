@@ -191,7 +191,9 @@ export function AdminContentExtras({
                     />
                   </label>
                   <label className="block">
-                    <span className="mb-1 block text-xs font-bold text-muted-foreground">תשובה</span>
+                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                      תשובה
+                    </span>
                     <textarea
                       className="field min-h-20"
                       value={f.a}

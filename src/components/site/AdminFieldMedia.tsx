@@ -30,7 +30,7 @@ import {
  * ============================================================
  */
 
-export const CATEGORY_LABELS: Record<FieldCategory, string> = {
+const CATEGORY_LABELS: Record<FieldCategory, string> = {
   signing: "חתימת חוזה",
   deal_closed: "עסקה נסגרה",
   keys: "מסירת מפתחות",

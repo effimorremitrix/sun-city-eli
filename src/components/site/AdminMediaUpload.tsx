@@ -146,7 +146,8 @@ export const scopeFromRow = (
   siteIds: string[],
   fallbackSiteId: string | null,
 ): ScopeValue => {
-  if (scope === "global") return { mode: "global", singleSiteId: fallbackSiteId ?? "", siteIds: [] };
+  if (scope === "global")
+    return { mode: "global", singleSiteId: fallbackSiteId ?? "", siteIds: [] };
   if (siteIds.length <= 1) {
     return { mode: "single", singleSiteId: siteIds[0] ?? fallbackSiteId ?? "", siteIds: [] };
   }

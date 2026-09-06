@@ -543,7 +543,8 @@ export default function AdminTestimonials({
 
 /** תמונה ממוזערת / אייקון לפי סוג המדיה */
 function Thumb({ t }: { t: TestimonialRow }) {
-  const src = t.media_kind === "image" ? t.image_url : t.media_kind === "video" ? t.poster_url : null;
+  const src =
+    t.media_kind === "image" ? t.image_url : t.media_kind === "video" ? t.poster_url : null;
   if (src) {
     return (
       <img
