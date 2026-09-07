@@ -15,6 +15,7 @@ export const registerClient = createServerFn({ method: "POST" })
       redirectTo?: string | null;
       website?: string | null;
       siteSlug?: string | null;
+      sessionId?: string | null;
     }) => ({
       email: String(input?.email ?? "")
         .trim()
@@ -30,6 +31,7 @@ export const registerClient = createServerFn({ method: "POST" })
       redirectTo: String(input?.redirectTo ?? "").slice(0, 300),
       website: String(input?.website ?? "").slice(0, 200),
       siteSlug: String(input?.siteSlug ?? "").slice(0, 60),
+      sessionId: String(input?.sessionId ?? "").slice(0, 60),
     }),
   )
   .handler(async ({ data }): Promise<{ ok: boolean; error?: string }> => {
@@ -102,6 +104,21 @@ export const registerClient = createServerFn({ method: "POST" })
         contactId: contact.id,
         message: `הרשמה: ${data.fullName || data.email}`,
       });
+      // אירוע הרשמה למדידה — עם הסוכן של הלקוח (בדף /auth אין הקשר של דף)
+      if (data.sessionId) {
+        const { createHash } = await import("node:crypto");
+        const salt = process.env["ANALYTICS_SALT"] || "sun-city-analytics";
+        const sessionHash = createHash("sha256")
+          .update(`${salt}:${data.sessionId}`)
+          .digest("hex")
+          .slice(0, 32);
+        await supabaseAdmin.from("track_events").insert({
+          site_id: contact.assigned_site_id,
+          type: "signup",
+          path: "/auth",
+          session_hash: sessionHash,
+        });
+      }
     } catch (e) {
       console.error("registerClient contact link failed", e instanceof Error ? e.message : e);
     }

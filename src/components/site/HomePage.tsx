@@ -10,6 +10,8 @@ import { ItemsSection } from "@/components/site/ItemsSection";
 import { MobileBar } from "@/components/site/MobileBar";
 import { FloatingWhatsApp } from "@/components/site/FloatingWhatsApp";
 import { SoldSection } from "@/components/site/SoldSection";
+import { SmartAgentSection } from "@/components/site/SmartAgentSection";
+import { FieldMoments } from "@/components/site/FieldMoments";
 import { redirect } from "@tanstack/react-router";
 import { SiteLiveProvider, localizeLive, type LiveSite } from "@/lib/site-live";
 import { OFFICE_SLUG } from "@/lib/site-data";
@@ -17,6 +19,8 @@ import { getPublicSite } from "@/lib/site.functions";
 import { listPublicListings } from "@/lib/listings.functions";
 import { listPublicMarketListings } from "@/lib/market.functions";
 import { listPublicSoldProperties, type SoldPage } from "@/lib/sold.functions";
+import { listPublicTestimonials } from "@/lib/testimonials.functions";
+import { listPublicFieldMedia, type FieldMediaItem } from "@/lib/field-media.functions";
 import { localizeListing, type Listing } from "@/lib/listings";
 import type { MarketListing } from "@/lib/market";
 import { DICTS, LangProvider, useLang, type Locale } from "@/lib/i18n";
@@ -38,25 +42,47 @@ export type HomeData = {
   sold: SoldPage;
   /** מודעות פעילות מהשוק (לוחות אחרים) — כשל בטעינה אינו מפיל את הדף */
   marketListings: MarketListing[];
+  /** "מהשטח" — סרטונים ותמונות מעסקאות, כבר בשפת הדף; ריק = המדור לא מוצג */
+  fieldMedia: FieldMediaItem[];
 };
+
+/**
+ * ממליצים ו"מהשטח" מטבלאות הניהול — נטענים אחרי שה-site ידוע (siteId), כבר
+ * בשפת הדף. כשל בטעינה אינו מפיל את הדף: הממליצים נשארים כפי שהגיעו
+ * ב-live (או מהמילון), ו"מהשטח" פשוט לא מוצג.
+ */
+export async function attachSiteExtras(
+  live: LiveSite,
+  lang: Locale,
+): Promise<{ live: LiveSite; fieldMedia: FieldMediaItem[] }> {
+  const [testimonials, fieldMedia] = await Promise.all([
+    listPublicTestimonials({ data: { siteId: live.siteId, lang } }).catch(() => null),
+    listPublicFieldMedia({ data: { siteId: live.siteId, lang } }).catch((): FieldMediaItem[] => []),
+  ]);
+  return {
+    live: testimonials && testimonials.length > 0 ? { ...live, testimonials } : live,
+    fieldMedia: fieldMedia ?? [],
+  };
+}
 
 /**
  * נתוני הדף הראשי — כלל הנכסים והמכירות של כל הסוכנים. רשימת הסוכנים אינה
  * נטענת כאן: מדור הצוות מוצג רק בדפים האישיים, והדף הראשי לא זקוק לה.
  */
-export async function loadHomeData(): Promise<HomeData> {
+export async function loadHomeData(lang: Locale): Promise<HomeData> {
   const [live, listings, sold, marketListings] = await Promise.all([
     getPublicSite(),
     listPublicListings(),
     listPublicSoldProperties({ data: {} }),
     listPublicMarketListings({ data: { limit: 200 } }).catch((): MarketListing[] => []),
   ]);
-  return { live, listings, sold, marketListings };
+  const extras = await attachSiteExtras(live, lang);
+  return { live: extras.live, listings, sold, marketListings, fieldMedia: extras.fieldMedia };
 }
 
 /** נתוני הדף הראשי — או הפניה קבועה (301) אל /sun-city כשהדגל homeRedirect דולק */
 export async function loadHomeDataOrRedirect(lang: Locale): Promise<HomeData> {
-  const data = await loadHomeData();
+  const data = await loadHomeData(lang);
   if (data.live.settings.homeRedirect) {
     throw redirect({
       to: "/{-$lang}/$agentSlug",
@@ -77,7 +103,7 @@ export function HomePage({ data, lang }: { data: HomeData; lang: Locale }) {
 
 function HomeContent({ data }: { data: HomeData }) {
   const { lang, t } = useLang();
-  const { live, listings, sold, marketListings } = data;
+  const { live, listings, sold, marketListings, fieldMedia } = data;
   // isHome: מסמן לתפריט, לפוטר ולמדורים שזהו הדומיין הראשי — שם מדור הצוות
   // לא מוצג כלל. בדפים האישיים של הסוכנים הוא נשאר.
   const localizedLive = { ...localizeLive(live, lang, t), isHome: true };
@@ -98,9 +124,11 @@ function HomeContent({ data }: { data: HomeData }) {
             updatedAt={listingsUpdatedAt}
             marketListings={marketListings ?? []}
           />
+          <SmartAgentSection />
           <ItemsSection />
           <SellerSection />
           <SoldSection page={sold} />
+          <FieldMoments items={fieldMedia ?? []} />
           <BuyerSection />
           <Services />
           <WhyUs />

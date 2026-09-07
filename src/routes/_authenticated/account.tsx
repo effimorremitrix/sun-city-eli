@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, ArrowRight, BellRing, Sparkles, LogOut, User } from "lucide-react";
@@ -18,6 +18,7 @@ import { CLIENT_RESPONSES, type ClientResponse } from "@/lib/leads";
 import { LangProvider, useLang, useStoredLocale } from "@/lib/i18n";
 import { formatListingPrice } from "@/lib/listings";
 import { listingDealToIntent, toListingDeal } from "@/lib/deal-type";
+import type { ListingFilters } from "@/lib/listings";
 import { formatUpdated } from "@/lib/site-live";
 import { useAuth } from "@/hooks/useAuth";
 import { useBackToSiteHref } from "@/lib/back-to-site";
@@ -40,6 +41,8 @@ const TAB_KEYS: TabKey[] = [
   "stats",
   "scout",
   "content",
+  "testimonials",
+  "field",
   "publish",
   "agents",
   "clients",
@@ -151,6 +154,59 @@ const toForm = (p: SearchProfileRow): ProfileForm => ({
 
 const num = (v: string) => (v.trim() === "" ? null : Number(v));
 
+/**
+ * טיוטת חיפוש מהאתר הציבורי (PropertySection שומר אותה אחרי חיפוש חכם או
+ * סינון ידני) — ממלאת את פרופיל החיפוש החדש פעם אחת, ואז נמחקת.
+ */
+const DRAFT_SEARCH_KEY = "suncity:draft-search";
+type DraftSearch = { query?: string; filters?: ListingFilters; at?: number };
+
+const readDraftSearch = (): DraftSearch | null => {
+  try {
+    const raw = localStorage.getItem(DRAFT_SEARCH_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    return parsed && typeof parsed === "object" ? (parsed as DraftSearch) : null;
+  } catch {
+    return null;
+  }
+};
+
+const clearDraftSearch = () => {
+  try {
+    localStorage.removeItem(DRAFT_SEARCH_KEY);
+  } catch {
+    /* אחסון חסום */
+  }
+};
+
+const numStr = (v: number | null | undefined) =>
+  typeof v === "number" && Number.isFinite(v) ? String(v) : "";
+
+const draftToForm = (draft: DraftSearch, base: ProfileForm): ProfileForm => {
+  const f = draft.filters ?? {};
+  const query = (draft.query ?? "").trim();
+  return {
+    ...base,
+    label: query ? query.slice(0, 80) : base.label,
+    deal_type: f.deal_type ? listingDealToIntent(toListingDeal(f.deal_type)) : base.deal_type,
+    neighborhoods: Array.isArray(f.neighborhoods)
+      ? f.neighborhoods.map(String)
+      : base.neighborhoods,
+    street: f.street ?? base.street,
+    min_price: numStr(f.min_price),
+    max_price: numStr(f.max_price),
+    rooms: numStr(f.rooms),
+    min_rooms: numStr(f.min_rooms),
+    max_rooms: numStr(f.max_rooms),
+    min_size: numStr(f.min_size),
+    needs_mamad: f.needs_mamad === true,
+    needs_elevator: f.needs_elevator === true,
+    needs_parking: f.needs_parking === true,
+    needs_balcony: f.needs_balcony === true,
+  };
+};
+
 /** לדף אין סגמנט שפה בכתובת — השפה נלקחת מהבחירה האחרונה באתר הציבורי */
 function AccountPage() {
   const lang = useStoredLocale();
@@ -183,6 +239,11 @@ function AccountContent() {
   const [err, setErr] = useState<string | null>(null);
   const [nameInput, setNameInput] = useState("");
   const [editingName, setEditingName] = useState(false);
+  const [draftPrefilled, setDraftPrefilled] = useState(false);
+  const draftChecked = useRef(false);
+  // המזהה של הפרופיל שבעריכה — לבדיקה בתוך האפקט בלי להריץ אותו מחדש על כל הקלדה
+  const editingIdRef = useRef<string | undefined>(undefined);
+  editingIdRef.current = form.id;
 
   const isAdmin = account.data?.isAdmin === true;
   const isSuperAdmin = account.data?.isSuperAdmin === true;
@@ -199,6 +260,18 @@ function AccountContent() {
       },
       replace: true,
     });
+
+  // טיוטת חיפוש מהאתר — ללקוחות (לא אדמין), פעם אחת, רק כשהטופס ריק (פרופיל חדש)
+  useEffect(() => {
+    if (draftChecked.current || !account.data || isAdmin) return;
+    draftChecked.current = true;
+    const draft = readDraftSearch();
+    if (!draft) return;
+    clearDraftSearch();
+    if (editingIdRef.current) return;
+    setForm((current) => draftToForm(draft, current));
+    setDraftPrefilled(true);
+  }, [account.data, isAdmin]);
 
   const scoutCount = useQuery({
     queryKey: ["scout-new-count"],
@@ -330,6 +403,8 @@ function AccountContent() {
                     >)
                   : []),
                 ["content", "תוכן העסק"],
+                ["testimonials", "ממליצים"],
+                ["field", "מהשטח"],
                 ["publish", "פרסום"],
                 ["activity", "יומן פעילות"],
                 ...(isSuperAdmin
@@ -634,6 +709,15 @@ function AccountContent() {
                   <h3 className="mt-5 text-sm font-extrabold text-primary">
                     {form.id ? t.portal.editProfile : t.portal.newProfile}
                   </h3>
+                  {draftPrefilled && !form.id && (
+                    <p
+                      className="mt-2 flex items-center gap-1.5 rounded-xl bg-secondary p-2.5 text-xs font-semibold text-primary"
+                      aria-live="polite"
+                    >
+                      <Sparkles className="size-3.5 shrink-0 text-sun" aria-hidden="true" />
+                      {t.portal.draftPrefilled}
+                    </p>
+                  )}
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <label className="block sm:col-span-2">
                       <span className="mb-1 block text-xs font-bold text-muted-foreground">

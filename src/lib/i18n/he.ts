@@ -19,6 +19,7 @@ export const he = {
       { id: "sellers", label: "מוכרים דירה" },
       { id: "sold", label: "נמכרים" },
       { id: "testimonials", label: "ממליצים" },
+      { id: "field", label: "מהשטח" },
       { id: "buyers", label: "לקונים" },
       { id: "services", label: "השירותים שלנו" },
       { id: "team", label: "הצוות" },
@@ -144,7 +145,7 @@ export const he = {
       rooms: "מספר חדרים",
       size: "שטח (מ״ר)",
     },
-    personalAgent: "סוכן אישי: התראות על נכסים חדשים",
+    personalAgent: "הסוכן החכם: התראות על נכסים חדשים",
     viewList: "רשימה",
     viewMap: "מפה",
     mapOpenListing: "לפרטי המודעה",
@@ -571,6 +572,7 @@ export const he = {
 
   portal: {
     managerHeading: "האזור האישי ואזור הניהול",
+    draftPrefilled: "מילאנו את הפרופיל לפי החיפוש האחרון שלך באתר",
     helloName: (name: string) => `שלום, ${name}`,
     heading: "האזור האישי שלי",
     toSite: "לאתר",
@@ -766,6 +768,40 @@ export const he = {
     tooLong: (max: number) => `עד ${max} תווים`,
     httpsRequired: "הקישור חייב להתחיל ב-https://",
     invalid: "ערך לא תקין",
+  },
+
+  smartAgent: {
+    kicker: "הסוכן החכם",
+    title: "לא מצאתם את הנכס שחיפשתם?",
+    subtitle: "הפעילו את הסוכן החכם והוא יחפש עבורכם 24/7 בנכסי המשרד ובכל השוק",
+    stepsTitle: "איך זה עובד?",
+    steps: [
+      "מגדירים פעם אחת מה מחפשים",
+      "החיפוש נשמר",
+      "המערכת ממשיכה לחפש: נכסי המשרד + הלוחות",
+      "נמצא נכס מתאים: הלקוח מקבל התראה",
+      "גם הסוכן המטפל מקבל התראה",
+    ],
+    cta: "הפעלת הסוכן החכם שלי",
+    note: "חינם, בלי התחייבות. אפשר לכבות בכל רגע מהאזור האישי",
+    bannerText: "לא מצאתם? הסוכן החכם ימשיך לחפש עבורכם 24/7 ויתריע כשיש התאמה",
+    bannerCta: "הפעלת הסוכן החכם",
+  },
+
+  field: {
+    kicker: "מהשטח",
+    title: "רגעים מעסקאות",
+    subtitle: "חתימות, מסירת מפתחות ולקוחות מרוצים — רגעים אמיתיים מהעבודה שלנו",
+    all: "הכול",
+    categories: {
+      signing: "חתימת חוזה",
+      deal_closed: "עסקה נסגרה",
+      keys: "מסירת מפתחות",
+      happy_clients: "לקוחות מרוצים",
+      office: "מהמשרד",
+      other: "מהשטח",
+    },
+    videoUnsupported: "הדפדפן אינו תומך בניגון וידאו",
   },
 
   limits: {

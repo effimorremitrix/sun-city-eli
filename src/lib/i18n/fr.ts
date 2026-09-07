@@ -18,6 +18,7 @@ export const fr: Dict = {
       { id: "sellers", label: "Vendre un bien" },
       { id: "sold", label: "Vendus" },
       { id: "testimonials", label: "Témoignages" },
+      { id: "field", label: "Sur le terrain" },
       { id: "buyers", label: "Acheteurs" },
       { id: "services", label: "Nos services" },
       { id: "team", label: "L'équipe" },
@@ -151,7 +152,7 @@ export const fr: Dict = {
       rooms: "Nombre de pièces",
       size: "Surface (m²)",
     },
-    personalAgent: "Agent personnel : alertes pour les nouveaux biens",
+    personalAgent: "L'agent intelligent : alertes pour les nouveaux biens",
     viewList: "Liste",
     viewMap: "Carte",
     mapOpenListing: "Voir l'annonce",
@@ -593,6 +594,7 @@ export const fr: Dict = {
 
   portal: {
     managerHeading: "Espace personnel et gestion",
+    draftPrefilled: "Nous avons rempli le profil d'après votre dernière recherche sur le site",
     helloName: (name: string) => `Bonjour, ${name}`,
     heading: "Mon espace personnel",
     toSite: "Vers le site",
@@ -787,6 +789,43 @@ export const fr: Dict = {
     tooLong: (max: number) => `Jusqu'à ${max} caractères`,
     httpsRequired: "Le lien doit commencer par https://",
     invalid: "Valeur non valide",
+  },
+
+  smartAgent: {
+    kicker: "L'agent intelligent",
+    title: "Vous n'avez pas trouvé le bien que vous cherchiez ?",
+    subtitle:
+      "Activez l'agent intelligent : il cherche pour vous 24h/24 parmi les biens de l'agence et sur tout le marché",
+    stepsTitle: "Comment ça marche ?",
+    steps: [
+      "Vous définissez une fois ce que vous cherchez",
+      "La recherche est enregistrée",
+      "Le système continue de chercher : biens de l'agence + annonces du marché",
+      "Un bien correspond : vous recevez une alerte",
+      "Votre agent reçoit aussi une alerte",
+    ],
+    cta: "Activer mon agent intelligent",
+    note: "Gratuit, sans engagement. Désactivable à tout moment depuis l'espace personnel",
+    bannerText:
+      "Rien trouvé ? L'agent intelligent continue de chercher 24h/24 et vous alerte dès qu'un bien correspond",
+    bannerCta: "Activer l'agent intelligent",
+  },
+
+  field: {
+    kicker: "Sur le terrain",
+    title: "Des moments de nos transactions",
+    subtitle:
+      "Signatures, remises de clés et clients satisfaits — de vrais moments de notre travail",
+    all: "Tout",
+    categories: {
+      signing: "Signature du contrat",
+      deal_closed: "Transaction conclue",
+      keys: "Remise des clés",
+      happy_clients: "Clients satisfaits",
+      office: "Depuis l'agence",
+      other: "Sur le terrain",
+    },
+    videoUnsupported: "Votre navigateur ne prend pas en charge la lecture vidéo",
   },
 
   limits: {
