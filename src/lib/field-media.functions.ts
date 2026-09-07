@@ -72,7 +72,7 @@ export const listPublicFieldMedia = createServerFn({ method: "GET" })
     const db = publicDb();
     if (!db) return [];
     const { data: rows, error } = await db.rpc("get_public_field_media", {
-      p_site_id: data.siteId,
+      p_site_id: data.siteId as unknown as string,
     });
     if (error) {
       console.error("get_public_field_media failed", error.message);
