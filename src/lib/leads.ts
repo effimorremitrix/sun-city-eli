@@ -97,6 +97,10 @@ export const LEAD_EVENT_TYPES = [
   "follow_up_done",
   "match",
   "client_response",
+  "task_created",
+  "task_done",
+  "assigned",
+  "reminder_sent",
   "note",
 ] as const;
 export type LeadEventType = (typeof LEAD_EVENT_TYPES)[number];

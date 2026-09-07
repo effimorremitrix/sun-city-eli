@@ -31,17 +31,8 @@ export type LeadEventRow = {
   created_at: string;
 };
 
-export type LeadsDashboardCounts = {
-  newLeads: number;
-  followUpsToday: number;
-  overdue: number;
-  tours: number;
-  negotiation: number;
-  deals: number;
-};
-
 const LEAD_ROW_COLUMNS =
-  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at,contact_id,utm_source,utm_campaign,referrer,landing_path,deal_type,city,neighborhoods,property_type,min_price,max_price,min_rooms,max_rooms,min_size,min_floor,max_floor,needs_mamad,needs_elevator,needs_parking,needs_balcony,listing:listing_id(id,title)";
+  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at,contact_id,utm_source,utm_campaign,referrer,landing_path,deal_type,city,neighborhoods,property_type,min_price,max_price,min_rooms,max_rooms,min_size,min_floor,max_floor,needs_mamad,needs_elevator,needs_parking,needs_balcony,assigned_user_id,deal_value,lost_reason,closed_at,listing:listing_id(id,title)";
 
 const str = (v: unknown, max = 200): string | null => {
   const s = typeof v === "string" ? v.trim() : "";
@@ -362,61 +353,6 @@ export const adminListFollowUps = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return bucketFollowUps((rows ?? []) as unknown as LeadRow[]);
   });
-
-/**
- * Dashboard ניהולי: ספירות לפי סטטוס ומועדי Follow-up.
- * עם siteId — נתוני אתר בודד (לכל מנהל של האתר); בלעדיו — כלל הצוות (אדמין בלבד),
- * כולל פירוט לפי סוכן.
- */
-export const adminLeadsDashboard = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { siteId?: string | null }) => ({ siteId: str(input?.siteId, 60) }))
-  .handler(
-    async ({
-      data,
-      context,
-    }): Promise<{
-      total: LeadsDashboardCounts;
-      perSite: Array<{ siteId: string; name: string; counts: LeadsDashboardCounts }>;
-    }> => {
-      const { assertManager, assertSiteAccess } = await import("@/lib/admin.server");
-      const { bucketFollowUps } = await import("@/lib/leads.server");
-      const access = await assertManager(context);
-      if (data.siteId) await assertSiteAccess(context, data.siteId);
-      else if (!access.isAdmin) throw new Error("Forbidden");
-
-      let q = context.supabase.from("leads").select("site_id,status,next_follow_up_at");
-      if (data.siteId) q = q.eq("site_id", data.siteId);
-      const { data: rows, error } = await q.limit(5000);
-      if (error) throw new Error(error.message);
-
-      type Slim = { site_id: string; status: string; next_follow_up_at: string | null };
-      const all = (rows ?? []) as Slim[];
-
-      const countsFor = (leads: Slim[]): LeadsDashboardCounts => {
-        const buckets = bucketFollowUps(leads);
-        return {
-          newLeads: leads.filter((l) => l.status === "ליד חדש").length,
-          followUpsToday: buckets.today.length,
-          overdue: buckets.overdue.length,
-          tours: leads.filter((l) => l.status === "נקבע סיור").length,
-          negotiation: leads.filter((l) => l.status === 'מו"מ').length,
-          deals: leads.filter((l) => l.status === "נסגרה עסקה").length,
-        };
-      };
-
-      const perSite = access.sites
-        .filter((s) => !data.siteId || s.id === data.siteId)
-        .map((s) => ({
-          siteId: s.id,
-          name: s.name,
-          counts: countsFor(all.filter((l) => l.site_id === s.id)),
-        }))
-        .filter((s) => Object.values(s.counts).some((n) => n > 0) || Boolean(data.siteId));
-
-      return { total: countsFor(all), perSite };
-    },
-  );
 
 /** מונה תשומת-הלב לתגית הטאב: משימות באיחור + לידים חדשים שטרם טופלו */
 export const adminLeadsAttentionCount = createServerFn({ method: "GET" })

@@ -14,6 +14,7 @@ export const JOB_NAMES = [
   "scout",
   "match-profiles",
   "notify-pending",
+  "follow-up-reminders",
   "backup",
   "health-check",
 ] as const;
@@ -73,6 +74,12 @@ async function jobNotifyPending(): Promise<JobResult> {
   const { sendAllPendingNotifications } = await import("@/lib/notify.server");
   const sent = await sendAllPendingNotifications(settings.site_url);
   return { ok: true, summary: sent as unknown as Record<string, unknown> };
+}
+
+async function jobFollowUpReminders(): Promise<JobResult> {
+  const { sendFollowUpReminders } = await import("@/lib/reminders.server");
+  const summary = await sendFollowUpReminders();
+  return { ok: true, summary: summary as unknown as Record<string, unknown> };
 }
 
 /* ------------------------------ גיבוי ------------------------------ */
@@ -221,6 +228,12 @@ export async function healthReport(): Promise<HealthReport> {
     match != null && hoursAgo(match.at) < 30,
     match ? `ריצה אחרונה: ${match.at} (${match.status})` : "טרם רצה",
   );
+  const reminders = await lastRun("follow-up-reminders");
+  push(
+    "follow_up_reminders",
+    !settings.follow_up_reminders_enabled || (reminders != null && hoursAgo(reminders.at) < 24),
+    reminders ? `ריצה אחרונה: ${reminders.at} (${reminders.status})` : "טרם רצה",
+  );
   const backup = await lastRun("backup");
   push(
     "backup",
@@ -304,6 +317,7 @@ const RUNNERS: Record<JobName, () => Promise<JobResult>> = {
   scout: jobScout,
   "match-profiles": jobMatchProfiles,
   "notify-pending": jobNotifyPending,
+  "follow-up-reminders": jobFollowUpReminders,
   backup: jobBackup,
   "health-check": jobHealthCheck,
 };
