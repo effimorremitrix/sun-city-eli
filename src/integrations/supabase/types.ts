@@ -348,6 +348,74 @@ export type Database = {
           },
         ]
       }
+      field_media: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          happened_at: string | null
+          id: string
+          is_published: boolean
+          media_kind: string
+          media_url: string
+          owner_site_id: string | null
+          poster_url: string | null
+          scope: string
+          site_ids: string[]
+          sort_order: number
+          title: string
+          translations: Json
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          happened_at?: string | null
+          id?: string
+          is_published?: boolean
+          media_kind?: string
+          media_url: string
+          owner_site_id?: string | null
+          poster_url?: string | null
+          scope?: string
+          site_ids?: string[]
+          sort_order?: number
+          title: string
+          translations?: Json
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          happened_at?: string | null
+          id?: string
+          is_published?: boolean
+          media_kind?: string
+          media_url?: string
+          owner_site_id?: string | null
+          poster_url?: string | null
+          scope?: string
+          site_ids?: string[]
+          sort_order?: number
+          title?: string
+          translations?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_media_owner_site_id_fkey"
+            columns: ["owner_site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_runs: {
         Row: {
           error: string | null
@@ -1709,6 +1777,77 @@ export type Database = {
           },
         ]
       }
+      testimonials: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          image_url: string | null
+          is_published: boolean
+          legacy_id: string | null
+          media_kind: string
+          name: string
+          owner_site_id: string | null
+          poster_url: string | null
+          quote: string
+          scope: string
+          site_ids: string[]
+          sort_order: number
+          translations: Json
+          type: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          is_published?: boolean
+          legacy_id?: string | null
+          media_kind?: string
+          name: string
+          owner_site_id?: string | null
+          poster_url?: string | null
+          quote: string
+          scope?: string
+          site_ids?: string[]
+          sort_order?: number
+          translations?: Json
+          type?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          is_published?: boolean
+          legacy_id?: string | null
+          media_kind?: string
+          name?: string
+          owner_site_id?: string | null
+          poster_url?: string | null
+          quote?: string
+          scope?: string
+          site_ids?: string[]
+          sort_order?: number
+          translations?: Json
+          type?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "testimonials_owner_site_id_fkey"
+            columns: ["owner_site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       track_events: {
         Row: {
           created_at: string
@@ -1780,6 +1919,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      analytics_funnel: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
       analytics_overview: {
         Args: { p_from: string; p_to: string }
         Returns: Json
@@ -1799,7 +1942,9 @@ export type Database = {
         }[]
       }
       get_public_agents: { Args: never; Returns: Json }
+      get_public_field_media: { Args: { p_site_id: string }; Returns: Json }
       get_public_site: { Args: { p_slug: string }; Returns: Json }
+      get_public_testimonials: { Args: { p_site_id: string }; Returns: Json }
       get_site_id: { Args: { p_slug: string }; Returns: string }
       has_role: {
         Args: {
