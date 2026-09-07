@@ -449,6 +449,64 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          lead_id: string
+          listing_id: string | null
+          metadata: Json
+          note: string | null
+          site_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          lead_id: string
+          listing_id?: string | null
+          metadata?: Json
+          note?: string | null
+          site_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          lead_id?: string
+          listing_id?: string | null
+          metadata?: Json
+          note?: string | null
+          site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_events_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_events_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_tasks: {
         Row: {
           assigned_user_id: string | null
@@ -514,64 +572,6 @@ export type Database = {
           },
           {
             foreignKeyName: "lead_tasks_site_id_fkey"
-            columns: ["site_id"]
-            isOneToOne: false
-            referencedRelation: "sites"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lead_events: {
-        Row: {
-          actor_user_id: string | null
-          created_at: string
-          event_type: string
-          id: string
-          lead_id: string
-          listing_id: string | null
-          metadata: Json
-          note: string | null
-          site_id: string
-        }
-        Insert: {
-          actor_user_id?: string | null
-          created_at?: string
-          event_type: string
-          id?: string
-          lead_id: string
-          listing_id?: string | null
-          metadata?: Json
-          note?: string | null
-          site_id: string
-        }
-        Update: {
-          actor_user_id?: string | null
-          created_at?: string
-          event_type?: string
-          id?: string
-          lead_id?: string
-          listing_id?: string | null
-          metadata?: Json
-          note?: string | null
-          site_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lead_events_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_events_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_events_site_id_fkey"
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "sites"
@@ -2007,19 +2007,12 @@ export type Database = {
         Args: { p_from: string; p_to: string }
         Returns: Json
       }
-      assignable_site_users: {
-        Args: { p_site_id: string }
-        Returns: Json
-      }
       analytics_overview: {
         Args: { p_from: string; p_to: string }
         Returns: Json
       }
+      assignable_site_users: { Args: { p_site_id: string }; Returns: Json }
       can_view_contact: { Args: { _contact_id: string }; Returns: boolean }
-      crm_pipeline_board: {
-        Args: { p_from: string; p_to: string }
-        Returns: Json
-      }
       consume_rate_limit: {
         Args: {
           p_cost?: number
@@ -2032,6 +2025,10 @@ export type Database = {
           current_count: number
           remaining: number
         }[]
+      }
+      crm_pipeline_board: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
       }
       get_public_agents: { Args: never; Returns: Json }
       get_public_field_media: { Args: { p_site_id: string }; Returns: Json }
@@ -2066,11 +2063,8 @@ export type Database = {
       owns_site: { Args: { _site_id: string }; Returns: boolean }
       prune_activity_log: { Args: never; Returns: undefined }
       run_scheduled_job: { Args: { p_job: string }; Returns: number }
-      sync_lead_next_task: {
-        Args: { p_lead_id: string }
-        Returns: undefined
-      }
       scheduler_status: { Args: never; Returns: Json }
+      sync_lead_next_task: { Args: { p_lead_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "client" | "agent" | "super_admin"
