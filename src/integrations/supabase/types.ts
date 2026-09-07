@@ -507,21 +507,97 @@ export type Database = {
           },
         ]
       }
+      lead_tasks: {
+        Row: {
+          assigned_user_id: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string | null
+          due_at: string | null
+          id: string
+          kind: string
+          lead_id: string
+          notes: string | null
+          reminder_email_sent_at: string | null
+          reminder_whatsapp_sent_at: string | null
+          site_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_user_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_at?: string | null
+          id?: string
+          kind?: string
+          lead_id: string
+          notes?: string | null
+          reminder_email_sent_at?: string | null
+          reminder_whatsapp_sent_at?: string | null
+          site_id: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_user_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_at?: string | null
+          id?: string
+          kind?: string
+          lead_id?: string
+          notes?: string | null
+          reminder_email_sent_at?: string | null
+          reminder_whatsapp_sent_at?: string | null
+          site_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
+          assigned_user_id: string | null
           buy_categories: string[]
           city: string | null
+          closed_at: string | null
           consent_at: string | null
           contact_id: string | null
           created_at: string
           created_by: string | null
           criteria_extra: Json | null
           deal_type: string | null
+          deal_value: number | null
           email: string | null
           full_name: string
           id: string
           landing_path: string | null
           listing_id: string | null
+          lost_reason: string | null
           marketing_consent: boolean
           max_floor: number | null
           max_price: number | null
@@ -559,19 +635,23 @@ export type Database = {
           utm_source: string | null
         }
         Insert: {
+          assigned_user_id?: string | null
           buy_categories?: string[]
           city?: string | null
+          closed_at?: string | null
           consent_at?: string | null
           contact_id?: string | null
           created_at?: string
           created_by?: string | null
           criteria_extra?: Json | null
           deal_type?: string | null
+          deal_value?: number | null
           email?: string | null
           full_name: string
           id?: string
           landing_path?: string | null
           listing_id?: string | null
+          lost_reason?: string | null
           marketing_consent?: boolean
           max_floor?: number | null
           max_price?: number | null
@@ -609,19 +689,23 @@ export type Database = {
           utm_source?: string | null
         }
         Update: {
+          assigned_user_id?: string | null
           buy_categories?: string[]
           city?: string | null
+          closed_at?: string | null
           consent_at?: string | null
           contact_id?: string | null
           created_at?: string
           created_by?: string | null
           criteria_extra?: Json | null
           deal_type?: string | null
+          deal_value?: number | null
           email?: string | null
           full_name?: string
           id?: string
           landing_path?: string | null
           listing_id?: string | null
+          lost_reason?: string | null
           marketing_consent?: boolean
           max_floor?: number | null
           max_price?: number | null
@@ -1927,6 +2011,7 @@ export type Database = {
         Args: { p_from: string; p_to: string }
         Returns: Json
       }
+      assignable_site_users: { Args: { p_site_id: string }; Returns: Json }
       can_view_contact: { Args: { _contact_id: string }; Returns: boolean }
       consume_rate_limit: {
         Args: {
@@ -1940,6 +2025,10 @@ export type Database = {
           current_count: number
           remaining: number
         }[]
+      }
+      crm_pipeline_board: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
       }
       get_public_agents: { Args: never; Returns: Json }
       get_public_field_media: { Args: { p_site_id: string }; Returns: Json }
@@ -1975,6 +2064,7 @@ export type Database = {
       prune_activity_log: { Args: never; Returns: undefined }
       run_scheduled_job: { Args: { p_job: string }; Returns: number }
       scheduler_status: { Args: never; Returns: Json }
+      sync_lead_next_task: { Args: { p_lead_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "client" | "agent" | "super_admin"
