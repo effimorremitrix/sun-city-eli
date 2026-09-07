@@ -51,6 +51,12 @@ const JOBS: Array<{ name: string; label: string; suggested: string; desc: string
     suggested: "כל 15 דקות",
     desc: "שולחת מייל/וואטסאפ שממתינים בתור",
   },
+  {
+    name: "follow-up-reminders",
+    label: "תזכורות Follow-up",
+    suggested: "כל 30 דקות בשעות העבודה",
+    desc: "מזכירה לסוכן על משימות ולידים שהגיע מועדם",
+  },
   { name: "backup", label: "גיבוי", suggested: "פעם ביום (03:00)", desc: "מגבה את הטבלאות לאחסון" },
   {
     name: "health-check",

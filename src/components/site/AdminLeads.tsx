@@ -1,21 +1,21 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, CalendarClock, Plus, Sparkles } from "lucide-react";
-import {
-  adminLeadsDashboard,
-  adminListFollowUps,
-  adminListLeads,
-  type LeadRow,
-  type LeadsDashboardCounts,
-} from "@/lib/leads.functions";
+import { AlertTriangle, CalendarClock, ListTodo, Plus, Sparkles } from "lucide-react";
+import { adminListFollowUps, adminListLeads, type LeadRow } from "@/lib/leads.functions";
+import { adminListTasks, adminSetTaskStatus } from "@/lib/crm.functions";
+import { isTaskOverdue } from "@/lib/crm";
 import { LEAD_STATUSES } from "@/lib/leads";
 import { leadCriteriaChips } from "@/components/site/LeadCriteria";
 import AdminLeadDrawer from "@/components/site/AdminLeadDrawer";
+import AdminPipeline from "@/components/site/AdminPipeline";
 import type { Listing } from "@/lib/listings";
 import type { ManagedSite } from "@/lib/admin.server";
 
-type SubTab = "tasks" | "all" | "dashboard";
+type SubTab = "tasks" | "all" | "board";
+
+/** שלוש הספירות שמוצגות מעל דליי ה-Follow-up של הסוכן */
+type MyCounts = { newLeads: number; followUpsToday: number; overdue: number };
 
 const fmtDateTime = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" }) : "";
@@ -155,38 +155,10 @@ function Bucket({
   );
 }
 
-const COUNT_CARDS: Array<[keyof LeadsDashboardCounts, string]> = [
-  ["newLeads", "לידים חדשים"],
-  ["followUpsToday", "Follow-ups להיום"],
-  ["overdue", "משימות באיחור"],
-  ["tours", "סיורים"],
-  ["negotiation", 'מו"מ'],
-  ["deals", "עסקאות"],
-];
-
-function CountCards({ counts }: { counts: LeadsDashboardCounts }) {
-  return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-      {COUNT_CARDS.map(([key, label]) => (
-        <div
-          key={key}
-          className={`rounded-xl border p-3 text-center ${key === "overdue" && counts[key] > 0 ? "border-destructive/60 bg-destructive/5" : "border-border"}`}
-        >
-          <p
-            className={`text-2xl font-extrabold ${key === "overdue" && counts[key] > 0 ? "text-destructive" : "text-primary"}`}
-          >
-            {counts[key]}
-          </p>
-          <p className="text-xs font-bold text-muted-foreground">{label}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /**
- * טאב הלידים באזור הניהול: "המשימות שלי" (דליי Follow-up), "כל הלידים"
- * ו-Dashboard ניהולי (למנהל הראשי). הכול בסקופ של האתר הנבחר בבורר הסוכנים.
+ * טאב הלידים באזור הניהול: "המשימות שלי" (המשימות הפתוחות ודליי ה-Follow-up),
+ * "כל הלידים" ו"לוח הפייפליין". הכול בסקופ של האתר הנבחר בבורר הסוכנים;
+ * בלוח הפייפליין הסוכן רואה את הדף שלו והמנהל הראשי את כל הצוות.
  */
 export default function AdminLeads({
   siteId,
@@ -201,19 +173,26 @@ export default function AdminLeads({
 }) {
   const fetchFollowUps = useServerFn(adminListFollowUps);
   const fetchLeads = useServerFn(adminListLeads);
-  const fetchDashboard = useServerFn(adminLeadsDashboard);
+  const fetchTasks = useServerFn(adminListTasks);
+  const setTaskStatus = useServerFn(adminSetTaskStatus);
 
   const [sub, setSub] = useState<SubTab>("tasks");
   const [statusFilter, setStatusFilter] = useState("");
   const [q, setQ] = useState("");
   const [openLeadId, setOpenLeadId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  // Dashboard: null = כל הצוות (למנהל בלבד)
-  const [dashSiteId, setDashSiteId] = useState<string | null>(null);
+  const [taskBusy, setTaskBusy] = useState(false);
 
   const followUps = useQuery({
     queryKey: ["admin-follow-ups", siteId],
     queryFn: () => fetchFollowUps({ data: { siteId } }),
+    enabled: sub === "tasks",
+  });
+
+  // המשימות הפתוחות של הדף — הרשימה שהסוכן עובד ממנה בבוקר
+  const tasks = useQuery({
+    queryKey: ["admin-site-tasks", siteId],
+    queryFn: () => fetchTasks({ data: { siteId } }),
     enabled: sub === "tasks",
   });
 
@@ -224,27 +203,30 @@ export default function AdminLeads({
     enabled: sub === "all",
   });
 
-  const dashboard = useQuery({
-    queryKey: ["admin-leads-dashboard", dashSiteId],
-    queryFn: () => fetchDashboard({ data: { siteId: dashSiteId } }),
-    enabled: sub === "dashboard" && isSuperAdmin,
-  });
-
   const refetchAll = () => {
     void followUps.refetch();
+    void tasks.refetch();
     void leads.refetch();
-    if (isSuperAdmin) void dashboard.refetch();
+  };
+
+  const completeTask = async (taskId: string) => {
+    setTaskBusy(true);
+    try {
+      await setTaskStatus({ data: { siteId, taskId, status: "הושלמה" } });
+      refetchAll();
+    } finally {
+      setTaskBusy(false);
+    }
   };
 
   const buckets = followUps.data;
-  const myCounts: LeadsDashboardCounts | null = buckets
+  const openTasks = tasks.data ?? [];
+  const overdueTasks = openTasks.filter((t) => isTaskOverdue(t));
+  const myCounts: MyCounts | null = buckets
     ? {
         newLeads: buckets.untouched.length,
         followUpsToday: buckets.today.length,
         overdue: buckets.overdue.length,
-        tours: 0,
-        negotiation: 0,
-        deals: 0,
       }
     : null;
 
@@ -270,7 +252,7 @@ export default function AdminLeads({
           [
             ["tasks", "המשימות / Follow-up שלי"],
             ["all", "כל הלידים"],
-            ...(isSuperAdmin ? ([["dashboard", "Dashboard"]] as Array<[SubTab, string]>) : []),
+            ["board", isSuperAdmin ? "לוח הצוות" : "לוח הפייפליין"],
           ] as Array<[SubTab, string]>
         ).map(([key, label]) => (
           <button
@@ -303,7 +285,7 @@ export default function AdminLeads({
                       ["overdue", "באיחור"],
                       ["followUpsToday", "להיום"],
                       ["newLeads", "חדשים שטרם טופלו"],
-                    ] as Array<[keyof LeadsDashboardCounts, string]>
+                    ] as Array<[keyof MyCounts, string]>
                   ).map(([key, label]) => (
                     <div
                       key={key}
@@ -319,6 +301,78 @@ export default function AdminLeads({
                   ))}
                 </div>
               )}
+              {/* המשימות הפתוחות — רשימה אחת לכל הלידים של הדף */}
+              <section
+                className={
+                  overdueTasks.length
+                    ? "rounded-xl border-2 border-destructive/60 bg-destructive/5 p-3"
+                    : "rounded-xl border border-border p-3"
+                }
+              >
+                <h3
+                  className={`flex items-center gap-2 text-sm font-extrabold ${overdueTasks.length ? "text-destructive" : "text-primary"}`}
+                >
+                  <ListTodo className="size-4" aria-hidden="true" />
+                  משימות פתוחות ({openTasks.length}
+                  {overdueTasks.length > 0 ? `, מתוכן ${overdueTasks.length} באיחור` : ""})
+                </h3>
+                {tasks.isLoading && <p className="mt-2 text-xs text-muted-foreground">טוען…</p>}
+                {!tasks.isLoading && openTasks.length === 0 && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    אין משימות פתוחות. משימה נוספת מכרטיס הליד, ומועד יעד שולח תזכורת אוטומטית.
+                  </p>
+                )}
+                {openTasks.length > 0 && (
+                  <ul className="mt-2 grid gap-1.5">
+                    {openTasks.slice(0, 40).map((t) => {
+                      const late = isTaskOverdue(t);
+                      return (
+                        <li
+                          key={t.id}
+                          className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2"
+                        >
+                          <button
+                            type="button"
+                            disabled={taskBusy}
+                            onClick={() => void completeTask(t.id)}
+                            className="rounded-lg border border-border px-2 py-1 text-xs font-bold text-primary disabled:opacity-50"
+                          >
+                            ✓ בוצע
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => t.lead && setOpenLeadId(t.lead.id)}
+                            className="text-start text-sm font-bold text-primary underline-offset-2 hover:underline"
+                          >
+                            {t.title}
+                          </button>
+                          <span className="text-xs text-muted-foreground">
+                            {t.lead?.full_name ?? "לקוח"}
+                            {t.due_at && (
+                              <>
+                                {" · "}
+                                <span className={late ? "font-bold text-destructive" : ""}>
+                                  {fmtDateTime(t.due_at)}
+                                </span>
+                              </>
+                            )}
+                          </span>
+                          {t.lead?.phone && (
+                            <a
+                              href={`tel:${t.lead.phone}`}
+                              dir="ltr"
+                              className="text-xs font-bold text-primary underline"
+                            >
+                              {t.lead.phone}
+                            </a>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
+
               <Bucket
                 title="באיחור — לטיפול מיידי"
                 leads={buckets.overdue}
@@ -392,63 +446,8 @@ export default function AdminLeads({
         </div>
       )}
 
-      {/* Dashboard ניהולי — למנהל הראשי */}
-      {sub === "dashboard" && isSuperAdmin && (
-        <div className="mt-4 grid gap-3">
-          <label className="block max-w-sm">
-            <span className="mb-1 block text-xs font-bold text-muted-foreground">תצוגה</span>
-            <select
-              className="field"
-              value={dashSiteId ?? ""}
-              onChange={(e) => setDashSiteId(e.target.value || null)}
-            >
-              <option value="">כל הצוות</option>
-              {sites.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          {dashboard.isLoading && <p className="text-sm text-muted-foreground">טוען…</p>}
-          {dashboard.data && (
-            <>
-              <CountCards counts={dashboard.data.total} />
-              {!dashSiteId && dashboard.data.perSite.length > 0 && (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[560px] text-sm">
-                    <thead>
-                      <tr className="text-start text-xs font-bold text-muted-foreground">
-                        <th className="p-2 text-start">סוכן</th>
-                        {COUNT_CARDS.map(([key, label]) => (
-                          <th key={key} className="p-2 text-center">
-                            {label}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dashboard.data.perSite.map((row) => (
-                        <tr key={row.siteId} className="border-t border-border">
-                          <td className="p-2 font-bold text-primary">{row.name}</td>
-                          {COUNT_CARDS.map(([key]) => (
-                            <td
-                              key={key}
-                              className={`p-2 text-center ${key === "overdue" && row.counts[key] > 0 ? "font-bold text-destructive" : "text-primary"}`}
-                            >
-                              {row.counts[key]}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
+      {/* לוח הפייפליין — הסוכן רואה את הדף שלו, המנהל את כל הצוות */}
+      {sub === "board" && <AdminPipeline isSuperAdmin={isSuperAdmin} />}
 
       {(openLeadId || creating) && (
         <AdminLeadDrawer

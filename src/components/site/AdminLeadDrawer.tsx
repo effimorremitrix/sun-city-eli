@@ -35,6 +35,9 @@ import {
   PROPERTY_CATEGORIES,
 } from "@/lib/leads";
 import { adminListLeadFeedback } from "@/lib/feedback.functions";
+import { adminAssignableUsers, adminSetLeadPipeline } from "@/lib/crm.functions";
+import { LOST_REASONS } from "@/lib/crm";
+import AdminLeadTasks from "@/components/site/AdminLeadTasks";
 import { LeadCriteriaCard, intentLabel } from "@/components/site/LeadCriteria";
 import type { Listing } from "@/lib/listings";
 import type { ManagedSite } from "@/lib/admin.server";
@@ -42,6 +45,10 @@ import type { ManagedSite } from "@/lib/admin.server";
 /** אייקון לכל סוג אירוע בציר הזמן */
 const EVENT_ICONS: Record<string, LucideIcon> = {
   created: PlusCircle,
+  task_created: PlusCircle,
+  task_done: CheckCircle2,
+  assigned: UserRound,
+  reminder_sent: CalendarClock,
   contact_again: RefreshCw,
   status_change: Pencil,
   call: Phone,
@@ -339,6 +346,9 @@ type LeadForm = {
   notes: string;
   next_action: string;
   next_follow_up_at: string; // datetime-local
+  assigned_user_id: string;
+  deal_value: string;
+  lost_reason: string;
 };
 
 const emptyForm: LeadForm = {
@@ -353,6 +363,9 @@ const emptyForm: LeadForm = {
   notes: "",
   next_action: "",
   next_follow_up_at: "",
+  assigned_user_id: "",
+  deal_value: "",
+  lost_reason: "",
 };
 
 /**
@@ -382,6 +395,13 @@ export default function AdminLeadDrawer({
   const removeLead = useServerFn(adminDeleteLead);
   const quickAction = useServerFn(adminLeadQuickAction);
   const reassignLead = useServerFn(adminReassignLead);
+  const setPipeline = useServerFn(adminSetLeadPipeline);
+  // מי אפשר להציב כאחראי על הליד בדף הזה (בעל הדף + מנהלים ראשיים)
+  const fetchAssignable = useServerFn(adminAssignableUsers);
+  const assignable = useQuery({
+    queryKey: ["admin-assignable-users", siteId],
+    queryFn: () => fetchAssignable({ data: { siteId } }),
+  });
   // העברה לסוכן אחר (מנהל ראשי בלבד)
   const [reassignTo, setReassignTo] = useState("");
 
@@ -425,6 +445,9 @@ export default function AdminLeadDrawer({
       notes: lead.notes ?? "",
       next_action: lead.next_action ?? "",
       next_follow_up_at: isoToLocalInput(lead.next_follow_up_at),
+      assigned_user_id: lead.assigned_user_id ?? "",
+      deal_value: lead.deal_value != null ? String(lead.deal_value) : "",
+      lost_reason: lead.lost_reason ?? "",
     });
   }, [lead]);
 
@@ -466,6 +489,21 @@ export default function AdminLeadDrawer({
           },
         },
       });
+      // שדות ה-CRM נשמרים בקריאה נפרדת כדי שכל שינוי אחריות או סיבת
+      // אובדן יירשם בציר הזמן כאירוע משלו
+      if (leadId) {
+        await setPipeline({
+          data: {
+            siteId,
+            leadId,
+            assignedUserId: form.assigned_user_id || null,
+            dealValue: form.deal_value.trim() || null,
+            // סיבת אובדן רלוונטית רק לליד סגור ללא עסקה; אחרת המסד מנקה
+            // אותה בכל מקרה, ואין טעם לשלוח ערך ישן מהטופס
+            lostReason: form.status === "לא רלוונטי" ? form.lost_reason || null : null,
+          },
+        });
+      }
     }, "הליד נשמר");
 
   /** הוספה/הסרה של קטגוריה באחד משני שדות הקטגוריות */
@@ -675,6 +713,11 @@ export default function AdminLeadDrawer({
                 </div>
               )}
             </div>
+          )}
+
+          {/* משימות הליד — ליד אחד, כמה משימות פתוחות, עם תזכורת אוטומטית */}
+          {leadId && lead && (
+            <AdminLeadTasks siteId={siteId} leadId={leadId} onChanged={onChanged} />
           )}
 
           {/* מה הלקוח מחפש — הקריטריונים המובנים מהטופס/הפרופיל */}
@@ -896,6 +939,68 @@ export default function AdminLeadDrawer({
                   onChange={(e) => setForm({ ...form, next_follow_up_at: e.target.value })}
                 />
               </label>
+
+              {/* ניהול העסקה: אחראי, כסף וסיבת אובדן — הבסיס לדוחות בלוח */}
+              {leadId && (
+                <>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                      אחראי לטיפול
+                    </span>
+                    <select
+                      className="field"
+                      value={form.assigned_user_id}
+                      onChange={(e) => setForm({ ...form, assigned_user_id: e.target.value })}
+                    >
+                      <option value="">ללא אחראי</option>
+                      {(assignable.data ?? []).map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                          {u.isOwner ? " (בעל הדף)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                      ערך עסקה (₪)
+                    </span>
+                    <input
+                      className="field"
+                      dir="ltr"
+                      inputMode="numeric"
+                      value={form.deal_value}
+                      onChange={(e) =>
+                        setForm({ ...form, deal_value: e.target.value.replace(/[^\d]/g, "") })
+                      }
+                      placeholder="למשל 2450000"
+                    />
+                  </label>
+                  {form.status === "לא רלוונטי" && (
+                    <label className="block sm:col-span-2">
+                      <span className="mb-1 block text-xs font-bold text-muted-foreground">
+                        סיבת אובדן
+                      </span>
+                      <select
+                        className="field"
+                        value={form.lost_reason}
+                        onChange={(e) => setForm({ ...form, lost_reason: e.target.value })}
+                      >
+                        <option value="">לא צוינה סיבה</option>
+                        {LOST_REASONS.map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        הסיבות האלה מצטברות ל"סיבות אובדן" בלוח הפייפליין. פירוט חופשי אפשר להוסיף
+                        בהערות.
+                      </span>
+                    </label>
+                  )}
+                </>
+              )}
             </div>
           )}
 

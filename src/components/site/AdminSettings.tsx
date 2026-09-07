@@ -105,6 +105,20 @@ const GROUPS: Group[] = [
       { key: "health_alerts_enabled", label: "התראות בריאות למנהל", type: "bool" },
     ],
   },
+  {
+    title: "תזכורות Follow-up",
+    help: 'המערכת מזכירה לסוכן על משימה או Follow-up שהגיע מועדם — מייל, ואם תבנית הוואטסאפ מוגדרת גם וואטסאפ. תזכורת אחת לכל מועד; הזזת המועד מייצרת תזכורת חדשה. משימה שאיחרה ביותר משלושה ימים לא נשלחת במייל ונשארת רק במסך "באיחור".',
+    fields: [
+      { key: "follow_up_reminders_enabled", label: "תזכורות פעילות", type: "bool" },
+      {
+        key: "follow_up_reminder_lead_minutes",
+        label: "כמה דקות לפני המועד לשלוח",
+        type: "num",
+        min: 0,
+      },
+      { key: "reminders_per_run", label: "תזכורות מקסימום בכל ריצה", type: "num", min: 0 },
+    ],
+  },
 ];
 
 const toValues = (s: Editable): Values => ({ ...s }) as Values;

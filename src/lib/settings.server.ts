@@ -27,6 +27,9 @@ export type AppSettings = {
   auto_block_hours: number;
   backup_retention_days: number;
   health_alerts_enabled: boolean;
+  follow_up_reminders_enabled: boolean;
+  follow_up_reminder_lead_minutes: number;
+  reminders_per_run: number;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -51,6 +54,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   auto_block_hours: 24,
   backup_retention_days: 30,
   health_alerts_enabled: true,
+  follow_up_reminders_enabled: true,
+  follow_up_reminder_lead_minutes: 15,
+  reminders_per_run: 30,
 };
 
 /** המפתחות שהמנהל רשאי לערוך מה-UI (cron_secret לא ביניהם) */

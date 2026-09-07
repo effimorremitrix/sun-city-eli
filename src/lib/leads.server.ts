@@ -36,6 +36,11 @@ export type LeadRecord = {
   utm_campaign?: string | null;
   referrer?: string | null;
   landing_path?: string | null;
+  /* שדות ה-CRM (שלב 3): אחראי, ערך עסקה, סיבת אובדן וחותמת סגירה */
+  assigned_user_id?: string | null;
+  deal_value?: number | null;
+  lost_reason?: string | null;
+  closed_at?: string | null;
 } & LeadCriteria;
 
 /**
@@ -65,7 +70,7 @@ export const LEAD_CRITERIA_COLUMNS =
 
 // מחרוזת אחת (לא שרשור) — כדי שמנתח הטיפוסים של postgrest יזהה את העמודות
 export const LEAD_COLUMNS =
-  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at,contact_id,marketing_consent,utm_source,utm_campaign,referrer,landing_path,deal_type,city,neighborhoods,property_type,min_price,max_price,min_rooms,max_rooms,min_size,min_floor,max_floor,needs_mamad,needs_elevator,needs_parking,needs_balcony";
+  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at,contact_id,marketing_consent,utm_source,utm_campaign,referrer,landing_path,deal_type,city,neighborhoods,property_type,min_price,max_price,min_rooms,max_rooms,min_size,min_floor,max_floor,needs_mamad,needs_elevator,needs_parking,needs_balcony,assigned_user_id,deal_value,lost_reason,closed_at";
 
 /** כוונות עסקה חוקיות על ליד/פרופיל (כולל 'קנייה' — כוונת קונה) */
 export const LEAD_DEAL_TYPES = ["קנייה", "מכירה", "השכרה"] as const;

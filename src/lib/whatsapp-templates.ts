@@ -16,7 +16,7 @@
  */
 
 export type WaTemplateKey =
-  "new_listing_client" | "agent_matches" | "admin_copy" | "client_callback";
+  "new_listing_client" | "agent_matches" | "admin_copy" | "client_callback" | "agent_reminder";
 
 /** ערך גולמי לפרמטר — מנורמל למחרוזת חוקית ב-sanitizeParam */
 export type WaParamValue = string | number | null | undefined;
@@ -61,6 +61,13 @@ export type WaTemplateValues = {
     title: WaParamValue;
     criteria: WaParamValue;
     listingUrl: WaParamValue;
+    leadUrl: WaParamValue;
+  };
+  agent_reminder: {
+    taskTitle: WaParamValue;
+    clientName: WaParamValue;
+    clientPhone: WaParamValue;
+    dueAt: WaParamValue;
     leadUrl: WaParamValue;
   };
 };
@@ -220,6 +227,31 @@ export const WA_TEMPLATES: { [K in WaTemplateKey]: WaTemplateSpec<K> } = {
       "דירת 4 חדרים בעיר ימים",
       "קנייה · עיר ימים, פארק הים · עד 2,500,000 ₪ · 4 חדרים",
       "https://sun-city-eli.lovable.app/?listing=1234#properties",
+      "https://sun-city-eli.lovable.app/account?tab=leads",
+    ],
+  },
+
+  // תזכורת לסוכן על משימה או Follow-up שהגיע מועדם. UTILITY: תזכורת
+  // פנימית לעובד על פעולה שהוא עצמו קבע, לא הודעה שיווקית ללקוח.
+  agent_reminder: {
+    envVar: "WA_TEMPLATE_AGENT_REMINDER",
+    metaName: "sun_city_agent_reminder",
+    language: "he",
+    category: "UTILITY",
+    fields: ["taskTitle", "clientName", "clientPhone", "dueAt", "leadUrl"],
+    body: [
+      "תזכורת למשימה: {{1}}",
+      "לקוח: {{2}}",
+      "טלפון: {{3}}",
+      "מועד: {{4}}",
+      "לכרטיס הלקוח: {{5}}",
+      'סאן סיטי נדל"ן',
+    ].join("\n"),
+    samples: [
+      "לחזור ללקוח",
+      "דנה כהן",
+      "050-1234567",
+      "07/09/2026 10:00",
       "https://sun-city-eli.lovable.app/account?tab=leads",
     ],
   },
