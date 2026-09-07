@@ -1,0 +1,2 @@
+SELECT cron.schedule('suncity-market-scan', '5 0-4 * * *', $c$SELECT public.run_scheduled_job('market-scan')$c$);
+SELECT cron.schedule('suncity-notify-pending', '20 5-19 * * *', $c$SELECT public.run_scheduled_job('notify-pending')$c$);
