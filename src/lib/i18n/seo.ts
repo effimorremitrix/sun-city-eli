@@ -4,6 +4,28 @@ import { SITE_CONFIG, properties } from "@/lib/site-data";
 /** הדומיין הקנוני של האתר בפרודקשן */
 export const SITE_URL = "https://sun-city.company";
 
+/**
+ * תמונת התצוגה המקדימה (WhatsApp, פייסבוק, טוויטר) — כרטיס מיתוג 1200x630
+ * עם לוגו סאן סיטי. הקובץ יושב ב-public/, ולכן הכתובת מוחלטת וקבועה.
+ */
+export const OG_IMAGE = `${SITE_URL}/og-image.png`;
+/** סמל הלוגו הריבועי — עבור schema.org/logo, שמצפה ללוגו ולא לכרטיס רחב */
+export const LOGO_IMAGE = `${SITE_URL}/icon-512.png`;
+export const OG_IMAGE_ALT = `${SITE_CONFIG.name} — ${SITE_CONFIG.tagline}`;
+
+/** תגי og:image / twitter — מוגדרים פעם אחת ב-__root וחלים על כל דפי האתר */
+export const ogImageMeta = [
+  { name: "twitter:card", content: "summary_large_image" },
+  { property: "og:image", content: OG_IMAGE },
+  { property: "og:image:secure_url", content: OG_IMAGE },
+  { property: "og:image:type", content: "image/png" },
+  { property: "og:image:width", content: "1200" },
+  { property: "og:image:height", content: "630" },
+  { property: "og:image:alt", content: OG_IMAGE_ALT },
+  { name: "twitter:image", content: OG_IMAGE },
+  { name: "twitter:image:alt", content: OG_IMAGE_ALT },
+];
+
 const urlFor = (lang: Locale, slug?: string) =>
   slug
     ? `${SITE_URL}${lang === "he" ? "" : LOCALE_META[lang].path}/${slug}`
@@ -24,6 +46,8 @@ const schemaFor = (lang: Locale, slug?: string) => {
         telephone: SITE_CONFIG.phone,
         email: SITE_CONFIG.email,
         url: urlFor(lang, slug),
+        logo: LOGO_IMAGE,
+        image: OG_IMAGE,
         inLanguage: lang,
         areaServed: t.seo.areaServed,
         sameAs: [
@@ -75,6 +99,7 @@ export function headForLocale(lang: Locale, opts: { slug?: string } = {}) {
     meta: [
       { title: t.seo.title },
       { name: "description", content: t.seo.description },
+      { property: "og:site_name", content: SITE_CONFIG.name },
       { property: "og:title", content: t.seo.title },
       { property: "og:description", content: t.seo.description },
       { property: "og:type", content: "website" },
@@ -84,7 +109,6 @@ export function headForLocale(lang: Locale, opts: { slug?: string } = {}) {
         property: "og:locale:alternate",
         content: LOCALE_META[l].og,
       })),
-      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       { rel: "canonical", href: canonical },

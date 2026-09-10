@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import leafletCss from "leaflet/dist/leaflet.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { DEFAULT_LOCALE, DICTS, dirFor, isLocale, type Locale } from "../lib/i18n";
+import { ogImageMeta } from "../lib/i18n/seo";
 
 /** שפת דפי השגיאה — מהסגמנט הראשון בכתובת (כמו RootShell); בלי קידומת = עברית */
 function useErrorPageLang(): Locale {
@@ -93,6 +94,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "author", content: 'סאן סיטי נדל"ן' },
+      // ברירת מחדל לכל האתר: תמונת התצוגה המקדימה בוואטסאפ/פייסבוק/טוויטר.
+      // ראוטים שמגדירים og:image משלהם דורסים את הערכים האלה.
+      ...ogImageMeta,
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },

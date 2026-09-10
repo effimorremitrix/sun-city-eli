@@ -50,7 +50,6 @@ export function legalHead(input: { title: string; description: string; path: Leg
       { property: "og:title", content: input.title },
       { property: "og:description", content: input.description },
       { property: "og:type", content: "article" },
-      { name: "twitter:card", content: "summary" },
     ],
     links: [
       { rel: "canonical", href: `${SITE_URL}${input.path}` },
