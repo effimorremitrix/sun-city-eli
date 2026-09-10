@@ -15,7 +15,6 @@ export const Route = createFileRoute("/reset-password")({
       { property: "og:title", content: title },
       { property: "og:description", content: description },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ResetPasswordPage,

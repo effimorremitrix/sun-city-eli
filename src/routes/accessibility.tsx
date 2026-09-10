@@ -13,7 +13,6 @@ export const Route = createFileRoute("/accessibility")({
       { property: "og:title", content: title },
       { property: "og:description", content: description },
       { property: "og:type", content: "article" },
-      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Page,
