@@ -595,7 +595,14 @@ async function runKomoSource(
     const found = await fetchKomoListings(query);
     report.total = found.total;
     report.fetched = found.cards.length;
-    if (found.partial) report.error = "העימוד המלא בקומו דורש חשבון — נסרק מה שזמין לאורח";
+    const notes: string[] = [];
+    if (found.partial) notes.push("העימוד המלא בקומו דורש חשבון — נסרק מה שזמין לאורח");
+    // שקיפות למנהל: מודעה בלי סימן תיווך/פרטי בכרטיס אינה מוצגת ללקוחות
+    const unclassified = found.cards.filter((c) => c.advertiserType === "unknown").length;
+    if (unclassified > 0) {
+      notes.push(`${unclassified} מודעות בקומו בלי סימן מפרסם (תיווך/פרטי) — לא יוצגו ללקוחות`);
+    }
+    if (notes.length) report.error = notes.join(" | ");
 
     const accepted = acceptDirect(
       found.cards.map((card) => komoCardToCandidate(card, query)),

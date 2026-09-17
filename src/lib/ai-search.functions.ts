@@ -311,34 +311,16 @@ export const aiSearchListings = createServerFn({ method: "POST" })
           const agencyCandidates = candidates.filter((c) => c.advertiser_type === "agency");
           const privateFiltered = candidates.length - agencyCandidates.length;
 
-          // מה שנמצא בסריקה חיה נשמר גם במאגר השוק — לטובת כל הלקוחות
+          // מה שנמצא בסריקה חיה נשמר גם במאגר השוק — לטובת כל הלקוחות.
+          // אותו בונה-שורה כמו בסריקה הלילית: עד כה נשמר כאן source בעברית
+          // ("יד2") במקום המפתח הקנוני ("yad2"), ושני המסלולים סתרו זה את זה.
           try {
             const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-            const { canonicalHood } = await import("@/lib/market-scan.server");
+            const { candidateToRow } = await import("@/lib/market-scan.server");
             const now = new Date().toISOString();
-            const rowsToSave = candidates.slice(0, 60).map((c) => ({
-              source: c.source_site,
-              source_site: c.source_site,
-              source_url: c.source_url,
-              deal_type: c.deal_type === "השכרה" ? "השכרה" : "מכירה",
-              city: "נתניה",
-              neighborhood: canonicalHood(c.neighborhood),
-              address: c.address,
-              title: c.title.slice(0, 200),
-              description: c.raw_summary,
-              price: c.price,
-              rooms: c.rooms,
-              size_sqm: c.size_sqm,
-              has_mamad: c.has_mamad,
-              has_elevator: c.has_elevator,
-              has_parking: c.has_parking,
-              has_balcony: c.has_balcony,
-              match_score: c.match_score,
-              advertiser_type: c.advertiser_type,
-              agency_name: c.agency_name,
-              last_seen_at: now,
-              is_active: true,
-            }));
+            const rowsToSave = candidates
+              .slice(0, 60)
+              .map((c) => candidateToRow(c, wantedDeal ?? "מכירה", now));
             if (rowsToSave.length)
               await supabaseAdmin
                 .from("market_listings")

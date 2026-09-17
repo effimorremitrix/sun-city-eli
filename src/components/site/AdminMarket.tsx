@@ -16,6 +16,16 @@ const fmtDate = (iso: string | null) =>
     ? new Date(iso).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })
     : "אין מידע";
 
+/** מי פרסם את המודעה — ללקוחות מוצגות מודעות "מתיווך" בלבד */
+const advertiserLabel = (m: { advertiser_type?: string; agency_name?: string | null }) =>
+  m.advertiser_type === "agency"
+    ? m.agency_name
+      ? `מתיווך · ${m.agency_name}`
+      : "מתיווך"
+    : m.advertiser_type === "private"
+      ? "פרטי"
+      : "לא ידוע";
+
 export default function AdminMarket() {
   const listMarket = useServerFn(adminListMarketListings);
   const setHidden = useServerFn(adminSetMarketListingHidden);
@@ -109,8 +119,10 @@ export default function AdminMarket() {
         </div>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
-        מודעות מהשוק שנאספו לפי הביקוש של הלקוחות, ומוצגות באתר לצד נכסי המשרד. מודעה מוסתרת לא
-        מופיעה לגולשים ולא נשלחת בהתראות. הסריקה רצה אוטומטית לפי המתזמן; כאן אפשר להריץ אותה מיד.
+        מודעות מהשוק שנאספו לפי הביקוש של הלקוחות, ומוצגות באזור האישי לצד נכסי המשרד. ללקוחות
+        מוצגות רק מודעות של משרדי תיווך ("מפרסם: מתיווך"); מודעה פרטית או מודעה שלא ברור מי פרסם
+        אותה נשמרת במאגר אך אינה מוצגת ואינה נשלחת בהתראות. מודעה מוסתרת לא מופיעה לגולשים. הסריקה
+        רצה אוטומטית לפי המתזמן; כאן אפשר להריץ אותה מיד.
       </p>
 
       {scanMsg && (
@@ -155,7 +167,10 @@ export default function AdminMarket() {
           />
           רק מודעות פעילות
         </label>
-        <span className="text-xs text-muted-foreground">{listings.length} מודעות</span>
+        <span className="text-xs text-muted-foreground">
+          {listings.length} מודעות · {listings.filter((m) => m.advertiser_type === "agency").length}{" "}
+          מתיווך (רק הן מוצגות ללקוחות)
+        </span>
       </form>
 
       {market.isLoading && <p className="mt-4 text-sm text-muted-foreground">טוען…</p>}
@@ -173,6 +188,7 @@ export default function AdminMarket() {
               <tr className="border-b border-border font-bold text-muted-foreground">
                 {[
                   "מקור",
+                  "מפרסם",
                   "כותרת",
                   "עסקה",
                   "שכונה",
@@ -199,6 +215,20 @@ export default function AdminMarket() {
                   >
                     <td className="px-2 py-1.5 text-muted-foreground">
                       {m.source_site ?? m.source}
+                    </td>
+                    <td
+                      className={`px-2 py-1.5 whitespace-nowrap ${
+                        m.advertiser_type === "agency"
+                          ? "font-bold text-primary"
+                          : "text-muted-foreground"
+                      }`}
+                      title={
+                        m.advertiser_type === "agency"
+                          ? "מוצגת ללקוחות"
+                          : "לא מוצגת ללקוחות — רק מודעות של משרדי תיווך מוצגות"
+                      }
+                    >
+                      {advertiserLabel(m)}
                     </td>
                     <td className="max-w-64 px-2 py-1.5">
                       <a
@@ -246,7 +276,7 @@ export default function AdminMarket() {
               })}
               {listings.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-2 py-3 text-muted-foreground">
+                  <td colSpan={11} className="px-2 py-3 text-muted-foreground">
                     אין מודעות במאגר. הריצו סריקה או בדקו שסריקת השוק פעילה בהגדרות.
                   </td>
                 </tr>
