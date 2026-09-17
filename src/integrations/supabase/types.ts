@@ -2036,10 +2036,10 @@ export type Database = {
         Args: { p_from: string; p_to: string }
         Returns: Json
       }
+      get_known_streets: { Args: { p_city?: string }; Returns: Json }
       get_public_agents: { Args: never; Returns: Json }
       get_public_field_media: { Args: { p_site_id: string }; Returns: Json }
       get_public_site: { Args: { p_slug: string }; Returns: Json }
-      get_known_streets: { Args: { p_city?: string }; Returns: Json }
       get_public_testimonials: { Args: { p_site_id: string }; Returns: Json }
       get_site_id: { Args: { p_slug: string }; Returns: string }
       has_role: {
