@@ -1168,6 +1168,8 @@ export type Database = {
       market_listings: {
         Row: {
           address: string | null
+          advertiser_type: string
+          agency_name: string | null
           city: string
           created_at: string
           created_listing_id: string | null
@@ -1199,6 +1201,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          advertiser_type?: string
+          agency_name?: string | null
           city?: string
           created_at?: string
           created_listing_id?: string | null
@@ -1230,6 +1234,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          advertiser_type?: string
+          agency_name?: string | null
           city?: string
           created_at?: string
           created_listing_id?: string | null
@@ -2030,6 +2036,7 @@ export type Database = {
         Args: { p_from: string; p_to: string }
         Returns: Json
       }
+      get_known_streets: { Args: { p_city?: string }; Returns: Json }
       get_public_agents: { Args: never; Returns: Json }
       get_public_field_media: { Args: { p_site_id: string }; Returns: Json }
       get_public_site: { Args: { p_slug: string }; Returns: Json }
