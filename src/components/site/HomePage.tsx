@@ -17,12 +17,10 @@ import { SiteLiveProvider, localizeLive, type LiveSite } from "@/lib/site-live";
 import { OFFICE_SLUG } from "@/lib/site-data";
 import { getPublicSite } from "@/lib/site.functions";
 import { listPublicListings } from "@/lib/listings.functions";
-import { listPublicMarketListings } from "@/lib/market.functions";
 import { listPublicSoldProperties, type SoldPage } from "@/lib/sold.functions";
 import { listPublicTestimonials } from "@/lib/testimonials.functions";
 import { listPublicFieldMedia, type FieldMediaItem } from "@/lib/field-media.functions";
 import { localizeListing, type Listing } from "@/lib/listings";
-import type { MarketListing } from "@/lib/market";
 import { DICTS, LangProvider, useLang, type Locale } from "@/lib/i18n";
 import { headForLocale } from "@/lib/i18n/seo";
 
@@ -40,8 +38,6 @@ export type HomeData = {
   live: LiveSite;
   listings: Listing[];
   sold: SoldPage;
-  /** מודעות פעילות מהשוק (לוחות אחרים) — כשל בטעינה אינו מפיל את הדף */
-  marketListings: MarketListing[];
   /** "מהשטח" — סרטונים ותמונות מעסקאות, כבר בשפת הדף; ריק = המדור לא מוצג */
   fieldMedia: FieldMediaItem[];
 };
@@ -70,14 +66,13 @@ export async function attachSiteExtras(
  * נטענת כאן: מדור הצוות מוצג רק בדפים האישיים, והדף הראשי לא זקוק לה.
  */
 export async function loadHomeData(lang: Locale): Promise<HomeData> {
-  const [live, listings, sold, marketListings] = await Promise.all([
+  const [live, listings, sold] = await Promise.all([
     getPublicSite(),
     listPublicListings(),
     listPublicSoldProperties({ data: {} }),
-    listPublicMarketListings({ data: { limit: 200 } }).catch((): MarketListing[] => []),
   ]);
   const extras = await attachSiteExtras(live, lang);
-  return { live: extras.live, listings, sold, marketListings, fieldMedia: extras.fieldMedia };
+  return { live: extras.live, listings, sold, fieldMedia: extras.fieldMedia };
 }
 
 /** נתוני הדף הראשי — או הפניה קבועה (301) אל /sun-city כשהדגל homeRedirect דולק */
@@ -103,7 +98,7 @@ export function HomePage({ data, lang }: { data: HomeData; lang: Locale }) {
 
 function HomeContent({ data }: { data: HomeData }) {
   const { lang, t } = useLang();
-  const { live, listings, sold, marketListings, fieldMedia } = data;
+  const { live, listings, sold, fieldMedia } = data;
   // isHome: מסמן לתפריט, לפוטר ולמדורים שזהו הדומיין הראשי — שם מדור הצוות
   // לא מוצג כלל. בדפים האישיים של הסוכנים הוא נשאר.
   const localizedLive = { ...localizeLive(live, lang, t), isHome: true };
@@ -119,11 +114,7 @@ function HomeContent({ data }: { data: HomeData }) {
         <Header />
         <main>
           <Hero />
-          <PropertySection
-            listings={localizedListings}
-            updatedAt={listingsUpdatedAt}
-            marketListings={marketListings ?? []}
-          />
+          <PropertySection listings={localizedListings} updatedAt={listingsUpdatedAt} />
           <SmartAgentSection />
           <ItemsSection />
           <SellerSection />

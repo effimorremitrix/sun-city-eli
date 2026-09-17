@@ -412,5 +412,26 @@ export function yad2ItemToCandidate(item: Yad2Item, dealType: "forsale" | "rent"
     raw_summary: s(buildSummary(item), 600),
     match_score: scoreItem(item),
     match_reason: "מודעה פעילה ביד2 שעונה על כל קריטריוני החיפוש",
+    ...advertiserOf(item),
   };
+}
+
+/**
+ * סוג המפרסם ביד2. הפיד מציין שם משרד תיווך (customer.agencyName) למודעות
+ * של מתווכים, ו-adType מסמן את הדלי שהמודעה הגיעה ממנו (private/agency/
+ * platinum/trio — שלושת האחרונים הם מסלולי פרסום של משרדי תיווך).
+ * בלי אף אחד מהשניים אין הכרעה, ולכן 'unknown' — והסוכן החכם לא יציג אותה.
+ */
+function advertiserOf(item: Yad2Item): {
+  advertiser_type: ScoutCandidate["advertiser_type"];
+  agency_name: string | null;
+} {
+  const agency = s(item.customer?.agencyName, 120);
+  if (agency) return { advertiser_type: "agency", agency_name: agency };
+  const adType = (item.adType ?? "").toLowerCase();
+  if (adType === "private") return { advertiser_type: "private", agency_name: null };
+  if (["agency", "platinum", "trio", "broker", "office"].includes(adType)) {
+    return { advertiser_type: "agency", agency_name: null };
+  }
+  return { advertiser_type: "unknown", agency_name: null };
 }

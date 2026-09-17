@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ImagePlus, MessageSquareQuote, Pencil, Plus, Trash2, Video } from "lucide-react";
+import { Globe2, ImagePlus, MessageSquareQuote, Pencil, Plus, Trash2, Video } from "lucide-react";
 import {
   adminDeleteTestimonial,
   adminListTestimonials,
+  adminBulkSetTestimonialScope,
   adminSaveTestimonial,
+  adminTestimonialsStats,
   type TestimonialRow,
 } from "@/lib/testimonials.functions";
 import type { ManagedSite } from "@/lib/admin.server";
@@ -85,13 +87,22 @@ export default function AdminTestimonials({
   const listFn = useServerFn(adminListTestimonials);
   const saveFn = useServerFn(adminSaveTestimonial);
   const deleteFn = useServerFn(adminDeleteTestimonial);
+  const statsFn = useServerFn(adminTestimonialsStats);
+  const bulkScopeFn = useServerFn(adminBulkSetTestimonialScope);
 
   const list = useQuery({
     queryKey: ["admin-testimonials"],
     queryFn: () => listFn(),
   });
+  // מונה אמת מהמסד — התשובה ל"האם המלצה נמחקה או רק לא מוצגת"
+  const stats = useQuery({
+    queryKey: ["admin-testimonials-stats"],
+    queryFn: () => statsFn(),
+  });
 
   const [form, setForm] = useState<Form | null>(null);
+  /** בחירה מרובה לשינוי היקף הצגה קבוצתי (מנהל בלבד) */
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -106,7 +117,7 @@ export default function AdminTestimonials({
     try {
       await fn();
       setMsg(okMsg);
-      await list.refetch();
+      await Promise.all([list.refetch(), stats.refetch()]);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "הפעולה נכשלה");
     } finally {
@@ -234,6 +245,18 @@ export default function AdminTestimonials({
           ? "כל המלצה נשמרת בנפרד עם היקף הצגה: כללית של SUN CITY (בכל הדפים), של סוכן מסוים או של כמה סוכנים. הטקסטים מתורגמים אוטומטית לשפות האתר בשמירה."
           : "ההמלצות שאתם מוסיפים מוצגות בדף שלכם, לצד ההמלצות הכלליות של SUN CITY. הטקסטים מתורגמים אוטומטית לשפות האתר בשמירה."}
       </p>
+
+      {/* מונה שמור-במסד: כל המלצה חדשה מתווספת, לעולם אינה דורסת קיימות.
+          התצוגה בדף היא קרוסלה (המלצה אחת בכל רגע) ואינה מוגבלת בכמות. */}
+      {stats.data && (
+        <p className="mt-2 rounded-xl bg-secondary/60 px-3 py-2 text-xs font-bold text-primary">
+          שמורות במסד: {stats.data.total} המלצות · מפורסמות: {stats.data.published} · כלליות:{" "}
+          {stats.data.global}
+          {isAdmin && stats.data.legacyArchive > 0
+            ? ` · ארכיון מהמבנה הישן: ${stats.data.legacyArchive} (שוחזרו לרשימה)`
+            : ""}
+        </p>
+      )}
 
       {msg && (
         <p className="mt-3 rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">{msg}</p>
@@ -468,6 +491,58 @@ export default function AdminTestimonials({
         </p>
       )}
 
+      {/* פעולה קבוצתית על היקף ההצגה. בלעדיה היה צריך לפתוח כל המלצה בנפרד
+          כדי להפוך אותה ל"כללית", ולכן בפועל אף המלצה לא סונכרנה בין דפי
+          הסוכנים — למרות שהמנגנון קיים. */}
+      {isAdmin && rows.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-secondary/40 p-3">
+          <label className="flex items-center gap-1.5 text-xs font-bold text-primary">
+            <input
+              type="checkbox"
+              className="accent-sun"
+              checked={picked.size > 0 && picked.size === rows.length}
+              onChange={(e) =>
+                setPicked(e.target.checked ? new Set(rows.map((r) => r.id)) : new Set())
+              }
+            />
+            בחירת הכול
+          </label>
+          <span className="text-xs text-muted-foreground">נבחרו {picked.size}</span>
+          <button
+            type="button"
+            disabled={busy || picked.size === 0}
+            onClick={() =>
+              void run(
+                () => bulkScopeFn({ data: { ids: [...picked], scope: "global" } }),
+                "ההמלצות שנבחרו הפכו לכלליות — הן יופיעו בכל דפי הסוכנים",
+              ).then(() => setPicked(new Set()))
+            }
+            className="flex items-center gap-1 rounded-xl bg-sun px-3 py-1.5 text-xs font-bold text-sun-foreground disabled:opacity-50"
+          >
+            <Globe2 className="size-3.5" aria-hidden="true" />
+            הפיכה להמלצה כללית של SUN CITY
+          </button>
+          {selectedSiteId && (
+            <button
+              type="button"
+              disabled={busy || picked.size === 0}
+              onClick={() =>
+                void run(
+                  () =>
+                    bulkScopeFn({
+                      data: { ids: [...picked], scope: "sites", siteIds: [selectedSiteId] },
+                    }),
+                  "ההמלצות שנבחרו שויכו לדף הנבחר בלבד",
+                ).then(() => setPicked(new Set()))
+              }
+              className="rounded-xl border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary disabled:opacity-50"
+            >
+              שיוך לדף הנבחר בלבד
+            </button>
+          )}
+        </div>
+      )}
+
       <ul className="mt-4 grid gap-3">
         {rows.map((t) => (
           <li
@@ -476,6 +551,22 @@ export default function AdminTestimonials({
               t.is_published ? "" : "opacity-70"
             }`}
           >
+            {isAdmin && (
+              <input
+                type="checkbox"
+                aria-label={`בחירת ההמלצה של ${t.name}`}
+                className="mt-1 accent-sun"
+                checked={picked.has(t.id)}
+                onChange={() =>
+                  setPicked((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(t.id)) next.delete(t.id);
+                    else next.add(t.id);
+                    return next;
+                  })
+                }
+              />
+            )}
             <Thumb t={t} />
             <div className="min-w-0 flex-1">
               <p className="font-bold text-primary">

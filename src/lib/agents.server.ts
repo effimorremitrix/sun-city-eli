@@ -13,7 +13,19 @@ export type PublicAgentRow = {
   photo_url: string | null;
   phone: string | null;
   phone_tel: string | null;
+  /**
+   * תרגומי הדף של הסוכן (site_content.translations), לפי קוד שפה.
+   * בלעדיהם כרטיס הצוות הציג תפקיד בעברית גם בדף אנגלי/צרפתי, כי
+   * role_title מגיע מהמסד ומנצח את המילון.
+   */
+  translations?: Record<string, { business?: { roleTitle?: string; bio?: string } }> | null;
 };
+
+/** תפקיד הסוכן בשפת הדף — תרגום מהמסד, ואם אין, העברית כמות שהיא */
+export const agentRoleFor = (a: PublicAgentRow, lang: string): string =>
+  (lang === "he" ? null : a.translations?.[lang]?.business?.roleTitle?.trim() || null) ??
+  a.role_title ??
+  "";
 
 /** רשימת הסוכנים הפעילים (sites) מהמסד — ריק כשאין חיבור */
 export async function fetchPublicAgents(): Promise<PublicAgentRow[]> {

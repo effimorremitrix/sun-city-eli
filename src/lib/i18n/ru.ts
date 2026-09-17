@@ -202,6 +202,9 @@ export const ru: Dict = {
     fullName: "Полное имя",
     phone: "Телефон",
     sendWa: "Отправить в WhatsApp",
+    priceOnRequest: "Цена по запросу",
+    leadSaved: "Заявка сохранена и отправлена вашему агенту. Он свяжется с вами в ближайшее время.",
+    openWhatsApp: "Открыть WhatsApp",
     waInterested: (
       office: string,
       d: { title: string; hood: string; price: string; name: string; phone: string },
@@ -640,6 +643,8 @@ export const ru: Dict = {
     city: "Город",
     streetOptional: "Улица (необязательно)",
     streetPlaceholder: "например: Голда Меир",
+    streetFreeTextHint:
+      "Можно указать любую улицу, даже если сейчас у нас там нет объектов. Умный агент продолжит искать для вас.",
     roomsExactLabel: "Комнат (точно, ± полкомнаты)",
     minPrice: "Минимальная цена (₪)",
     maxPrice: "Максимальная цена (₪)",
@@ -752,6 +757,7 @@ export const ru: Dict = {
     source: "Оригинальное объявление",
     callback: "Хочу, чтобы агент перезвонил",
     callbackSent: "Принято! Агент свяжется с вами в ближайшее время.",
+    openWhatsApp: "Открыть WhatsApp",
     send: "Отправить",
     cancel: "Отмена",
     match: (n: number) => `${n}% совпадение`,
@@ -816,6 +822,7 @@ export const ru: Dict = {
       other: "С мест",
     },
     videoUnsupported: "Ваш браузер не поддерживает воспроизведение видео",
+    count: (n: number) => `${n} моментов с поля`,
   },
 
   limits: {
@@ -830,6 +837,29 @@ export const ru: Dict = {
   },
 
   maps: {
+    floor: {
+      קרקע: "Первый этаж",
+      מרתף: "Подвал",
+      גג: "Крыша",
+      פנטהאוז: "Пентхаус",
+      "קומת עמודים": "Опорный этаж",
+    } as Record<string, string>,
+    propertyType: {
+      apartment: "Квартира",
+      penthouse: "Пентхаус",
+      gardenApartment: "Квартира с садом",
+      duplex: "Дуплекс",
+      house: "Частный дом",
+      plot: "Участок",
+      commercial: "Коммерческая недвижимость",
+      storageUnit: "Кладовая",
+      building: "Здание",
+    } as Record<string, string>,
+    advertiser: {
+      agency: "Публикует агентство",
+      private: "Частное объявление",
+      unknown: "Рекламодатель неизвестен",
+    } as Record<string, string>,
     deal: {
       מכירה: "Продажа",
       השכרה: "Аренда",

@@ -94,6 +94,18 @@ export function useStoredLocale(): Locale {
 
 /* ---------------------------- עזרי תצוגה ---------------------------- */
 
+/**
+ * טקסט שגיאה שמוצג לגולש. הודעות השגיאה של השרת כתובות בעברית (ולידציה,
+ * מגבלות קצב, הרשאות), ולכן בדף שאינו עברי הן היו מוצגות בעברית באמצע
+ * ממשק מתורגם. בשפה אחרת מוצגת ההודעה הכללית של המילון; בעברית מוצג
+ * הפירוט המדויק מהשרת, שהוא שימושי למשתמש ולתמיכה.
+ */
+export const errorText = (e: unknown, lang: Locale, fallback: string): string => {
+  const raw = e instanceof Error ? e.message.trim() : "";
+  if (!raw) return fallback;
+  return lang === "he" ? raw : fallback;
+};
+
 /** תרגום ערך קנוני מהמסד (שכונה/תגית/סוג עסקה) — נופל חזרה לערך המקורי */
 export const mapValue = (map: Record<string, string>, value: string | null | undefined) =>
   value == null ? value : (map[value] ?? value);

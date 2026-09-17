@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useLang } from "@/lib/i18n";
+import { errorText, useLang } from "@/lib/i18n";
 
 export default function AccountSettings() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [currentEmail, setCurrentEmail] = useState<string | null>(null);
   const [newEmail, setNewEmail] = useState("");
   const [pw1, setPw1] = useState("");
@@ -32,7 +32,7 @@ export default function AccountSettings() {
       setNewEmail("");
       setMsg(t.accountSettings.emailSent);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : t.accountSettings.emailFailed);
+      setErr(errorText(e, lang, t.accountSettings.emailFailed));
     } finally {
       setBusy(false);
     }
@@ -57,7 +57,7 @@ export default function AccountSettings() {
       setPw2("");
       setMsg(t.accountSettings.passwordUpdated);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : t.accountSettings.passwordFailed);
+      setErr(errorText(e, lang, t.accountSettings.passwordFailed));
     } finally {
       setBusy(false);
     }

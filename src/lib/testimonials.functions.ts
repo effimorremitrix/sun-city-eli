@@ -47,6 +47,58 @@ type PublicRow = {
   updatedAt: string;
 };
 
+/** שורת טבלה גולמית → הפורמט הציבורי (אותו מבנה שה-RPC מחזיר) */
+const toPublicRow = (r: {
+  id: string;
+  name: string;
+  type: string;
+  quote: string;
+  media_kind: string;
+  image_url: string | null;
+  video_url: string | null;
+  poster_url: string | null;
+  scope: string;
+  translations: unknown;
+  updated_at: string;
+}): PublicRow => ({
+  id: r.id,
+  name: r.name,
+  type: r.type,
+  quote: r.quote,
+  mediaKind: r.media_kind as PublicRow["mediaKind"],
+  imageUrl: r.image_url,
+  videoUrl: r.video_url,
+  posterUrl: r.poster_url,
+  scope: r.scope as TestimonialScope,
+  translations: (r.translations ?? null) as PublicRow["translations"],
+  updatedAt: r.updated_at,
+});
+
+/**
+ * גיבוי ל-RPC: שליפה ישירה מהטבלה דרך ה-RLS הציבורי (is_published), עם
+ * אותו סינון היקף. קיים כדי שסביבה שבה get_public_testimonials חסר לא
+ * תחזיר רשימה ריקה — מצב שנראה למשתמש כ"ההמלצות נעלמו".
+ */
+async function selectPublicTestimonials(
+  db: { from: (t: string) => never },
+  siteId: string | null,
+): Promise<PublicRow[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- קליינט ציבורי ללא טיפוסי RPC
+  const query = (db as any)
+    .from("testimonials")
+    .select(
+      "id, name, type, quote, media_kind, image_url, video_url, poster_url, scope, site_ids, translations, updated_at",
+    )
+    .eq("is_published", true)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+  const { data: rows, error } = await query;
+  if (error) throw new Error(error.message);
+  return ((rows ?? []) as Array<Parameters<typeof toPublicRow>[0] & { site_ids: string[] }>)
+    .filter((r) => r.scope === "global" || (siteId != null && (r.site_ids ?? []).includes(siteId)))
+    .map(toPublicRow);
+}
+
 /** הממליצים של דף (כלליים + משויכים), בשפה המבוקשת — ל-Testimonials.tsx */
 export const listPublicTestimonials = createServerFn({ method: "GET" })
   .inputValidator((input?: { siteId?: string | null; lang?: string }) => ({
@@ -57,14 +109,26 @@ export const listPublicTestimonials = createServerFn({ method: "GET" })
     const { publicDb } = await import("@/lib/public-db.server");
     const db = publicDb();
     if (!db) return [];
-    const { data: rows, error } = await db.rpc("get_public_testimonials", {
+
+    let rows: PublicRow[] = [];
+    const { data: rpcRows, error } = await db.rpc("get_public_testimonials", {
       p_site_id: data.siteId as unknown as string,
     });
     if (error) {
-      console.error("get_public_testimonials failed", error.message);
-      return [];
+      // ה-RPC נכשל (למשל לא הותקן בסביבה הזו) — לא מחזירים רשימה ריקה,
+      // שנראית למשתמש כאילו ההמלצות נמחקו; קוראים ישירות מהטבלה.
+      console.error("get_public_testimonials failed, falling back to table", error.message);
+      try {
+        rows = await selectPublicTestimonials(db as never, data.siteId);
+      } catch (e) {
+        console.error("testimonials fallback failed", e instanceof Error ? e.message : e);
+        return [];
+      }
+    } else {
+      rows = (rpcRows ?? []) as unknown as PublicRow[];
     }
-    return ((rows ?? []) as unknown as PublicRow[]).map((r) => {
+
+    return rows.map((r) => {
       const tr = data.lang === "he" ? undefined : r.translations?.[data.lang];
       return {
         id: r.id,
@@ -231,4 +295,86 @@ export const adminDeleteTestimonial = createServerFn({ method: "POST" })
     const { error } = await context.supabase.from("testimonials").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+/**
+ * אבחון ההמלצות בלוח הניהול: כמה שמורות בפועל במסד, כמה מפורסמות וכמה
+ * מהן כלליות. נועד לענות בוודאות על "האם המלצות נמחקו או רק לא מוצגות" —
+ * המספר כאן הוא מה שיש בטבלה, בלי קשר לתצוגה בדף.
+ */
+export const adminTestimonialsStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(
+    async ({
+      context,
+    }): Promise<{ total: number; published: number; global: number; legacyArchive: number }> => {
+      const { assertManager } = await import("@/lib/admin.server");
+      const access = await assertManager(context);
+      const { data, error } = await context.supabase
+        .from("testimonials")
+        .select("id, is_published, scope");
+      if (error) throw new Error(error.message);
+      const rows = (data ?? []) as Array<{ is_published: boolean; scope: string }>;
+
+      // הארכיון הישן (site_content.testimonials) — לאדמין בלבד, כאינדיקציה
+      // שיש ממליצים היסטוריים ששוחזרו או שממתינים לשחזור
+      let legacyArchive = 0;
+      if (access.isAdmin) {
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data: contents } = await supabaseAdmin
+            .from("site_content")
+            .select("testimonials");
+          for (const c of contents ?? []) {
+            const arr = c.testimonials as unknown;
+            if (Array.isArray(arr)) legacyArchive += arr.length;
+          }
+        } catch {
+          /* אבחון בלבד — כשל כאן לא שובר את הטאב */
+        }
+      }
+
+      return {
+        total: rows.length,
+        published: rows.filter((r) => r.is_published).length,
+        global: rows.filter((r) => r.scope === "global").length,
+        legacyArchive,
+      };
+    },
+  );
+
+/**
+ * שינוי היקף הצגה לכמה המלצות בבת אחת — מנהל בלבד.
+ *
+ * למה זה נחוץ: המנגנון של "המלצה משרדית שמופיעה בכל דפי הסוכנים" קיים
+ * (scope='global'), אבל כל ההמלצות ההיסטוריות יובאו עם היקף "הדף שבו
+ * הוזנו". בלי פעולה קבוצתית צריך לפתוח כל המלצה בנפרד כדי להפוך אותה
+ * לכללית, ולכן בפועל אף המלצה לא סונכרנה בין הסוכנים.
+ */
+export const adminBulkSetTestimonialScope = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { ids: string[]; scope: string; siteIds?: string[] }) => ({
+    ids: Array.isArray(input?.ids) ? input.ids.map(String).slice(0, 200) : [],
+    scope: input?.scope === "global" ? ("global" as const) : ("sites" as const),
+    siteIds: Array.isArray(input?.siteIds) ? input.siteIds.map(String).slice(0, 30) : [],
+  }))
+  .handler(async ({ data, context }): Promise<{ ok: true; updated: number }> => {
+    const { assertManager } = await import("@/lib/admin.server");
+    const access = await assertManager(context);
+    // היקף כללי משנה את מה שמוצג בדפים של סוכנים אחרים — מנהל בלבד
+    if (!access.isAdmin) throw new Error("רק מנהל יכול לשנות היקף הצגה של המלצות");
+    if (!data.ids.length) return { ok: true, updated: 0 };
+    if (data.scope === "sites" && !data.siteIds.length) {
+      throw new Error("יש לבחור לפחות דף אחד להצגה");
+    }
+
+    const { error } = await context.supabase
+      .from("testimonials")
+      .update({
+        scope: data.scope,
+        site_ids: data.scope === "global" ? [] : data.siteIds,
+      })
+      .in("id", data.ids);
+    if (error) throw new Error(error.message);
+    return { ok: true, updated: data.ids.length };
   });

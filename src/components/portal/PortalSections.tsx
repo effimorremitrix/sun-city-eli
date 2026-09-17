@@ -27,12 +27,14 @@ import {
   type AiLimitReason,
   type AiSearchResult,
 } from "@/lib/ai-search.functions";
+import { WebCandidates } from "@/components/portal/WebCandidates";
 import { formatListingPrice, listingImages, localizeListing, type Listing } from "@/lib/listings";
-import { marketSourceLabel, type MarketListing } from "@/lib/market";
+import { localizeMarketTitle, marketSourceLabel, type MarketListing } from "@/lib/market";
 import type { MatchResult } from "@/lib/match-score";
 import { getBackToSiteHref } from "@/lib/back-to-site";
-import { waProps } from "@/lib/site-data";
-import { useLang, type Dict } from "@/lib/i18n";
+import { waProps, reserveWhatsAppWindow, whatsappUrl } from "@/lib/site-data";
+import { errorText, useLang, type Dict } from "@/lib/i18n";
+import { detectPropertyType } from "@/lib/property-type";
 
 /** הודעת חסימה של החיפוש החכם בשפת הדף (spend = תקרת הוצאה → "לא זמין") */
 const aiLimitMessage = (t: Dict, reason: AiLimitReason): string => {
@@ -46,6 +48,13 @@ const aiLimitMessage = (t: Dict, reason: AiLimitReason): string => {
  * מדורי האזור האישי של הלקוח: התאמות עם אחוז התאמה ופירוט,
  * משוב ❤️/❌/⭐/📞, נכסים שמורים, וכרטיס הסוכן המטפל.
  * ============================================================ */
+
+/**
+ * שורת פרטים אחת מהחלקים שיש להם ערך בפועל. חלק חסר פשוט אינו מופיע —
+ * ללקוח לא מוצג "אין מידע" על שדה חסר בנכס חיצוני.
+ */
+const detailsLine = (...parts: Array<string | null | undefined | false>): string =>
+  parts.filter((p): p is string => typeof p === "string" && p.trim() !== "").join(" · ");
 
 /** תגית פירוט של קריטריון התאמה — ✓ ירוק, ~ צהוב ("מחיר מעט מעל התקציב"), ✗ אפור */
 function CriterionChip({ label, level }: { label: string; level: "full" | "near" | "miss" }) {
@@ -184,10 +193,13 @@ function MatchCard({
             )}
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {listing.neighborhood
-              ? (t.maps.neighborhoods[listing.neighborhood] ?? listing.neighborhood)
-              : t.misc.noInfo}{" "}
-            · {formatListingPrice(listing.price)} · {t.portal.viaProfile(item.profileLabel)}
+            {detailsLine(
+              listing.neighborhood
+                ? (t.maps.neighborhoods[listing.neighborhood] ?? listing.neighborhood)
+                : null,
+              listing.price != null ? formatListingPrice(listing.price) : null,
+              t.portal.viaProfile(item.profileLabel),
+            )}
           </p>
           {shown.length > 0 && (
             <p className="mt-1.5 flex flex-wrap gap-1">
@@ -238,19 +250,36 @@ function MarketMatchCard({
   onMessage: (msg: string) => void;
 }) {
   const { t, lang } = useLang();
+  // כותרת בשפת הדף: המודעה נשמרת בעברית מהלוח ונבנית מחדש מהשדות המובנים
+  const title = localizeMarketTitle(listing, t, lang, detectPropertyType);
   const request = useServerFn(requestMarketCallback);
   const [busy, setBusy] = useState<"callback" | "interest" | null>(null);
   const [done, setDone] = useState<Set<"callback" | "interest">>(() => new Set());
+  /** כתובת גיבוי כשהדפדפן חסם את חלון הוואטסאפ (קורה בעיקר במחשב) */
+  const [waFallback, setWaFallback] = useState<string | null>(null);
 
   const act = async (kind: "callback" | "interest") => {
     if (busy || done.has(kind)) return;
+    // "רוצה שסוכן יחזור אליי" פותח גם וואטסאפ לסוכן — הלשונית נשמרת כאן,
+    // בתוך ההקלקה, כי אחרי ה-await הדפדפן במחשב חוסם פתיחת חלון.
+    const pending = kind === "callback" ? reserveWhatsAppWindow() : null;
     setBusy(kind);
     try {
-      await request({ data: { marketListingId: listing.id, kind } });
+      const res = await request({ data: { marketListingId: listing.id, kind } });
       setDone((prev) => new Set(prev).add(kind));
       onMessage(t.portal.fbCallbackOk);
+      if (pending) {
+        const phone = res?.agent?.phoneTel ?? undefined;
+        const msg = t.market.waMsg(
+          res?.agent?.name ?? t.portal.agentCardTitle,
+          res?.listingTitle ?? listing.title,
+          res?.sourceUrl ?? listing.source_url,
+        );
+        if (!pending.go(msg, phone)) setWaFallback(whatsappUrl(msg, phone));
+      }
     } catch {
-      // best-effort — הכפתור פשוט לא משתנה
+      // הליד לא נשמר — לא פותחים וואטסאפ שמנותק מפנייה שמורה
+      pending?.cancel();
     } finally {
       setBusy(null);
     }
@@ -269,7 +298,7 @@ function MarketMatchCard({
         {listing.image_url ? (
           <img
             src={listing.image_url}
-            alt={listing.title}
+            alt={title}
             loading="lazy"
             referrerPolicy="no-referrer"
             className="size-20 shrink-0 rounded-xl object-cover"
@@ -279,7 +308,7 @@ function MarketMatchCard({
         )}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-bold text-primary">{listing.title}</p>
+            <p className="font-bold text-primary">{title}</p>
             {match?.score != null && (
               <span className="rounded-full bg-sun px-2.5 py-0.5 text-xs font-extrabold text-sun-foreground">
                 {t.portal.matchBadge(match.score)}
@@ -295,12 +324,15 @@ function MarketMatchCard({
             </span>
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {listing.neighborhood
-              ? (t.maps.neighborhoods[listing.neighborhood] ?? listing.neighborhood)
-              : t.misc.noInfo}{" "}
-            · {formatListingPrice(listing.price, lang)}
-            {listing.rooms != null ? ` · ${listing.rooms} ${t.properties.roomsUnit}` : ""}
-            {profileLabel ? ` · ${t.portal.viaProfile(profileLabel)}` : ""}
+            {detailsLine(
+              listing.neighborhood
+                ? (t.maps.neighborhoods[listing.neighborhood] ?? listing.neighborhood)
+                : null,
+              listing.price != null ? formatListingPrice(listing.price, lang) : null,
+              listing.rooms != null ? `${listing.rooms} ${t.properties.roomsUnit}` : null,
+              listing.size_sqm != null ? `${listing.size_sqm} ${t.properties.sqm}` : null,
+              profileLabel ? t.portal.viaProfile(profileLabel) : null,
+            )}
           </p>
           {shown.length > 0 && (
             <p className="mt-1.5 flex flex-wrap gap-1">
@@ -343,6 +375,17 @@ function MarketMatchCard({
               <Heart className="size-3.5" aria-hidden="true" />
               {t.portal.fbInterested}
             </button>
+            {waFallback && (
+              <a
+                href={waFallback}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-bold text-primary underline"
+              >
+                <MessageCircle className="size-3.5" aria-hidden="true" />
+                {t.market.openWhatsApp}
+              </a>
+            )}
           </div>
         </div>
       </div>
@@ -351,13 +394,23 @@ function MarketMatchCard({
 }
 
 /**
- * חיפוש חכם בכל השוק — לאזור האישי של הלקוח: טקסט חופשי → פילטרים → נכסי
- * המשרד + מודעות מהשוק שתואמות. בלי סריקה חיה (includeWeb=false) — זו
- * נשארת בדף הציבורי כדי לא לבזבז את המכסה היומית מהפורטל.
+ * הסוכן החכם — החיפוש הרחב, ובאזור האישי בלבד:
+ * טקסט חופשי → פילטרים → נכסי SUN CITY + מודעות ממשרדי תיווך אחרים
+ * (יד2, קומו, מדלן...) + סריקה חיה של הלוחות. מודעות של מוכרים פרטיים
+ * אינן מוצגות כאן — הסינון נעשה בשרת (advertiser_type='agency').
+ * באתר הציבורי מוצגים נכסי SUN CITY בלבד; זו ההפרדה בין השניים.
  */
 export function PortalAiSearch({ onMessage }: { onMessage: (msg: string) => void }) {
   const { t, lang } = useLang();
   const search = useServerFn(aiSearchListings);
+  // הסוכן המטפל — מאותה שאילתה של שאר הפורטל (react-query מאחד את הקריאה),
+  // כדי שפניות מתוצאות הסריקה החיה ינותבו אליו ולא למספר כללי
+  const fetchExtrasForAgent = useServerFn(getMyPortalExtras);
+  const extrasForAgent = useQuery({
+    queryKey: ["portal-extras"],
+    queryFn: () => fetchExtrasForAgent(),
+  });
+  const agent = extrasForAgent.data?.agent ?? null;
   const fetchListings = useServerFn(listPublicListings);
   const fetchMarket = useServerFn(listPublicMarketListings);
   const [query, setQuery] = useState("");
@@ -393,7 +446,7 @@ export function PortalAiSearch({ onMessage }: { onMessage: (msg: string) => void
     setErr(null);
     setBusy(true);
     try {
-      const r = await search({ data: { query, lang, includeWeb: false, website } });
+      const r = await search({ data: { query, lang, includeWeb: true, website } });
       if (r.limited) {
         setRes(null);
         setErr(aiLimitMessage(t, r.limited));
@@ -402,7 +455,7 @@ export function PortalAiSearch({ onMessage }: { onMessage: (msg: string) => void
       setRes(r);
     } catch (e) {
       setRes(null);
-      setErr(e instanceof Error ? e.message : t.properties.aiFailed);
+      setErr(errorText(e, lang, t.properties.aiFailed));
     } finally {
       setBusy(false);
     }
@@ -475,11 +528,13 @@ export function PortalAiSearch({ onMessage }: { onMessage: (msg: string) => void
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-primary">{listing.title}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {listing.neighborhood
-                        ? (t.maps.neighborhoods[listing.neighborhood] ?? listing.neighborhood)
-                        : t.misc.noInfo}{" "}
-                      · {formatListingPrice(listing.price, lang)}
-                      {listing.rooms != null ? ` · ${listing.rooms} ${t.properties.roomsUnit}` : ""}
+                      {detailsLine(
+                        listing.neighborhood
+                          ? (t.maps.neighborhoods[listing.neighborhood] ?? listing.neighborhood)
+                          : null,
+                        listing.price != null ? formatListingPrice(listing.price, lang) : null,
+                        listing.rooms != null ? `${listing.rooms} ${t.properties.roomsUnit}` : null,
+                      )}
                     </p>
                     <div className="mt-1.5 text-sm">
                       <a
@@ -508,6 +563,15 @@ export function PortalAiSearch({ onMessage }: { onMessage: (msg: string) => void
             ))}
           </ul>
         </>
+      )}
+
+      {/* סריקה חיה של הלוחות — מודעות מתיווך בלבד, באזור האישי בלבד */}
+      {res && (
+        <WebCandidates
+          web={res.web}
+          agentPhone={agent?.phoneTel ?? ""}
+          agentName={agent?.name ?? t.portal.agentCardTitle}
+        />
       )}
     </section>
   );
@@ -643,10 +707,12 @@ export function PortalExtrasSections({ onMessage }: { onMessage: (msg: string) =
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-primary">{listing.title}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {listing.neighborhood
-                      ? (t.maps.neighborhoods[listing.neighborhood] ?? listing.neighborhood)
-                      : t.misc.noInfo}{" "}
-                    · {formatListingPrice(listing.price)}
+                    {detailsLine(
+                      listing.neighborhood
+                        ? (t.maps.neighborhoods[listing.neighborhood] ?? listing.neighborhood)
+                        : null,
+                      listing.price != null ? formatListingPrice(listing.price) : null,
+                    )}
                   </p>
                   <div className="mt-1.5 text-sm">
                     <a

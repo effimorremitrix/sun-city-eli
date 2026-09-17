@@ -17,6 +17,11 @@ export type ScoutProfile = {
   deal_type: string;
   city: string;
   neighborhoods: string[];
+  /**
+   * רחוב מבוקש (טקסט חופשי). אינו מוגבל לרחובות שיש בהם נכס של המשרד —
+   * לקוח יכול לבקש רחוב שאין בו כרגע מלאי, והסריקה תמשיך לחפש בו.
+   */
+  street?: string | null;
   min_price: number | null;
   max_price: number | null;
   min_rooms: number | null;
@@ -50,6 +55,13 @@ export type ScoutCandidate = {
   raw_summary: string | null;
   match_score: number;
   match_reason: string | null;
+  /**
+   * מי פרסם את המודעה: משרד תיווך / מפרסם פרטי / לא ידוע. הסוכן החכם
+   * מציג מודעות מתיווך בלבד, ולכן זה שדה סינון ולא רק תצוגה.
+   */
+  advertiser_type: "agency" | "private" | "unknown";
+  /** שם משרד התיווך כפי שדווח במודעה (כשידוע) */
+  agency_name: string | null;
 };
 
 /** רף ציון התאמה — מועמד מתחתיו נפסל (רשת ביטחון מעל הסינון הקשיח) */
@@ -163,8 +175,9 @@ const SYSTEM_PROMPT = `אתה סוכן איתור נכסים למשרד תיוו
 אם שדה לא מופיע במקור — החזר null. אל תשלים ניחושים.
 אם לא מצאת מודעות מתאימות — החזר רשימה ריקה.
 החזר JSON בלבד, בלי טקסט נוסף, במבנה:
-{"candidates":[{"source_url":string,"title":string,"deal_type":"מכירה"|"השכרה"|null,"price":number|null,"rooms":number|null,"size_sqm":number|null,"neighborhood":string|null,"address":string|null,"has_mamad":boolean|null,"has_elevator":boolean|null,"has_parking":boolean|null,"has_balcony":boolean|null,"summary":string|null,"match_score":number,"match_reason":string}]}
+{"candidates":[{"source_url":string,"title":string,"deal_type":"מכירה"|"השכרה"|null,"price":number|null,"rooms":number|null,"size_sqm":number|null,"neighborhood":string|null,"address":string|null,"has_mamad":boolean|null,"has_elevator":boolean|null,"has_parking":boolean|null,"has_balcony":boolean|null,"summary":string|null,"match_score":number,"match_reason":string,"advertiser_type":"agency"|"private"|"unknown","agency_name":string|null}]}
 דווח ממ"ד/מעלית/חניה/מרפסת רק אם המודעה מציינת זאת במפורש — אחרת null.
+advertiser_type הוא מי שפרסם את המודעה: "agency" כשהמודעה מפורסמת על ידי מתווך או משרד תיווך (בדרך כלל מופיע שם משרד, לוגו או הכיתוב "תיווך"/"מתיווך"), "private" כשכתוב במפורש שזו מודעה פרטית מבעל הנכס, ו-"unknown" כשלא ניתן לדעת. אל תנחש: מודעה שלא כתוב בה מי פרסם היא "unknown". agency_name הוא שם משרד התיווך אם הוא מופיע, אחרת null.
 match_score הוא 0-100 להתאמה לקריטריונים, match_reason משפט קצר בעברית (עד 20 מילים) שמסביר למה הנכס מתאים.`;
 
 function n(v: unknown): number | null {
@@ -233,6 +246,16 @@ export function hardCriteriaViolation(
   ];
   for (const [needed, has, label] of amenities) {
     if (needed && has === false) return `אין ${label} לפי המודעה`;
+  }
+  // רחוב מבוקש: נבדק מול הכתובת והכותרת של המודעה. מודעה בלי כתובת כלל
+  // אינה נפסלת — אין לאשש היעדר מידע, בדיוק כמו במתקנים.
+  const wantedStreet = (p.street ?? "").trim();
+  if (wantedStreet) {
+    const needle = normalizeHebrew(wantedStreet);
+    const haystack = normalizeHebrew(`${c.address ?? ""} ${c.title}`);
+    if (haystack.trim() && !haystack.includes(needle)) {
+      return `הכתובת אינה ברחוב ${wantedStreet}`;
+    }
   }
   if (p.neighborhoods.length && c.neighborhood) {
     if (!hoodMatches(c.neighborhood, p.neighborhoods)) {
@@ -354,6 +377,17 @@ export function sanitizeCandidates(
       raw_summary: s(c["summary"], 600),
       match_score: score,
       match_reason: s(c["match_reason"], 240),
+      // המודל מתבקש לדווח מי פרסם; "לא ידוע" נשאר לא ידוע ולא מנוחש —
+      // הסוכן החכם מציג מודעות מתיווך בלבד, ומה שלא הוכרע לא מוצג.
+      advertiser_type:
+        c["advertiser_type"] === "agency"
+          ? "agency"
+          : c["advertiser_type"] === "private"
+            ? "private"
+            : s(c["agency_name"], 120)
+              ? "agency"
+              : "unknown",
+      agency_name: s(c["agency_name"], 120),
     };
 
     // מועמד שסותר את קריטריוני הפרופיל נפסל — ואינו נספר במכסה

@@ -9,13 +9,14 @@ import {
   Ruler,
   Store,
 } from "lucide-react";
-import { marketSourceLabel, type MarketListing } from "@/lib/market";
+import { localizeMarketTitle, marketSourceLabel, type MarketListing } from "@/lib/market";
 import { formatListingPrice } from "@/lib/listings";
 import { createPublicLead } from "@/lib/leads.functions";
 import { isValidIsraeliPhone } from "@/lib/leads";
-import { openWa } from "@/lib/site-data";
+import { reserveWhatsAppWindow, whatsappUrl } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
 import { mapValue, useLang } from "@/lib/i18n";
+import { detectPropertyType, hasValue, isFieldRelevant } from "@/lib/property-type";
 import { trackEvent } from "@/lib/analytics";
 
 /* ============================================================
@@ -112,6 +113,8 @@ export function MarketCard({
   const [form, setForm] = useState({ name: "", phone: "" });
   const [err, setErr] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  /** כתובת גיבוי כשחלון הוואטסאפ נחסם בדפדפן (נפוץ במחשב) */
+  const [waFallback, setWaFallback] = useState<string | null>(null);
   // צפייה במודעה מהשוק — נספרת פעם אחת לכרטיס (מקור או טופס חזרה)
   const viewedRef = useRef(false);
   const trackView = () => {
@@ -120,35 +123,50 @@ export function MarketCard({
     trackEvent("market_view", siteId, null);
   };
 
-  const noInfo = t.misc.noInfo;
   const hood = mapValue(t.maps.neighborhoods, m.neighborhood);
-  const price = formatListingPrice(m.price, lang);
+  // נכס חיצוני עם נתון חסר: מסתירים את השדה במקום להציג "אין מידע"
+  const price = m.price == null ? t.properties.priceOnRequest : formatListingPrice(m.price, lang);
   const source = marketSourceLabel(m);
+  const type = detectPropertyType(m.title, m.description);
+  // כותרת בשפת הדף — המודעה נשמרת בעברית מהלוח, ונבנית מחדש מהשדות המובנים
+  const title = localizeMarketTitle(m, t, lang, detectPropertyType);
+  const showRooms = isFieldRelevant(type, "rooms") && hasValue(m.rooms);
+  const showSize = isFieldRelevant(type, "size") && hasValue(m.size_sqm);
+  const where = [hood, t.maps.cities[m.city] ?? m.city].filter(Boolean).join(", ");
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return setErr(t.properties.errName);
     if (!isValidIsraeliPhone(form.phone)) return setErr(t.misc.phoneError);
     setErr(null);
-    // קליטה שקטה כליד אצל הסוכן — עם המודעה מהשוק שבגללה הלקוח פנה
-    try {
-      void createLead({
-        data: {
-          siteId,
-          name: form.name,
-          phone: form.phone,
-          source: "התעניינות בנכס",
-          marketListingId: m.id,
-          sessionId: readSessionId(),
-        },
-      }).catch(() => {});
-    } catch {
-      /* קליטת ליד היא Best-effort */
-    }
-    trackEvent("lead_submit", siteId);
+
+    // הלשונית נפתחת כאן, בתוך ההקלקה עצמה — אחרי await הדפדפן במחשב חוסם
+    // חלון קופץ, וזו הסיבה ש"סוכן יחזור אליי" עבד בנייד ולא במחשב.
+    const pending = reserveWhatsAppWindow();
+    const waMsg = t.market.waMsg(live.agentName, m.title, m.source_url);
+
     setSent(true);
     setFormOpen(false);
-    openWa(t.market.waMsg(live.agentName, m.title, m.source_url), live.phoneTel);
+    trackEvent("lead_submit", siteId);
+
+    // הליד נשמר תמיד — גם אם וואטסאפ לא נפתח בסוף
+    void (async () => {
+      try {
+        await createLead({
+          data: {
+            siteId,
+            name: form.name,
+            phone: form.phone,
+            source: "בקשת חזרה",
+            marketListingId: m.id,
+            sessionId: readSessionId(),
+          },
+        });
+      } catch {
+        /* קליטת ליד היא Best-effort — לא עוצרת את פתיחת וואטסאפ */
+      }
+      if (!pending.go(waMsg, live.phoneTel)) setWaFallback(whatsappUrl(waMsg, live.phoneTel));
+    })();
   };
 
   return (
@@ -160,7 +178,7 @@ export function MarketCard({
       {m.image_url && (
         <img
           src={m.image_url}
-          alt={m.title}
+          alt={title}
           loading="lazy"
           referrerPolicy="no-referrer"
           className="aspect-[3/2] w-full object-cover"
@@ -181,26 +199,45 @@ export function MarketCard({
           )}
         </div>
         <p className="mt-2 font-display text-xl font-extrabold text-primary">{price}</p>
-        <h4 className="mt-1 line-clamp-2 min-h-12 text-base">{m.title}</h4>
-        <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-          <MapPin className="size-4 shrink-0 text-sun" aria-hidden="true" />
-          {hood ?? noInfo}, {t.maps.cities[m.city] ?? m.city}
-        </p>
-        <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-foreground">
-          <li className="flex items-center gap-1">
-            <BedDouble className="size-4 text-sun" aria-hidden="true" />
-            {m.rooms ?? noInfo} {t.properties.roomsUnit}
-          </li>
-          <li className="flex items-center gap-1">
-            <Ruler className="size-4 text-sun" aria-hidden="true" />
-            {m.size_sqm ?? noInfo} {t.properties.sqm}
-          </li>
-        </ul>
+        <h4 className="mt-1 line-clamp-2 min-h-12 text-base">{title}</h4>
+        {where && (
+          <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+            <MapPin className="size-4 shrink-0 text-sun" aria-hidden="true" />
+            {where}
+          </p>
+        )}
+        {(showRooms || showSize) && (
+          <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-foreground">
+            {showRooms && (
+              <li className="flex items-center gap-1">
+                <BedDouble className="size-4 text-sun" aria-hidden="true" />
+                {m.rooms} {t.properties.roomsUnit}
+              </li>
+            )}
+            {showSize && (
+              <li className="flex items-center gap-1">
+                <Ruler className="size-4 text-sun" aria-hidden="true" />
+                {m.size_sqm} {t.properties.sqm}
+              </li>
+            )}
+          </ul>
+        )}
 
         {sent && (
-          <p className="mt-3 rounded-xl bg-secondary p-2.5 text-xs font-semibold text-primary">
-            {t.market.callbackSent}
-          </p>
+          <div className="mt-3 rounded-xl bg-secondary p-2.5 text-xs font-semibold text-primary">
+            <p>{t.market.callbackSent}</p>
+            {waFallback && (
+              <a
+                href={waFallback}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1.5 inline-flex items-center gap-1 underline"
+              >
+                <MessageCircle className="size-3.5" aria-hidden="true" />
+                {t.market.openWhatsApp}
+              </a>
+            )}
+          </div>
         )}
 
         {formOpen && !sent && (

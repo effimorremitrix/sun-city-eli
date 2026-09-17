@@ -439,3 +439,24 @@ export const adminListListingImages = createServerFn({ method: "POST" })
     const map = await fetchListingImages([data.listing_id]);
     return map.get(data.listing_id) ?? [];
   });
+
+/**
+ * רשימת הרחובות להשלמה אוטומטית בחיפוש ובפרופיל.
+ * מקורות: רחובות נתניה המרכזיים, כתובות נכסי המשרד וכתובות המודעות
+ * שנסרקו מהלוחות. זו *הצעה* בלבד — שדה הרחוב הוא טקסט חופשי, והלקוח
+ * יכול לבקש כל רחוב, גם כזה שאין בו כרגע אף נכס של SUN CITY.
+ */
+export const listStreetSuggestions = createServerFn({ method: "GET" })
+  .inputValidator((input?: { city?: string | null }) => ({
+    city: String(input?.city ?? "נתניה").slice(0, 60),
+  }))
+  .handler(async (): Promise<string[]> => {
+    const { knownStreets } = await import("@/lib/streets.server");
+    try {
+      return await knownStreets();
+    } catch (e) {
+      console.error("listStreetSuggestions failed", e instanceof Error ? e.message : e);
+      const { SEED_STREETS, mergeStreets } = await import("@/lib/streets");
+      return mergeStreets(SEED_STREETS);
+    }
+  });

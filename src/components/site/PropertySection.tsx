@@ -25,7 +25,13 @@ import {
   List,
   Map as MapIcon,
 } from "lucide-react";
-import { priceRanges, waProps, openWa, business } from "@/lib/site-data";
+import {
+  priceRanges,
+  waProps,
+  reserveWhatsAppWindow,
+  whatsappUrl,
+  business,
+} from "@/lib/site-data";
 import {
   formatListingPrice,
   listingImages,
@@ -35,23 +41,21 @@ import {
   type ListingFilters,
   type ListingSortKey,
 } from "@/lib/listings";
-import { matchesMarketFilters, type MarketListing } from "@/lib/market";
-import { getPublicMarketListing } from "@/lib/market.functions";
-
-import {
-  aiSearchListings,
-  type AiLimitReason,
-  type AiSearchResult,
-} from "@/lib/ai-search.functions";
+import { aiSearchListings, type AiLimitReason } from "@/lib/ai-search.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useLive } from "@/lib/site-live";
 import { isValidIsraeliPhone } from "@/lib/leads";
 import { createPublicLead } from "@/lib/leads.functions";
-import { mapValue, useLang, type Dict } from "@/lib/i18n";
+import { errorText, mapValue, useLang, type Dict } from "@/lib/i18n";
 import { trackEvent } from "@/lib/analytics";
+import {
+  detectPropertyType,
+  hasValue,
+  isFieldRelevant,
+  type PropertyField,
+} from "@/lib/property-type";
 import { PropertyMap } from "@/components/site/PropertyMap";
 import { NeighborhoodPicker } from "@/components/site/NeighborhoodPicker";
-import { MarketListings } from "@/components/site/MarketListings";
 import { SmartAgentBanner } from "@/components/site/SmartAgentSection";
 import { Reveal } from "./Reveal";
 
@@ -99,14 +103,17 @@ const SORT_KEYS: ListingSortKey[] = ["newest", "priceAsc", "priceDesc", "rooms",
 type Props = {
   listings: Listing[];
   updatedAt: string | null;
-  /** מודעות פעילות מהשוק (לוחות אחרים) — מסוננות יחד עם נכסי המשרד */
-  marketListings?: MarketListing[];
 };
 
-export function PropertySection({ listings, updatedAt, marketListings = [] }: Props) {
+/**
+ * מדור הנכסים של האתר הציבורי — נכסי SUN CITY בלבד.
+ * מודעות ממשרדי תיווך אחרים (יד2, מדלן, קומו...) והסריקה החיה של הלוחות
+ * אינן מוצגות כאן במכוון: החיפוש הרחב שייך לאזור האישי / לסוכן החכם,
+ * אחרי הרשמה. ראו PortalAiSearch.
+ */
+export function PropertySection({ listings, updatedAt }: Props) {
   const { t, lang } = useLang();
   const { business: live, siteId } = useLive();
-  const fetchMarketListing = useServerFn(getPublicMarketListing);
   const [deal, setDeal] = useState("all");
   const [rooms, setRooms] = useState("all");
   const [range, setRange] = useState("all");
@@ -115,10 +122,6 @@ export function PropertySection({ listings, updatedAt, marketListings = [] }: Pr
   const [view, setView] = useState<"list" | "map">("list");
   const [selected, setSelected] = useState<Listing | null>(null);
 
-  // קישור עמוק למודעה מהשוק (?market=<id>): הדגשה, ואם אינה ברשימה — טעינה נפרדת
-  const [marketExtra, setMarketExtra] = useState<MarketListing | null>(null);
-  const [marketHighlight, setMarketHighlight] = useState<string | null>(null);
-
   const [query, setQuery] = useState("");
   // honeypot — שדה נסתר שבוטים ממלאים; אדם לעולם לא רואה אותו
   const [website, setWebsite] = useState("");
@@ -126,10 +129,8 @@ export function PropertySection({ listings, updatedAt, marketListings = [] }: Pr
   const [aiErr, setAiErr] = useState<string | null>(null);
   const [ai, setAi] = useState<{
     ids: string[];
-    marketIds: string[];
     explanation: string;
     filters: ListingFilters;
-    web: AiSearchResult["web"];
   } | null>(null);
 
   const filters = useMemo<ListingFilters>(() => {
@@ -159,19 +160,6 @@ export function PropertySection({ listings, updatedAt, marketListings = [] }: Pr
     [manual, ai, sort],
   );
 
-  // מודעות מהשוק — אותם פילטרים ידניים; בחיפוש חכם רק מה שהשרת התאים
-  const allMarket = useMemo(
-    () =>
-      marketExtra && !marketListings.some((m) => m.id === marketExtra.id)
-        ? [marketExtra, ...marketListings]
-        : marketListings,
-    [marketListings, marketExtra],
-  );
-  const filteredMarket = useMemo(() => {
-    const manualMarket = allMarket.filter((m) => matchesMarketFilters(m, filters));
-    return ai ? manualMarket.filter((m) => ai.marketIds.includes(m.id)) : manualMarket;
-  }, [allMarket, filters, ai]);
-
   // קישור עמוק לנכס: ?listing=<id> (מהתראות מייל/וואטסאפ ומהאזור האישי)
   // פותח את חלון פרטי הנכס וגולל אל מדור הנכסים
   useEffect(() => {
@@ -184,48 +172,24 @@ export function PropertySection({ listings, updatedAt, marketListings = [] }: Pr
     // eslint-disable-next-line react-hooks/exhaustive-deps -- ריצה חד-פעמית בטעינת הרשימה
   }, [listings.length]);
 
-  // קישור עמוק למודעה מהשוק: ?market=<id> — הגלילה וההדגשה נעשות ב-MarketListings
-  useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("market");
-    if (!id) return;
-    if (marketListings.some((m) => m.id === id)) {
-      setMarketHighlight(id);
-      return;
-    }
-    let cancelled = false;
-    fetchMarketListing({ data: { id } })
-      .then((m) => {
-        if (cancelled || !m) return;
-        setMarketExtra(m);
-        setMarketHighlight(m.id);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- ריצה חד-פעמית בטעינת הרשימה
-  }, [marketListings.length]);
-
   const runAiSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setAiErr(null);
     setAiBusy(true);
     trackEvent("ai_search", siteId);
     try {
-      const res = await aiSearchListings({ data: { query, lang, website } });
+      // האתר הציבורי מחפש בנכסי המשרד בלבד: בלי מודעות מלוחות אחרים
+      // ובלי סריקה חיה (includeWeb=false) — אלה באזור האישי.
+      const res = await aiSearchListings({
+        data: { query, lang, website, includeWeb: false, officeOnly: true },
+      });
       if (res.limited) {
         // נחסם (מכסה/קצב/חסימה) — הודעה בשפת הדף ובלי תוצאות
         setAi(null);
         setAiErr(aiLimitMessage(t, res.limited));
         return;
       }
-      setAi({
-        ids: res.ids,
-        marketIds: res.marketIds,
-        explanation: res.explanation,
-        filters: res.filters,
-        web: res.web,
-      });
+      setAi({ ids: res.ids, explanation: res.explanation, filters: res.filters });
       saveDraftSearch({ query, filters: res.filters });
       // איפוס הסינון הידני — פילטר ישן שנשאר בתפריטים היה מצמצם בשקט את
       // תוצאות החיפוש החכם (חיתוך בין שתי הרשימות)
@@ -235,7 +199,7 @@ export function PropertySection({ listings, updatedAt, marketListings = [] }: Pr
       setAreas([]);
     } catch (err) {
       setAi(null);
-      setAiErr(err instanceof Error ? err.message : t.properties.aiFailed);
+      setAiErr(errorText(err, lang, t.properties.aiFailed));
     } finally {
       setAiBusy(false);
     }
@@ -460,11 +424,6 @@ export function PropertySection({ listings, updatedAt, marketListings = [] }: Pr
       {/* הסוכן החכם — פעם אחת מתחת לנכסי המשרד (גם כשיש תוצאות וגם כשאין) */}
       <SmartAgentBanner className="mt-4" />
 
-      {/* מודעות אמיתיות מלוחות אחרים — מסוננות באותם פילטרים / אותו חיפוש חכם */}
-      <MarketListings listings={filteredMarket} highlightId={marketHighlight} />
-
-      {ai && <WebCandidates web={ai.web} agentPhone={live.phoneTel} agentName={live.agentName} />}
-
       <a
         href={business.yad2Url}
         target="_blank"
@@ -483,10 +442,16 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
   const { lang, t } = useLang();
   const gallery = listingImages(p);
   const img = gallery[0] ?? null;
-  const noInfo = t.misc.noInfo;
   const hood = mapValue(t.maps.neighborhoods, p.neighborhood);
   const city = t.maps.cities[p.city] ?? p.city;
-  const price = formatListingPrice(p.price, lang);
+  // מחיר חסר: מציגים "לפרטים" ולא "אין מידע" — זו מודעה ולא טופס
+  const price = p.price == null ? t.properties.priceOnRequest : formatListingPrice(p.price, lang);
+
+  // שדות שאינם רלוונטיים לסוג הנכס (חדרים/קומה במגרש) או שאין להם ערך —
+  // פשוט אינם מוצגים, במקום "אין מידע"
+  const type = detectPropertyType(p.title, p.description);
+  const show = (field: PropertyField, value: unknown) =>
+    isFieldRelevant(type, field) && hasValue(value);
 
   return (
     <article className="soft-card flex h-full flex-col overflow-hidden">
@@ -523,27 +488,35 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
         <h3 className="mt-1 line-clamp-2 min-h-12 text-base">{p.title}</h3>
         <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
           <MapPin className="size-4 shrink-0 text-sun" aria-hidden="true" />
-          {hood ?? noInfo}, {city}
+          {[hood, city].filter(Boolean).join(", ")}
         </p>
 
         <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-foreground">
-          <li className="flex items-center gap-1">
-            <BedDouble className="size-4 text-sun" aria-hidden="true" />
-            {p.rooms ?? noInfo} {t.properties.roomsUnit}
-          </li>
-          <li className="flex items-center gap-1">
-            <Ruler className="size-4 text-sun" aria-hidden="true" />
-            {p.size_sqm ?? noInfo} {t.properties.sqm}
-          </li>
-          <li className="flex items-center gap-1">
-            <Building className="size-4 text-sun" aria-hidden="true" />
-            {t.properties.floorLabel(p.floor ?? noInfo)}
-          </li>
+          {show("rooms", p.rooms) && (
+            <li className="flex items-center gap-1">
+              <BedDouble className="size-4 text-sun" aria-hidden="true" />
+              {p.rooms} {t.properties.roomsUnit}
+            </li>
+          )}
+          {show("size", p.size_sqm) && (
+            <li className="flex items-center gap-1">
+              <Ruler className="size-4 text-sun" aria-hidden="true" />
+              {p.size_sqm} {t.properties.sqm}
+            </li>
+          )}
+          {show("floor", p.floor) && (
+            <li className="flex items-center gap-1">
+              <Building className="size-4 text-sun" aria-hidden="true" />
+              {t.properties.floorLabel(mapValue(t.maps.floor, p.floor) as string)}
+            </li>
+          )}
         </ul>
 
         <ul className="mt-3 flex flex-wrap gap-2">
           {(Object.keys(featureIcons) as Array<keyof typeof featureIcons>)
-            .filter((key) => p[key])
+            .filter(
+              (key) => p[key] && isFieldRelevant(type, featureIcons[key].key as PropertyField),
+            )
             .map((key) => {
               const { key: labelKey, Icon } = featureIcons[key];
               return (
@@ -600,6 +573,9 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
   const createLead = useServerFn(createPublicLead);
   const [form, setForm] = useState({ name: "", phone: "" });
   const [err, setErr] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+  /** כתובת גיבוי כשחלון הוואטסאפ נחסם בדפדפן (נפוץ במחשב) */
+  const [waFallback, setWaFallback] = useState<string | null>(null);
   // מדיה: תמונות וסרטונים שהועלו; אחרת נפילה לתמונה חיצונית/מקומית
   const gallery = useMemo(() => {
     const uploaded = (p.images ?? []).filter((m) => m.url);
@@ -613,7 +589,50 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
   const noInfo = t.misc.noInfo;
   const hood = mapValue(t.maps.neighborhoods, p.neighborhood);
   const city = t.maps.cities[p.city] ?? p.city;
-  const price = formatListingPrice(p.price, lang);
+  const price = p.price == null ? t.properties.priceOnRequest : formatListingPrice(p.price, lang);
+
+  // מפרט הנכס: רק שדות רלוונטיים לסוג הנכס שיש להם ערך
+  const type = detectPropertyType(p.title, p.description);
+  const yesNo = (on: boolean, count: number | null) =>
+    on
+      ? count && count > 1
+        ? `${t.properties.yes} (${count})`
+        : t.properties.yes
+      : t.properties.no;
+  const specRows: Array<[string, string]> = [
+    [t.properties.specDeal, t.maps.deal[p.deal_type] ?? p.deal_type],
+    ...(p.address ? ([[t.properties.specAddress, p.address]] as Array<[string, string]>) : []),
+    ...(isFieldRelevant(type, "rooms") && p.rooms != null
+      ? ([[t.properties.specRooms, String(p.rooms)]] as Array<[string, string]>)
+      : []),
+    ...(isFieldRelevant(type, "size") && p.size_sqm != null
+      ? ([[t.properties.specSize, t.properties.sqmValue(p.size_sqm)]] as Array<[string, string]>)
+      : []),
+    ...(isFieldRelevant(type, "floor") && hasValue(p.floor)
+      ? ([[t.properties.specFloor, mapValue(t.maps.floor, p.floor) as string]] as Array<
+          [string, string]
+        >)
+      : []),
+    ...(isFieldRelevant(type, "mamad")
+      ? ([[t.properties.features.mamad, yesNo(p.has_mamad, null)]] as Array<[string, string]>)
+      : []),
+    ...(isFieldRelevant(type, "elevator")
+      ? ([[t.properties.features.elevator, yesNo(p.has_elevator, null)]] as Array<[string, string]>)
+      : []),
+    ...(isFieldRelevant(type, "parking")
+      ? ([[t.properties.features.parking, yesNo(p.has_parking, p.parking_count)]] as Array<
+          [string, string]
+        >)
+      : []),
+    ...(isFieldRelevant(type, "balcony")
+      ? ([[t.properties.features.balcony, yesNo(p.has_balcony, null)]] as Array<[string, string]>)
+      : []),
+    ...(isFieldRelevant(type, "storage")
+      ? ([[t.properties.features.storage, yesNo(p.has_storage, p.storage_count)]] as Array<
+          [string, string]
+        >)
+      : []),
+  ];
 
   const next = () => setIndex((i) => (i + 1) % gallery.length);
   const prev = () => setIndex((i) => (i - 1 + gallery.length) % gallery.length);
@@ -623,31 +642,38 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
     if (!form.name.trim()) return setErr(t.properties.errName);
     if (!isValidIsraeliPhone(form.phone)) return setErr(t.misc.phoneError);
     setErr(null);
-    // קליטה שקטה למודול הלידים — כולל הנכס שבגללו הלקוח פנה
-    try {
-      void createLead({
-        data: {
-          siteId,
-          name: form.name,
-          phone: form.phone,
-          message: `התעניינות בנכס: ${p.title}`,
-          source: "התעניינות בנכס",
-          listingId: p.id,
-        },
-      }).catch(() => {});
-    } catch {
-      /* קליטת ליד היא Best-effort */
-    }
-    openWa(
-      t.properties.waInterested(p.agent?.name ?? business.name, {
-        title: p.title,
-        hood: hood ?? noInfo,
-        price,
-        name: form.name,
-        phone: form.phone,
-      }),
-      p.agent?.phoneTel ?? undefined,
-    );
+
+    // לשונית נשמרת כאן, בתוך ההקלקה — אחרת הדפדפן במחשב חוסם את הפתיחה
+    // שמגיעה אחרי ה-await של שמירת הליד (בנייד זה עבד, במחשב לא).
+    const pending = reserveWhatsAppWindow();
+    const waMsg = t.properties.waInterested(p.agent?.name ?? business.name, {
+      title: p.title,
+      hood: hood ?? noInfo,
+      price,
+      name: form.name,
+      phone: form.phone,
+    });
+    const agentPhone = p.agent?.phoneTel ?? undefined;
+    setSent(true);
+
+    // הליד נוצר ונשלח לסוכן לפני פתיחת וואטסאפ, ונשמר גם אם הפתיחה נכשלה
+    void (async () => {
+      try {
+        await createLead({
+          data: {
+            siteId,
+            name: form.name,
+            phone: form.phone,
+            message: `התעניינות בנכס: ${p.title}`,
+            source: "בקשת חזרה",
+            listingId: p.id,
+          },
+        });
+      } catch {
+        /* קליטת ליד היא Best-effort — לא עוצרת את פתיחת וואטסאפ */
+      }
+      if (!pending.go(waMsg, agentPhone)) setWaFallback(whatsappUrl(waMsg, agentPhone));
+    })();
   };
 
   return (
@@ -753,43 +779,15 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
           )}
 
           <p className="mt-4 font-display text-2xl font-extrabold text-primary">{price}</p>
-          <p className="mt-2 leading-relaxed text-foreground">{p.description ?? noInfo}</p>
+          {p.description && <p className="mt-2 leading-relaxed text-foreground">{p.description}</p>}
 
+          {/* טבלת המפרט מציגה רק שורות שרלוונטיות לסוג הנכס ושיש בהן ערך:
+              במגרש לא תופיע שורת חדרים או קומה, ובנכס בלי נתון השורה
+              נעלמת במקום להציג "אין מידע". */}
           <table className="mt-4 w-full text-start text-sm">
             <caption className="sr-only">{t.properties.specCaption}</caption>
             <tbody className="divide-y divide-border">
-              {[
-                [t.properties.specDeal, t.maps.deal[p.deal_type] ?? p.deal_type],
-                [t.properties.specAddress, p.address ?? noInfo],
-                [t.properties.specRooms, p.rooms == null ? noInfo : String(p.rooms)],
-                [
-                  t.properties.specSize,
-                  p.size_sqm == null ? noInfo : t.properties.sqmValue(p.size_sqm),
-                ],
-                [t.properties.specFloor, p.floor ?? noInfo],
-                [t.properties.features.mamad, p.has_mamad ? t.properties.yes : t.properties.no],
-                [
-                  t.properties.features.elevator,
-                  p.has_elevator ? t.properties.yes : t.properties.no,
-                ],
-                [
-                  t.properties.features.parking,
-                  p.has_parking
-                    ? p.parking_count && p.parking_count > 1
-                      ? `${t.properties.yes} (${p.parking_count})`
-                      : t.properties.yes
-                    : t.properties.no,
-                ],
-                [t.properties.features.balcony, p.has_balcony ? t.properties.yes : t.properties.no],
-                [
-                  t.properties.features.storage,
-                  p.has_storage
-                    ? p.storage_count && p.storage_count > 1
-                      ? `${t.properties.yes} (${p.storage_count})`
-                      : t.properties.yes
-                    : t.properties.no,
-                ],
-              ].map(([k, v]) => (
+              {specRows.map(([k, v]) => (
                 <tr key={k}>
                   <th scope="row" className="py-2 text-start font-semibold text-muted-foreground">
                     {k}
@@ -866,157 +864,25 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
             >
               {t.properties.sendWa}
             </button>
+            {sent && (
+              <div className="mt-3 rounded-xl bg-card p-3 text-sm font-semibold text-primary">
+                <p>{t.properties.leadSaved}</p>
+                {waFallback && (
+                  <a
+                    href={waFallback}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1.5 inline-flex items-center gap-1 underline"
+                  >
+                    <MessageCircle className="size-4" aria-hidden="true" />
+                    {t.properties.openWhatsApp}
+                  </a>
+                )}
+              </div>
+            )}
           </form>
         </div>
       </div>
     </div>
-  );
-}
-
-/** מודעות אמיתיות מהאינטרנט שנמצאו בסריקה — עם קישור למקור וניתוב לסוכן של הדף */
-function WebCandidates({
-  web,
-  agentPhone,
-  agentName,
-}: {
-  web: AiSearchResult["web"];
-  agentPhone: string;
-  agentName: string;
-}) {
-  const { t } = useLang();
-  const w = t.properties.web;
-
-  // הסריקה החיה לא רצה כלל (למשל חיפוש בלי אינטרנט) — אין מה להציג
-  if (web.status === "skipped") return null;
-
-  if (web.status === "login_required") {
-    return (
-      <div className="soft-card mt-6 p-5">
-        <p className="flex items-center gap-1.5 font-bold text-primary">
-          <Globe className="size-4 text-sun" aria-hidden="true" />
-          {w.loginTitle}
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">{w.loginText}</p>
-        <Link
-          to="/auth"
-          className="mt-3 inline-block rounded-xl bg-sun px-5 py-2.5 text-sm font-bold text-sun-foreground"
-        >
-          {w.loginCta}
-        </Link>
-      </div>
-    );
-  }
-
-  if (web.status === "quota_exceeded") {
-    return <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">{w.quota}</p>;
-  }
-
-  if (web.status === "unavailable") {
-    return <p className="soft-card mt-6 p-5 text-sm text-muted-foreground">{w.unavailable}</p>;
-  }
-
-  // תקציר הסריקה — שקיפות: כמה נסרק וכמה נפסל (סריקה "ריקה" אינה תקלה)
-  const summaryLine = web.summary
-    ? w.scanSummary(web.summary.scanned, web.candidates.length, web.summary.rejected)
-    : null;
-
-  if (web.candidates.length === 0) {
-    return (
-      <div className="soft-card mt-6 p-5 text-sm text-muted-foreground">
-        <p>{w.empty}</p>
-        {summaryLine && web.summary && web.summary.scanned > 0 && (
-          <p className="mt-1 text-xs">{summaryLine}</p>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <section className="mt-8" aria-label={w.title}>
-      <h3 className="flex items-center gap-1.5 text-xl font-extrabold text-primary">
-        <Globe className="size-5 text-sun" aria-hidden="true" />
-        {w.title}
-      </h3>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {w.subtitle}
-        {web.remaining != null && w.remaining(web.remaining)}
-      </p>
-      {summaryLine && <p className="mt-1 text-xs text-muted-foreground">{summaryLine}</p>}
-      {/* תצוגה טבלאית של המודעות מהרשת */}
-      <div className="soft-card mt-4 overflow-x-auto">
-        <table className="w-full min-w-[40rem] text-sm">
-          <thead>
-            <tr className="border-b border-border text-start">
-              {[
-                w.colSource,
-                w.colTitle,
-                w.colPrice,
-                t.properties.filterRooms,
-                t.properties.sqm,
-                w.match,
-                "",
-              ].map((h, i) => (
-                <th
-                  key={i}
-                  scope="col"
-                  className="px-3 py-2.5 text-start text-xs font-bold text-muted-foreground"
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {web.candidates.map((c) => (
-              <tr key={c.source_url} className="align-top">
-                <td className="px-3 py-2.5">
-                  <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-secondary-foreground">
-                    {c.source_site}
-                  </span>
-                </td>
-                <td className="px-3 py-2.5">
-                  <p className="font-bold text-primary">{c.title}</p>
-                  {c.neighborhood && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">{c.neighborhood}</p>
-                  )}
-                  {c.match_reason && (
-                    <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
-                      {c.match_reason}
-                    </p>
-                  )}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5">
-                  {c.price != null ? formatListingPrice(c.price) : t.misc.noInfo}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2.5">{c.rooms ?? t.misc.noInfo}</td>
-                <td className="whitespace-nowrap px-3 py-2.5">{c.size_sqm ?? t.misc.noInfo}</td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-xs font-bold text-sun">
-                  {c.match_score}%
-                </td>
-                <td className="px-3 py-2.5">
-                  <div className="flex gap-2">
-                    <a
-                      href={c.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="whitespace-nowrap rounded-xl border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary"
-                    >
-                      {w.source}
-                    </a>
-                    <a
-                      {...waProps(w.talkMsg(agentName, c.title, c.source_url), agentPhone)}
-                      className="flex items-center gap-1 whitespace-nowrap rounded-xl bg-whatsapp px-3 py-1.5 text-xs font-bold text-whatsapp-foreground"
-                    >
-                      <MessageCircle className="size-3.5" aria-hidden="true" />
-                      {w.talk}
-                    </a>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
   );
 }
