@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Menu, X, Phone, LogOut, User } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import logo from "@/assets/sun-city-logo-icon.svg";
@@ -15,7 +15,7 @@ const scrollTo = (id: string) => {
 export function Header() {
   const { business, isHome } = useLive();
   const { user, logout } = useAuth();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [open, setOpen] = useState(false);
 
   // בדומיין הראשי אין מדור צוות, ולכן גם אין קישור אליו בתפריט
@@ -30,17 +30,71 @@ export function Header() {
   const displayName = user?.fullName?.trim() || user?.email || t.nav.defaultUser;
 
   /*
-   * נקודת המעבר לתפריט הרוחבי. במצב אורח יש בתפריט שני כפתורי פעולה
-   * נוספים ("אזור אישי" ו"הערכת שווי חינם"), ולכן ב-lg (1024px) הוא לא
-   * נכנס לצד הלוגו והיה עולה עליו (הכיתוב "נמכרים" על הלוגו). אורח עובר
-   * לתפריט הרוחבי רק ב-xl; מחובר — כבר ב-lg.
+   * ============================================================
+   * למה התפריט נמדד ולא נקבע ב-breakpoint בלבד:
+   * רוחב התפריט תלוי בשפה ובמצב ההתחברות — תשעה קישורים בעברית הם
+   * ~1030px, ובצרפתית ~1380px. כל breakpoint קבוע נכון לשפה אחת ושבור
+   * באחרת, וזה בדיוק מה שקרה בשטח: הקישורים גלשו אל מעל הלוגו.
+   * לכן: התפריט מוצג רק אם הוא באמת נכנס לצד הלוגו ברוחב הנוכחי, ואחרת
+   * עוברים לתפריט ההמבורגר. המדידה נעשית פעם אחת לכל צירוף שפה/התחברות
+   * (רוחב הפריטים אינו תלוי ברוחב המסך — כולם whitespace-nowrap), ובכל
+   * שינוי רוחב רק משווים מול הרוחב השמור.
+   * ============================================================
    */
-  const deskNav = user ? "lg:flex" : "xl:flex";
-  const mobileOnly = user ? "lg:hidden" : "xl:hidden";
+  const isSignedIn = Boolean(user);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const naturalNavWidth = useRef(0);
+  const [navFits, setNavFits] = useState(true);
+
+  useLayoutEffect(() => {
+    // שפה או מצב התחברות השתנו — הרוחב השמור כבר לא רלוונטי
+    naturalNavWidth.current = 0;
+    setNavFits(true);
+  }, [lang, isSignedIn]);
+
+  useEffect(() => {
+    const measure = () => {
+      const row = rowRef.current;
+      if (!row) return;
+      const nav = navRef.current;
+      if (nav && nav.offsetWidth > 0) naturalNavWidth.current = nav.offsetWidth;
+      const needed = naturalNavWidth.current;
+      if (!needed) return;
+      // clientWidth כולל את הריפוד האופקי — בלי להחסיר אותו התפריט "נכנס"
+      // על הנייר וגלש בפועל (נצפה בצרפתית ב-1440px)
+      const style = window.getComputedStyle(row);
+      const padding =
+        (parseFloat(style.paddingInlineStart) || 0) + (parseFloat(style.paddingInlineEnd) || 0);
+      // מקום ללוגו (סמל 40px) + המרווח בין הלוגו לתפריט
+      const available = row.clientWidth - padding - 40 - 16;
+      setNavFits(needed <= available);
+    };
+    measure();
+    const row = rowRef.current;
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    if (row && ro) ro.observe(row);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [lang, isSignedIn, navLinks.length]);
+
+  /* ה-breakpoint הוא שער ראשון בלבד (בנייד אין תפריט רוחבי כלל);
+     ההחלטה הסופית היא המדידה שלמעלה. */
+  const showDeskNav = navFits;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
+      {/* רוחב ההדר אינו כבול ל-max-w-6xl של שאר הדף: תשעה קישורי ניווט +
+          דגל + טלפון + כפתורי הפעולה רחבים מ-1152px בעברית, ולכן התפריט
+          גלש אל מעל הלוגו. כאן יש מכל רחב יותר, והלוגו מקבל shrink-0 כך
+          שלעולם אינו מתכווץ לאפס. */}
+      <div
+        ref={rowRef}
+        className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-4 px-4"
+      >
         {/* הלוגו מתכווץ (min-w-0 + overflow-hidden) והנאב לא (shrink-0):
             כך קישור ארוך בתפריט לעולם אינו גולש אל מעל הלוגו. במצב אורח
             יש בתפריט שני כפתורים נוספים ("אזור אישי" ו"הערכת שווי"), ולכן
@@ -48,7 +102,7 @@ export function Header() {
         <a
           href="#top"
           onClick={go("top")}
-          className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
+          className="flex min-w-10 flex-1 items-center gap-2 overflow-hidden"
           aria-label={t.nav.toTopAria(business.name)}
         >
           <img
@@ -58,12 +112,11 @@ export function Header() {
             height={40}
             className="size-10 shrink-0 object-contain"
           />
-          <span
-            className={`flex min-w-0 flex-col leading-none ${
-              user ? "lg:hidden xl:flex" : "xl:hidden 2xl:flex"
-            }`}
-          >
-            <span className="whitespace-nowrap font-display text-base font-extrabold text-primary">
+          {/* שם המותג מוצג רק כשיש לו מקום אמיתי: בנייד/טאבלט (לפני התפריט
+              הרוחבי) ובמסכים רחבים. בתחום שבו התפריט הרוחבי דחוס — מוצג
+              סמל הלוגו בלבד. */}
+          <span className="flex min-w-0 flex-col leading-none">
+            <span className="truncate font-display text-base font-extrabold text-primary">
               Sun City <span className="text-sun">{t.nav.brandSuffix}</span>
             </span>
             {/* שם הסוכן של הדף — בדף אישי זה הסוכן שלו, בעמוד הבית סוכן ברירת המחדל.
@@ -86,8 +139,11 @@ export function Header() {
             ולכן טלפון ואזור אישי מוצגים כאייקונים, והטקסט חוזר בעברית בלבד מ-xl
             (rtl:) — בשפות הלטיניות התוויות הארוכות לא נכנסות בשום רוחב. */}
         <nav
+          ref={navRef}
           aria-label={t.nav.mainNavAria}
-          className={`hidden shrink-0 items-center gap-3 xl:gap-4 ${deskNav}`}
+          className={`shrink-0 items-center gap-3 xl:gap-4 ${
+            showDeskNav ? "hidden lg:flex" : "hidden"
+          }`}
         >
           {navLinks.map((l) => (
             <a
@@ -111,7 +167,7 @@ export function Header() {
             dir="ltr"
           >
             <Phone className="size-4 text-sun" aria-hidden="true" />
-            <span className="hidden xl:rtl:inline">{business.phone}</span>
+            <span className="hidden 2xl:rtl:inline">{business.phone}</span>
           </a>
 
           <div className="flex items-center gap-3">
@@ -158,7 +214,7 @@ export function Header() {
           </div>
         </nav>
 
-        <div className={`flex shrink-0 items-center gap-2 ${mobileOnly}`}>
+        <div className={`flex shrink-0 items-center gap-2 ${showDeskNav ? "lg:hidden" : ""}`}>
           {/* כניסה/אזור אישי — נגיש ישירות מהסרגל, בלי לפתוח את ההמבורגר */}
           <Link
             to={user ? "/account" : "/auth"}
@@ -189,7 +245,7 @@ export function Header() {
       {open && (
         <nav
           aria-label={t.nav.mobileNavAria}
-          className={`border-t border-border bg-card ${mobileOnly}`}
+          className={`border-t border-border bg-card ${showDeskNav ? "lg:hidden" : ""}`}
         >
           <ul className="mx-auto max-w-6xl px-4 py-2">
             <li className="border-b border-border/70 py-3">

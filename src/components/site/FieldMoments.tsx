@@ -126,16 +126,23 @@ export function FieldMoments({ items }: Props) {
             </CarouselItem>
           ))}
         </CarouselContent>
+        {/* החיצים מתחת לקרוסלה ולא מעליה: כרטיס "מהשטח" הוא לרוב סרטון,
+            וחץ שצף במרכז הכרטיס נופל בדיוק על פקדי הנגן בנייד. */}
         {visible.length > 1 && (
-          <>
-            <CarouselPrevious />
-            <CarouselNext />
-          </>
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <div className="flex gap-2">
+              <CarouselPrevious className="static translate-y-0 xl:static" />
+              <CarouselNext className="static translate-y-0 xl:static" />
+            </div>
+            <p className="text-sm text-muted-foreground" aria-live="polite">
+              {t.field.count(visible.length)}
+            </p>
+          </div>
         )}
       </Carousel>
-      <p className="mt-3 text-sm text-muted-foreground" aria-live="polite">
-        {t.field.count(visible.length)}
-      </p>
+      {visible.length <= 1 && (
+        <p className="mt-3 text-sm text-muted-foreground">{t.field.count(visible.length)}</p>
+      )}
     </section>
   );
 }
