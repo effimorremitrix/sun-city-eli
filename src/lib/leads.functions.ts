@@ -756,8 +756,22 @@ export const requestMarketCallback = createServerFn({ method: "POST" })
       .select("full_name, email")
       .eq("id", context.userId)
       .maybeSingle();
-    const office = await officeSiteId();
-    const { lead, contact } = await findOrCreateLeadForUser(office ?? "", context.userId, {
+    // ה-site לשיוך ראשוני: אתר המשרד. כשהוא חסר (תצורה חלקית) נופלים לדף
+    // הפעיל הראשון במקום להעביר מחרוזת ריקה — ingestLead היה זורק
+    // "לא נמצא אתר לשיוך הליד", הכשל נבלע בקליינט, והפנייה נעלמה בשקט.
+    let office = await officeSiteId();
+    if (!office) {
+      const { data: anySite } = await supabaseAdmin
+        .from("sites")
+        .select("id")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      office = (anySite?.id as string | undefined) ?? null;
+    }
+    if (!office) throw new Error("לא נמצא אתר פעיל לשיוך הפנייה. פנו למנהל המערכת.");
+    const { lead, contact } = await findOrCreateLeadForUser(office, context.userId, {
       fullName: (profile?.full_name as string | null) ?? null,
       email: (profile?.email as string | null) ?? null,
       source: "הסוכן האישי",

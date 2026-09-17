@@ -35,6 +35,11 @@ export const he = {
     hello: "שלום,",
     defaultUser: "משתמש",
     myAccount: "האזור האישי",
+    myAreaByRole: {
+      client: "האזור האישי שלי",
+      agent: "האזור האישי שלי",
+      admin: "מערכת הניהול שלי",
+    } as Record<string, string>,
     authArea: "אזור אישי",
     logout: "יציאה",
     logoutFull: "התנתקות",

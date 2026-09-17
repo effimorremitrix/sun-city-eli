@@ -6,6 +6,7 @@ import { useLive } from "@/lib/site-live";
 import { useAuth } from "@/hooks/useAuth";
 import { useLang } from "@/lib/i18n";
 import { LangSwitcher } from "@/components/site/LangSwitcher";
+import { personalAreaLink, personalAreaRole } from "@/lib/personal-area";
 import { SocialLinks } from "@/components/site/icons/SocialIcons";
 
 const scrollTo = (id: string) => {
@@ -28,6 +29,10 @@ export function Header() {
   };
 
   const displayName = user?.fullName?.trim() || user?.email || t.nav.defaultUser;
+  /* אחרי התחברות המשתמש נמצא באתר, וזה הכפתור שמכניס אותו פנימה: לקוח
+     לפורטל, סוכן ללידים שלו, מנהל ללוח הניהול. ההרשאות נאכפות בשרת. */
+  const myArea = personalAreaLink(user);
+  const myAreaLabel = t.nav.myAreaByRole[personalAreaRole(user)];
 
   /*
    * ============================================================
@@ -174,11 +179,12 @@ export function Header() {
             {user ? (
               <>
                 <Link
-                  to="/account"
-                  className="whitespace-nowrap text-sm font-semibold text-foreground transition-colors hover:text-sun"
+                  {...myArea}
+                  className="flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-sun px-4 py-2 text-sm font-bold text-sun-foreground shadow-soft transition-transform hover:-translate-y-0.5"
                   title={user.email}
                 >
-                  {t.nav.myAccount}
+                  <User className="size-4" aria-hidden="true" />
+                  {myAreaLabel}
                 </Link>
                 <button
                   type="button"
@@ -217,14 +223,14 @@ export function Header() {
         <div className={`flex shrink-0 items-center gap-2 ${showDeskNav ? "lg:hidden" : ""}`}>
           {/* כניסה/אזור אישי — נגיש ישירות מהסרגל, בלי לפתוח את ההמבורגר */}
           <Link
-            to={user ? "/account" : "/auth"}
-            aria-label={user ? t.nav.myAccount : t.nav.authArea}
-            className="inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-lg border-2 border-sun px-2.5 text-sm font-bold text-primary"
+            {...(user ? myArea : { to: "/auth" as const })}
+            aria-label={user ? myAreaLabel : t.nav.authArea}
+            className={`inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-sm font-bold ${
+              user ? "bg-sun text-sun-foreground" : "border-2 border-sun text-primary"
+            }`}
           >
-            <User className="size-4 text-sun" aria-hidden="true" />
-            <span className="hidden min-[400px]:inline">
-              {user ? t.nav.myAccount : t.nav.authArea}
-            </span>
+            <User className={`size-4 ${user ? "" : "text-sun"}`} aria-hidden="true" />
+            <span className="hidden min-[400px]:inline">{user ? myAreaLabel : t.nav.authArea}</span>
           </Link>
           <button
             type="button"
@@ -283,13 +289,14 @@ export function Header() {
                     {t.nav.hello} {displayName}
                   </span>
                 </li>
-                <li>
+                <li className="py-3">
                   <Link
-                    to="/account"
+                    {...myArea}
                     onClick={() => setOpen(false)}
-                    className="block border-b border-border/70 py-3 text-base font-semibold text-foreground"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-sun py-3 text-base font-bold text-sun-foreground"
                   >
-                    {t.nav.myAccount}
+                    <User className="size-5" aria-hidden="true" />
+                    {myAreaLabel}
                   </Link>
                 </li>
                 <li className="py-3">

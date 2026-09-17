@@ -9,9 +9,15 @@
  * בחירת יעד הוואטסאפ לפי מכשיר ובחירת הפריטים להשלמת תרגום.
  */
 import { detectPropertyType, hasValue, isFieldRelevant } from "../src/lib/property-type";
-import { mergeStreets, normalizeStreet, SEED_STREETS } from "../src/lib/streets";
+import { mergeStreets, normalizeStreet } from "../src/lib/streets";
+import { NETANYA_STREETS } from "../src/lib/netanya-streets";
 import { localizeMarketTitle } from "../src/lib/market";
 import { needsTranslation } from "../src/lib/translate-backfill.server";
+import { localizeListing, type Listing } from "../src/lib/listings";
+import { personalAreaLink, personalAreaRole } from "../src/lib/personal-area";
+import { localizeLive, type LiveSite } from "../src/lib/site-live";
+import { agentNameFor, type PublicAgentRow } from "../src/lib/agents.server";
+import { DICTS } from "../src/lib/i18n";
 
 let failures = 0;
 const check = (label: string, got: unknown, expected: unknown) => {
@@ -52,9 +58,13 @@ check("false הוא ערך (אין מעלית = מידע)", hasValue(false), tru
 console.log("\n--- סעיף 6: אוצר רחובות שאינו תלוי במלאי SUN CITY ---");
 check("מספר בית מוסר", normalizeStreet("הרצל 12"), "הרצל");
 check("גרשיים מוסרים", normalizeStreet('שד״ בן אב"י 41'), "שד בן אבי");
-const merged = mergeStreets(["הרצל 12"], ["הרצל"], SEED_STREETS);
+const merged = mergeStreets(["הרצל 12"], ["הרצל"], NETANYA_STREETS);
 check("אותו רחוב לא מופיע פעמיים", merged.filter((s) => s === "הרצל").length, 1);
-check("רחוב מרשימת הזרע קיים", merged.includes("שמואל הנציב"), true);
+check("הרשימה הרשמית נטענה במלואה", merged.length > 1000, true);
+check("רחוב מרכזי קיים", merged.includes("שמואל הנציב"), true);
+// רחובות שאין בהם נכס של SUN CITY ולא נסרקה בהם מודעה — הלב של סעיף 4
+check("רחוב ללא מלאי שלנו — קיים", merged.includes("אדית פיאף"), true);
+check("רחוב ללא מלאי שלנו — קיים (2)", merged.includes("רות ביידר גינסבורג"), true);
 check("רחוב שאין בו נכס שלנו ניתן לבחירה", merged.includes("דיזנגוף"), true);
 
 console.log("\n--- סעיף 1: כותרת מודעה מהלוח בשפת הדף ---");
@@ -108,6 +118,99 @@ check(
   needsTranslation({ en: { title: "  " }, fr: { title: "Y" }, ru: { title: "Z" } }, ["title"]),
   true,
 );
+
+console.log("\n--- שם הסוכן בשפת הדף ---");
+const baseListing = {
+  id: "l1",
+  title: "דירת 4 חדרים",
+  description: null,
+  translations: { en: { title: "4-room apartment" } },
+  agent: {
+    slug: "eli-kalif",
+    name: "אלי כליף",
+    phone: null,
+    phoneTel: null,
+    photoUrl: null,
+    nameByLang: { en: "Eli Kalif", fr: "Eli Kalif", ru: "Эли Калиф" },
+  },
+} as unknown as Listing;
+check("בעברית השם נשאר כמות שהוא", localizeListing(baseListing, "he").agent?.name, "אלי כליף");
+check("אנגלית — תעתיק", localizeListing(baseListing, "en").agent?.name, "Eli Kalif");
+check("צרפתית — תעתיק", localizeListing(baseListing, "fr").agent?.name, "Eli Kalif");
+check("רוסית — תעתיק", localizeListing(baseListing, "ru").agent?.name, "Эли Калиф");
+check("כותרת מתורגמת נשמרת", localizeListing(baseListing, "en").title, "4-room apartment");
+// נכס בלי תרגום טקסט — שם הסוכן עדיין חייב להיות בשפת הדף
+const noText = { ...baseListing, translations: null } as unknown as Listing;
+check(
+  "נכס בלי תרגום טקסט — השם עדיין מתועתק",
+  localizeListing(noText, "en").agent?.name,
+  "Eli Kalif",
+);
+check(
+  "אין תעתיק לשפה — נשארת העברית",
+  localizeListing(
+    { ...baseListing, agent: { ...baseListing.agent!, nameByLang: {} } } as unknown as Listing,
+    "en",
+  ).agent?.name,
+  "אלי כליף",
+);
+
+// אותו תעתיק חייב לעבוד גם בהדר, בפרופיל הסוכן ובכרטיסי הצוות
+const liveSite = {
+  business: {
+    agentName: "אלי כליף",
+    roleTitle: "שותף ובעלים",
+    bio: "",
+    name: "Sun City",
+    tagline: "",
+    subtitle: "",
+    address: "",
+    hours: [],
+  },
+  texts: {},
+  items: [],
+  testimonials: null,
+  faq: null,
+  translations: {
+    en: { business: { agentName: "Eli Kalif", roleTitle: "Partner and Owner" } },
+    ru: { business: { agentName: "Эли Калиф" } },
+  },
+} as unknown as LiveSite;
+check(
+  "הדר/פרופיל — אנגלית",
+  localizeLive(liveSite, "en", DICTS.en).business.agentName,
+  "Eli Kalif",
+);
+check("הדר/פרופיל — רוסית", localizeLive(liveSite, "ru", DICTS.ru).business.agentName, "Эли Калиф");
+check(
+  "אין תעתיק לצרפתית — נשארת העברית",
+  localizeLive(liveSite, "fr", DICTS.fr).business.agentName,
+  "אלי כליף",
+);
+const agentRow = {
+  slug: "eli-kalif",
+  name: "סאן סיטי",
+  agent_name: "אלי כליף",
+  translations: { en: { business: { agentName: "Eli Kalif" } } },
+} as unknown as PublicAgentRow;
+check("כרטיס צוות — אנגלית", agentNameFor(agentRow, "en"), "Eli Kalif");
+check("כרטיס צוות — עברית", agentNameFor(agentRow, "he"), "אלי כליף");
+
+console.log("\n--- אחרי התחברות: לאן מוביל 'האזור האישי שלי' ---");
+check("לקוח", personalAreaRole({ isAdmin: false, isAgent: false }), "client");
+check("סוכן", personalAreaRole({ isAdmin: false, isAgent: true }), "agent");
+check("מנהל", personalAreaRole({ isAdmin: true, isAgent: false }), "admin");
+check("מנהל שהוא גם סוכן -> מנהל", personalAreaRole({ isAdmin: true, isAgent: true }), "admin");
+check("לא מחובר -> לקוח", personalAreaRole(null), "client");
+check("לקוח נכנס לפורטל", personalAreaLink({ isAgent: false }), { to: "/account", search: {} });
+check("סוכן נכנס ללידים שלו", personalAreaLink({ isAgent: true }), {
+  to: "/account",
+  search: { tab: "leads" },
+});
+check("מנהל נכנס ללוח הניהול", personalAreaLink({ isAdmin: true }), {
+  to: "/account",
+  search: { tab: "leads" },
+});
 
 console.log("\n--- סעיפים 7 ו-9: יעד הוואטסאפ לפי מכשיר ---");
 const globals = globalThis as { navigator?: { userAgent: string } };

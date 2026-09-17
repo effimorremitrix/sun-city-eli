@@ -19,7 +19,8 @@ Rules:
 - Return JSON only, in the exact shape {"<key>": "<translation>", ...} with the same keys you received.
 - Keep the tone natural and marketing-friendly for a real-estate audience.
 - Keep numbers, prices, phone numbers and proper URLs unchanged.
-- Transliterate Israeli street and neighborhood names; do not invent information.`;
+- Transliterate Israeli street and neighborhood names; do not invent information.
+- Personal names (agents, clients) must be TRANSLITERATED into the target language's script, never translated by meaning and never left in Hebrew. Use the spelling a native reader would expect: "אלי כליף" -> English/French "Eli Kalif", Russian "Эли Калиф".`;
 
 /** מתרגם מילון שדות עברי לשפת יעד. מחזיר רק מפתחות שחזרו מהמודל. */
 export async function translateFields(

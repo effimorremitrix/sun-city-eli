@@ -2,7 +2,7 @@ import { Phone, MessageCircle } from "lucide-react";
 import { team, business, waProps } from "@/lib/site-data";
 import { useLang } from "@/lib/i18n";
 import { useLive } from "@/lib/site-live";
-import { agentRoleFor, type PublicAgentRow } from "@/lib/agents.server";
+import { agentNameFor, agentRoleFor, type PublicAgentRow } from "@/lib/agents.server";
 import { Reveal } from "./Reveal";
 import {
   Carousel,
@@ -47,7 +47,8 @@ export function Team({ agents = [], variant = "primary" }: Props) {
     const db = bySlug.get(m.slug);
     return {
       slug: m.slug,
-      name: t.team.names[m.name] ?? m.name,
+      // שם בשפת הדף: תעתיק מהמסד → המילון → הרוסטר הסטטי
+      name: (db ? agentNameFor(db, lang) : "") || t.team.names[m.name] || m.name,
       // התפקיד בשפת הדף: תרגום מהמסד → המילון → הרוסטר הסטטי.
       // עד כאן role_title העברי ניצח תמיד, וכרטיס הצוות נשאר בעברית.
       role: (db ? agentRoleFor(db, lang) : "") || t.team.roles[m.name] || m.role,
@@ -60,7 +61,7 @@ export function Team({ agents = [], variant = "primary" }: Props) {
   const rosterSlugs = new Set(team.map((m) => m.slug));
   for (const a of agents) {
     if (rosterSlugs.has(a.slug)) continue;
-    const name = a.agent_name || a.name;
+    const name = agentNameFor(a, lang);
     cards.push({
       slug: a.slug,
       name: t.team.names[name] ?? name,

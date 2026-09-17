@@ -1,7 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useBackToSiteHref } from "@/lib/back-to-site";
+import { getBackToSiteHref, useBackToSiteHref } from "@/lib/back-to-site";
 import { errorText, LangProvider, useLang, useStoredLocale } from "@/lib/i18n";
 import { currentSessionId, trackEvent } from "@/lib/analytics";
 import { useServerFn } from "@tanstack/react-start";
@@ -52,7 +52,6 @@ const toE164 = (phone: string): string | null => {
 
 function AuthContent() {
   const { t, dir, lang } = useLang();
-  const navigate = useNavigate();
   const backHref = useBackToSiteHref();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [method, setMethod] = useState<"email" | "phone">("email");
@@ -67,6 +66,18 @@ function AuthContent() {
   const [busy, setBusy] = useState(false);
   const [honeypot, setHoneypot] = useState("");
   const register = useServerFn(registerClient);
+
+  /*
+   * אחרי התחברות מוצלחת חוזרים *לאתר* SUN CITY במצב מחובר — לא ישירות
+   * לאזור האישי, ולא משנה אם מדובר בלקוח, סוכן או מנהל. משם הכפתור
+   * "האזור האישי שלי" בהדר מוביל כל אחד למקום המתאים לו (personal-area.ts).
+   * היעד הוא הדף הציבורי האחרון שביקרו בו — כולל הסוכן והשפה.
+   */
+  const goToSiteSignedIn = () => {
+    const href = getBackToSiteHref();
+    // ניווט מלא (ולא router.navigate) כדי שהאתר ייטען מחדש עם הסשן החדש
+    window.location.assign(href);
+  };
 
   const sendOtp = async () => {
     setErr(null);
@@ -100,7 +111,7 @@ function AuthContent() {
       });
       if (error) throw error;
       trackEvent("login", null);
-      navigate({ to: "/account", replace: true });
+      goToSiteSignedIn();
     } catch (e) {
       setErr(errorText(e, lang, t.auth.otpFailed));
     } finally {
@@ -118,7 +129,7 @@ function AuthContent() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         trackEvent("login", null);
-        navigate({ to: "/account", replace: true });
+        goToSiteSignedIn();
       } else {
         const result = await register({
           data: {

@@ -456,7 +456,8 @@ export const listStreetSuggestions = createServerFn({ method: "GET" })
       return await knownStreets();
     } catch (e) {
       console.error("listStreetSuggestions failed", e instanceof Error ? e.message : e);
-      const { SEED_STREETS, mergeStreets } = await import("@/lib/streets");
-      return mergeStreets(SEED_STREETS);
+      // גם כשהמסד לא זמין מחזירים את כל רחובות נתניה הרשמיים
+      const { officialStreets } = await import("@/lib/streets.server");
+      return officialStreets();
     }
   });

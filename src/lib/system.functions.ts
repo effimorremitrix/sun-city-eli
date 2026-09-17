@@ -380,3 +380,73 @@ export const adminSiteDiagnostics = createServerFn({ method: "GET" })
         .length,
     }));
   });
+
+/**
+ * מצב ערוצי ההתראות של הדף — לכל סוכן, לא רק למנהל הראשי.
+ *
+ * למה: כשלקוח לוחץ "סוכן יחזור אליי" הליד נשמר תמיד, אבל המייל והוואטסאפ
+ * נשלחים רק אם *ספק* מוגדר בסביבה (RESEND_API_KEY / WHATSAPP_PROVIDER)
+ * וגם יש לדף כתובת/מספר לקבלת ההתראה. עד כה חוסר תצורה היה מוסתר בטאב
+ * "מערכת" של המנהל הראשי בלבד, והסוכן פשוט לא קיבל התראות בלי לדעת למה.
+ */
+export type NotifyReadiness = {
+  /** ספק מייל מוגדר בסביבה */
+  emailProvider: boolean;
+  /** ספק וואטסאפ מוגדר בסביבה */
+  whatsappProvider: boolean;
+  /** לדף יש כתובת מייל לקבלת התראות */
+  siteEmail: string | null;
+  /** לדף יש מספר וואטסאפ לקבלת התראות */
+  siteWhatsapp: string | null;
+  /** כשלים/דילוגים בהתראות של הדף ב-7 הימים האחרונים */
+  recentFailures: number;
+  /** האם הכל מוכן — התראה שנשלחת תגיע בפועל */
+  ready: boolean;
+  /** מה חסם, בשפה שאפשר לפעול לפיה */
+  blockers: string[];
+};
+
+export const adminNotifyReadiness = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { siteId: string }) => ({ siteId: String(input?.siteId ?? "") }))
+  .handler(async ({ data, context }): Promise<NotifyReadiness> => {
+    const { assertSiteAccess } = await import("@/lib/admin.server");
+    await assertSiteAccess(context, data.siteId);
+    const { agentChannels } = await import("@/lib/notify.server");
+    const { whatsappConfigured } = await import("@/lib/whatsapp.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const emailProvider = Boolean(process.env["RESEND_API_KEY"]);
+    const whatsappProvider = whatsappConfigured();
+    const agent = await agentChannels(data.siteId);
+
+    const since = new Date(Date.now() - 7 * 24 * 3600_000).toISOString();
+    const { count } = await supabaseAdmin
+      .from("activity_log")
+      .select("id", { count: "exact", head: true })
+      .eq("kind", "notification")
+      .eq("site_id", data.siteId)
+      .in("status", ["failed", "skipped"])
+      .gte("created_at", since);
+
+    const blockers: string[] = [];
+    if (!emailProvider) {
+      blockers.push("שירות המייל אינו מוגדר (RESEND_API_KEY) — התראות מייל לא נשלחות כלל");
+    }
+    if (!whatsappProvider) {
+      blockers.push("ספק הוואטסאפ אינו מוגדר (WHATSAPP_PROVIDER) — התראות וואטסאפ לא נשלחות כלל");
+    }
+    if (!agent?.email) blockers.push("לדף הזה אין כתובת מייל לקבלת התראות");
+    if (!agent?.whatsapp) blockers.push("לדף הזה אין מספר וואטסאפ לקבלת התראות");
+
+    return {
+      emailProvider,
+      whatsappProvider,
+      siteEmail: agent?.email ?? null,
+      siteWhatsapp: agent?.whatsapp ?? null,
+      recentFailures: count ?? 0,
+      ready:
+        (emailProvider && Boolean(agent?.email)) || (whatsappProvider && Boolean(agent?.whatsapp)),
+      blockers,
+    };
+  });
