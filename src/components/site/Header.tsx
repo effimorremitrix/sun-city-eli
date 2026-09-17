@@ -29,15 +29,26 @@ export function Header() {
 
   const displayName = user?.fullName?.trim() || user?.email || t.nav.defaultUser;
 
+  /*
+   * נקודת המעבר לתפריט הרוחבי. במצב אורח יש בתפריט שני כפתורי פעולה
+   * נוספים ("אזור אישי" ו"הערכת שווי חינם"), ולכן ב-lg (1024px) הוא לא
+   * נכנס לצד הלוגו והיה עולה עליו (הכיתוב "נמכרים" על הלוגו). אורח עובר
+   * לתפריט הרוחבי רק ב-xl; מחובר — כבר ב-lg.
+   */
+  const deskNav = user ? "lg:flex" : "xl:flex";
+  const mobileOnly = user ? "lg:hidden" : "xl:hidden";
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
-        {/* בדסקטופ צר (lg) מוצג רק סמל הלוגו; שם המותג והסלוגן חוזרים מ-xl.
-            שורת הסלוגן מתקצרת (truncate) כשחסר מקום — כך הנאב לא נשבר לעולם. */}
+        {/* הלוגו מתכווץ (min-w-0 + overflow-hidden) והנאב לא (shrink-0):
+            כך קישור ארוך בתפריט לעולם אינו גולש אל מעל הלוגו. במצב אורח
+            יש בתפריט שני כפתורים נוספים ("אזור אישי" ו"הערכת שווי"), ולכן
+            שם המותג מוסתר כבר מ-lg וחוזר רק מ-xl. */}
         <a
           href="#top"
           onClick={go("top")}
-          className="flex min-w-0 items-center gap-2"
+          className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
           aria-label={t.nav.toTopAria(business.name)}
         >
           <img
@@ -47,7 +58,11 @@ export function Header() {
             height={40}
             className="size-10 shrink-0 object-contain"
           />
-          <span className="flex min-w-0 flex-col leading-none lg:hidden xl:flex">
+          <span
+            className={`flex min-w-0 flex-col leading-none ${
+              user ? "lg:hidden xl:flex" : "xl:hidden 2xl:flex"
+            }`}
+          >
             <span className="whitespace-nowrap font-display text-base font-extrabold text-primary">
               Sun City <span className="text-sun">{t.nav.brandSuffix}</span>
             </span>
@@ -70,7 +85,10 @@ export function Header() {
             ("השירותים שלנו", "Vendre un bien") לשתי שורות. התקציב צר (מכל 1152px),
             ולכן טלפון ואזור אישי מוצגים כאייקונים, והטקסט חוזר בעברית בלבד מ-xl
             (rtl:) — בשפות הלטיניות התוויות הארוכות לא נכנסות בשום רוחב. */}
-        <nav aria-label={t.nav.mainNavAria} className="hidden items-center gap-3 lg:flex xl:gap-4">
+        <nav
+          aria-label={t.nav.mainNavAria}
+          className={`hidden shrink-0 items-center gap-3 xl:gap-4 ${deskNav}`}
+        >
           {navLinks.map((l) => (
             <a
               key={l.id}
@@ -140,7 +158,7 @@ export function Header() {
           </div>
         </nav>
 
-        <div className="flex items-center gap-2 lg:hidden">
+        <div className={`flex shrink-0 items-center gap-2 ${mobileOnly}`}>
           {/* כניסה/אזור אישי — נגיש ישירות מהסרגל, בלי לפתוח את ההמבורגר */}
           <Link
             to={user ? "/account" : "/auth"}
@@ -169,7 +187,10 @@ export function Header() {
       </div>
 
       {open && (
-        <nav aria-label={t.nav.mobileNavAria} className="border-t border-border bg-card lg:hidden">
+        <nav
+          aria-label={t.nav.mobileNavAria}
+          className={`border-t border-border bg-card ${mobileOnly}`}
+        >
           <ul className="mx-auto max-w-6xl px-4 py-2">
             <li className="border-b border-border/70 py-3">
               <LangSwitcher big />

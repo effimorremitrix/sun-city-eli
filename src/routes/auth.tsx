@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBackToSiteHref } from "@/lib/back-to-site";
-import { LangProvider, useLang, useStoredLocale } from "@/lib/i18n";
+import { errorText, LangProvider, useLang, useStoredLocale } from "@/lib/i18n";
 import { currentSessionId, trackEvent } from "@/lib/analytics";
 import { useServerFn } from "@tanstack/react-start";
 import { registerClient } from "@/lib/auth.functions";
@@ -51,7 +51,7 @@ const toE164 = (phone: string): string | null => {
 };
 
 function AuthContent() {
-  const { t, dir } = useLang();
+  const { t, dir, lang } = useLang();
   const navigate = useNavigate();
   const backHref = useBackToSiteHref();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -80,7 +80,7 @@ function AuthContent() {
       setOtpSent(true);
       setMsg(t.auth.codeSent);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : t.auth.otpFailed);
+      setErr(errorText(e, lang, t.auth.otpFailed));
     } finally {
       setBusy(false);
     }
@@ -102,7 +102,7 @@ function AuthContent() {
       trackEvent("login", null);
       navigate({ to: "/account", replace: true });
     } catch (e) {
-      setErr(e instanceof Error ? e.message : t.auth.otpFailed);
+      setErr(errorText(e, lang, t.auth.otpFailed));
     } finally {
       setBusy(false);
     }
@@ -143,7 +143,7 @@ function AuthContent() {
         setMsg(t.auth.signupSuccess);
       }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : t.auth.signinFailed);
+      setErr(errorText(e, lang, t.auth.signinFailed));
     } finally {
       setBusy(false);
     }
@@ -338,7 +338,7 @@ function AuthContent() {
                 if (error) throw error;
                 setMsg(t.auth.resetSent);
               } catch (e) {
-                setErr(e instanceof Error ? e.message : t.auth.resetFailed);
+                setErr(errorText(e, lang, t.auth.resetFailed));
               } finally {
                 setBusy(false);
               }

@@ -13,9 +13,10 @@ import {
 } from "@/lib/account.functions";
 import { claimAdminRole } from "@/lib/site.functions";
 import { adminScoutNewCount } from "@/lib/scout.functions";
+import { listStreetSuggestions } from "@/lib/listings.functions";
 import { adminLeadsAttentionCount, respondToNotification } from "@/lib/leads.functions";
 import { CLIENT_RESPONSES, type ClientResponse } from "@/lib/leads";
-import { LangProvider, useLang, useStoredLocale } from "@/lib/i18n";
+import { errorText, LangProvider, useLang, useStoredLocale } from "@/lib/i18n";
 import { formatListingPrice } from "@/lib/listings";
 import { listingDealToIntent, toListingDeal } from "@/lib/deal-type";
 import type { ListingFilters } from "@/lib/listings";
@@ -217,7 +218,7 @@ function AccountPage() {
 }
 
 function AccountContent() {
-  const { t, dir } = useLang();
+  const { t, dir, lang } = useLang();
   const { user, logout, refresh } = useAuth();
   const navigate = useNavigate();
   const search = Route.useSearch();
@@ -232,6 +233,14 @@ function AccountContent() {
   const fetchLeadsAttention = useServerFn(adminLeadsAttentionCount);
 
   const account = useQuery({ queryKey: ["my-account"], queryFn: () => fetchAccount() });
+  // הצעות רחוב לשדה החיפוש — רחובות נתניה, כתובות המשרד וכתובות מהלוחות.
+  // כשל בטעינה אינו חוסם: השדה נשאר טקסט חופשי.
+  const fetchStreets = useServerFn(listStreetSuggestions);
+  const streets = useQuery({
+    queryKey: ["street-suggestions"],
+    queryFn: () => fetchStreets(),
+    staleTime: 30 * 60 * 1000,
+  });
   const [form, setForm] = useState<ProfileForm>(emptyProfile);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -296,7 +305,7 @@ function AccountContent() {
       setMsg(okMsg);
       await account.refetch();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : t.portal.actionFailed);
+      setErr(errorText(e, lang, t.portal.actionFailed));
     } finally {
       setBusy(false);
     }
@@ -758,13 +767,26 @@ function AccountContent() {
                       <span className="mb-1 block text-xs font-bold text-muted-foreground">
                         {t.portal.streetOptional}
                       </span>
+                      {/* טקסט חופשי עם הצעות בלבד: אפשר לבקש כל רחוב, גם כזה
+                          שאין בו כרגע נכס של SUN CITY — הסוכן החכם ימשיך
+                          לחפש בו מהלוחות. */}
                       <input
                         className="field"
+                        list="street-suggestions"
+                        autoComplete="off"
                         value={form.street}
                         maxLength={80}
                         placeholder={t.portal.streetPlaceholder}
                         onChange={(e) => setForm({ ...form, street: e.target.value })}
                       />
+                      <datalist id="street-suggestions">
+                        {(streets.data ?? []).map((name) => (
+                          <option key={name} value={name} />
+                        ))}
+                      </datalist>
+                      <span className="mt-1 block text-[11px] text-muted-foreground">
+                        {t.portal.streetFreeTextHint}
+                      </span>
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-xs font-bold text-muted-foreground">

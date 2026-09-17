@@ -17,6 +17,11 @@ export type ScoutProfile = {
   deal_type: string;
   city: string;
   neighborhoods: string[];
+  /**
+   * רחוב מבוקש (טקסט חופשי). אינו מוגבל לרחובות שיש בהם נכס של המשרד —
+   * לקוח יכול לבקש רחוב שאין בו כרגע מלאי, והסריקה תמשיך לחפש בו.
+   */
+  street?: string | null;
   min_price: number | null;
   max_price: number | null;
   min_rooms: number | null;
@@ -241,6 +246,16 @@ export function hardCriteriaViolation(
   ];
   for (const [needed, has, label] of amenities) {
     if (needed && has === false) return `אין ${label} לפי המודעה`;
+  }
+  // רחוב מבוקש: נבדק מול הכתובת והכותרת של המודעה. מודעה בלי כתובת כלל
+  // אינה נפסלת — אין לאשש היעדר מידע, בדיוק כמו במתקנים.
+  const wantedStreet = (p.street ?? "").trim();
+  if (wantedStreet) {
+    const needle = normalizeHebrew(wantedStreet);
+    const haystack = normalizeHebrew(`${c.address ?? ""} ${c.title}`);
+    if (haystack.trim() && !haystack.includes(needle)) {
+      return `הכתובת אינה ברחוב ${wantedStreet}`;
+    }
   }
   if (p.neighborhoods.length && c.neighborhood) {
     if (!hoodMatches(c.neighborhood, p.neighborhoods)) {

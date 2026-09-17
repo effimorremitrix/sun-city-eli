@@ -279,6 +279,8 @@ export const aiSearchListings = createServerFn({ method: "POST" })
               deal_type: wantedDeal ?? "מכירה",
               city: "נתניה",
               neighborhoods: filters.neighborhoods ?? [],
+              // רחוב מהשאילתה — גם כשאין לנו אף נכס ברחוב הזה
+              street: filters.street ?? null,
               min_price: filters.min_price ?? null,
               max_price: filters.max_price ?? null,
               min_rooms: filters.rooms ?? filters.min_rooms ?? null,

@@ -2,7 +2,7 @@ import { Phone, MessageCircle } from "lucide-react";
 import { team, business, waProps } from "@/lib/site-data";
 import { useLang } from "@/lib/i18n";
 import { useLive } from "@/lib/site-live";
-import type { PublicAgentRow } from "@/lib/agents.server";
+import { agentRoleFor, type PublicAgentRow } from "@/lib/agents.server";
 import { Reveal } from "./Reveal";
 import {
   Carousel,
@@ -37,7 +37,7 @@ type TeamCard = {
 };
 
 export function Team({ agents = [], variant = "primary" }: Props) {
-  const { t, dir } = useLang();
+  const { t, dir, lang } = useLang();
   const { slug: currentSlug } = useLive();
 
   /* הרוסטר של המשרד הוא השלד, ורשומות המסד מעשירות אותו ומוסיפות לו סוכנים
@@ -48,7 +48,9 @@ export function Team({ agents = [], variant = "primary" }: Props) {
     return {
       slug: m.slug,
       name: t.team.names[m.name] ?? m.name,
-      role: db?.role_title || t.team.roles[m.name] || m.role,
+      // התפקיד בשפת הדף: תרגום מהמסד → המילון → הרוסטר הסטטי.
+      // עד כאן role_title העברי ניצח תמיד, וכרטיס הצוות נשאר בעברית.
+      role: (db ? agentRoleFor(db, lang) : "") || t.team.roles[m.name] || m.role,
       photo: db?.photo_url || m.image || null,
       phoneTel: db?.phone_tel || (m.phone ? business.phoneTel : null),
     };
@@ -62,7 +64,7 @@ export function Team({ agents = [], variant = "primary" }: Props) {
     cards.push({
       slug: a.slug,
       name: t.team.names[name] ?? name,
-      role: a.role_title ?? "",
+      role: agentRoleFor(a, lang),
       photo: a.photo_url || null,
       phoneTel: a.phone_tel || null,
     });

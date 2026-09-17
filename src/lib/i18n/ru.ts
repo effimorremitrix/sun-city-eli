@@ -202,6 +202,7 @@ export const ru: Dict = {
     fullName: "Полное имя",
     phone: "Телефон",
     sendWa: "Отправить в WhatsApp",
+    priceOnRequest: "Цена по запросу",
     leadSaved: "Заявка сохранена и отправлена вашему агенту. Он свяжется с вами в ближайшее время.",
     openWhatsApp: "Открыть WhatsApp",
     waInterested: (
@@ -642,6 +643,8 @@ export const ru: Dict = {
     city: "Город",
     streetOptional: "Улица (необязательно)",
     streetPlaceholder: "например: Голда Меир",
+    streetFreeTextHint:
+      "Можно указать любую улицу, даже если сейчас у нас там нет объектов. Умный агент продолжит искать для вас.",
     roomsExactLabel: "Комнат (точно, ± полкомнаты)",
     minPrice: "Минимальная цена (₪)",
     maxPrice: "Максимальная цена (₪)",
@@ -819,6 +822,7 @@ export const ru: Dict = {
       other: "С мест",
     },
     videoUnsupported: "Ваш браузер не поддерживает воспроизведение видео",
+    count: (n: number) => `${n} моментов с поля`,
   },
 
   limits: {
@@ -833,6 +837,22 @@ export const ru: Dict = {
   },
 
   maps: {
+    propertyType: {
+      apartment: "Квартира",
+      penthouse: "Пентхаус",
+      gardenApartment: "Квартира с садом",
+      duplex: "Дуплекс",
+      house: "Частный дом",
+      plot: "Участок",
+      commercial: "Коммерческая недвижимость",
+      storageUnit: "Кладовая",
+      building: "Здание",
+    } as Record<string, string>,
+    advertiser: {
+      agency: "Публикует агентство",
+      private: "Частное объявление",
+      unknown: "Рекламодатель неизвестен",
+    } as Record<string, string>,
     deal: {
       מכירה: "Продажа",
       השכרה: "Аренда",

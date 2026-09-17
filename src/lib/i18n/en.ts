@@ -201,6 +201,7 @@ export const en: Dict = {
     fullName: "Full name",
     phone: "Phone",
     sendWa: "Send via WhatsApp",
+    priceOnRequest: "Price on request",
     leadSaved: "Your request was saved and sent to your agent. They will get back to you shortly.",
     openWhatsApp: "Open WhatsApp",
     waInterested: (
@@ -642,6 +643,8 @@ export const en: Dict = {
     city: "City",
     streetOptional: "Street (optional)",
     streetPlaceholder: "e.g. Golda Meir",
+    streetFreeTextHint:
+      "Type any street, even one where we have no listing right now. The smart agent keeps searching it for you.",
     roomsExactLabel: "Rooms (exact, ±half a room)",
     minPrice: "Minimum price (₪)",
     maxPrice: "Maximum price (₪)",
@@ -817,6 +820,7 @@ export const en: Dict = {
       other: "From the field",
     },
     videoUnsupported: "Your browser does not support video playback",
+    count: (n: number) => `${n} moments from the field`,
   },
 
   limits: {
@@ -831,6 +835,22 @@ export const en: Dict = {
   },
 
   maps: {
+    propertyType: {
+      apartment: "Apartment",
+      penthouse: "Penthouse",
+      gardenApartment: "Garden apartment",
+      duplex: "Duplex",
+      house: "House",
+      plot: "Plot",
+      commercial: "Commercial property",
+      storageUnit: "Storage unit",
+      building: "Building",
+    } as Record<string, string>,
+    advertiser: {
+      agency: "Listed by an agency",
+      private: "Private listing",
+      unknown: "Advertiser unknown",
+    } as Record<string, string>,
     deal: {
       מכירה: "For Sale",
       השכרה: "For Rent",

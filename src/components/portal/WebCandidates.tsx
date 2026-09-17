@@ -2,7 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { Globe, MessageCircle } from "lucide-react";
 import { waProps } from "@/lib/site-data";
 import { formatListingPrice } from "@/lib/listings";
-import { useLang } from "@/lib/i18n";
+import { mapValue, useLang } from "@/lib/i18n";
+import { detectPropertyType } from "@/lib/property-type";
 import type { AiSearchResult } from "@/lib/ai-search.functions";
 
 /* ============================================================
@@ -21,8 +22,24 @@ export function WebCandidates({
   agentPhone: string;
   agentName: string;
 }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const w = t.properties.web;
+
+  /**
+   * המודעות מגיעות מהלוחות בעברית. הכותרת נבנית מחדש מהשדות המובנים
+   * בשפת הדף (סוג נכס + חדרים + כתובת), ונימוק ההתאמה — שנכתב בעברית על
+   * ידי המודל — אינו מוצג בשפה אחרת במקום להציג טקסט לא מתורגם.
+   */
+  const titleOf = (c: AiSearchResult["web"]["candidates"][number]): string => {
+    if (lang === "he") return c.title;
+    const head = t.maps.propertyType[detectPropertyType(c.title, c.raw_summary)] ?? "";
+    const rooms = c.rooms != null ? `${c.rooms} ${t.properties.roomsUnit}` : null;
+    const where = [c.address, mapValue(t.maps.neighborhoods, c.neighborhood)]
+      .filter(Boolean)
+      .join(", ");
+    const head2 = [head, rooms].filter(Boolean).join(" · ");
+    return (where ? `${head2}, ${where}` : head2) || c.title;
+  };
 
   // הסריקה החיה לא רצה כלל (למשל חיפוש בלי אינטרנט) — אין מה להציג
   if (web.status === "skipped") return null;
@@ -113,11 +130,13 @@ export function WebCandidates({
                   </span>
                 </td>
                 <td className="px-3 py-2.5">
-                  <p className="font-bold text-primary">{c.title}</p>
+                  <p className="font-bold text-primary">{titleOf(c)}</p>
                   {c.neighborhood && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">{c.neighborhood}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {mapValue(t.maps.neighborhoods, c.neighborhood)}
+                    </p>
                   )}
-                  {c.match_reason && (
+                  {lang === "he" && c.match_reason && (
                     <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
                       {c.match_reason}
                     </p>

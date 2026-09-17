@@ -9,13 +9,14 @@ import {
   Ruler,
   Store,
 } from "lucide-react";
-import { marketSourceLabel, type MarketListing } from "@/lib/market";
+import { localizeMarketTitle, marketSourceLabel, type MarketListing } from "@/lib/market";
 import { formatListingPrice } from "@/lib/listings";
 import { createPublicLead } from "@/lib/leads.functions";
 import { isValidIsraeliPhone } from "@/lib/leads";
 import { reserveWhatsAppWindow, whatsappUrl } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
 import { mapValue, useLang } from "@/lib/i18n";
+import { detectPropertyType, hasValue, isFieldRelevant } from "@/lib/property-type";
 import { trackEvent } from "@/lib/analytics";
 
 /* ============================================================
@@ -122,10 +123,16 @@ export function MarketCard({
     trackEvent("market_view", siteId, null);
   };
 
-  const noInfo = t.misc.noInfo;
   const hood = mapValue(t.maps.neighborhoods, m.neighborhood);
-  const price = formatListingPrice(m.price, lang);
+  // נכס חיצוני עם נתון חסר: מסתירים את השדה במקום להציג "אין מידע"
+  const price = m.price == null ? t.properties.priceOnRequest : formatListingPrice(m.price, lang);
   const source = marketSourceLabel(m);
+  const type = detectPropertyType(m.title, m.description);
+  // כותרת בשפת הדף — המודעה נשמרת בעברית מהלוח, ונבנית מחדש מהשדות המובנים
+  const title = localizeMarketTitle(m, t, lang, detectPropertyType);
+  const showRooms = isFieldRelevant(type, "rooms") && hasValue(m.rooms);
+  const showSize = isFieldRelevant(type, "size") && hasValue(m.size_sqm);
+  const where = [hood, t.maps.cities[m.city] ?? m.city].filter(Boolean).join(", ");
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,7 +178,7 @@ export function MarketCard({
       {m.image_url && (
         <img
           src={m.image_url}
-          alt={m.title}
+          alt={title}
           loading="lazy"
           referrerPolicy="no-referrer"
           className="aspect-[3/2] w-full object-cover"
@@ -192,21 +199,29 @@ export function MarketCard({
           )}
         </div>
         <p className="mt-2 font-display text-xl font-extrabold text-primary">{price}</p>
-        <h4 className="mt-1 line-clamp-2 min-h-12 text-base">{m.title}</h4>
-        <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-          <MapPin className="size-4 shrink-0 text-sun" aria-hidden="true" />
-          {hood ?? noInfo}, {t.maps.cities[m.city] ?? m.city}
-        </p>
-        <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-foreground">
-          <li className="flex items-center gap-1">
-            <BedDouble className="size-4 text-sun" aria-hidden="true" />
-            {m.rooms ?? noInfo} {t.properties.roomsUnit}
-          </li>
-          <li className="flex items-center gap-1">
-            <Ruler className="size-4 text-sun" aria-hidden="true" />
-            {m.size_sqm ?? noInfo} {t.properties.sqm}
-          </li>
-        </ul>
+        <h4 className="mt-1 line-clamp-2 min-h-12 text-base">{title}</h4>
+        {where && (
+          <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+            <MapPin className="size-4 shrink-0 text-sun" aria-hidden="true" />
+            {where}
+          </p>
+        )}
+        {(showRooms || showSize) && (
+          <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-foreground">
+            {showRooms && (
+              <li className="flex items-center gap-1">
+                <BedDouble className="size-4 text-sun" aria-hidden="true" />
+                {m.rooms} {t.properties.roomsUnit}
+              </li>
+            )}
+            {showSize && (
+              <li className="flex items-center gap-1">
+                <Ruler className="size-4 text-sun" aria-hidden="true" />
+                {m.size_sqm} {t.properties.sqm}
+              </li>
+            )}
+          </ul>
+        )}
 
         {sent && (
           <div className="mt-3 rounded-xl bg-secondary p-2.5 text-xs font-semibold text-primary">

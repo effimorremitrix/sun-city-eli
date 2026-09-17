@@ -204,6 +204,7 @@ export const fr: Dict = {
     fullName: "Nom complet",
     phone: "Téléphone",
     sendWa: "Envoyer via WhatsApp",
+    priceOnRequest: "Prix sur demande",
     leadSaved:
       "Votre demande a été enregistrée et transmise à votre agent. Il vous recontactera rapidement.",
     openWhatsApp: "Ouvrir WhatsApp",
@@ -652,6 +653,8 @@ export const fr: Dict = {
     city: "Ville",
     streetOptional: "Rue (facultatif)",
     streetPlaceholder: "ex. : Golda Meir",
+    streetFreeTextHint:
+      "Saisissez n'importe quelle rue, même une où nous n'avons aucun bien pour le moment. L'agent intelligent continue d'y chercher pour vous.",
     roomsExactLabel: "Pièces (exact, ± une demi-pièce)",
     minPrice: "Prix minimum (₪)",
     maxPrice: "Prix maximum (₪)",
@@ -830,6 +833,7 @@ export const fr: Dict = {
       other: "Sur le terrain",
     },
     videoUnsupported: "Votre navigateur ne prend pas en charge la lecture vidéo",
+    count: (n: number) => `${n} moments sur le terrain`,
   },
 
   limits: {
@@ -846,6 +850,22 @@ export const fr: Dict = {
   },
 
   maps: {
+    propertyType: {
+      apartment: "Appartement",
+      penthouse: "Penthouse",
+      gardenApartment: "Appartement avec jardin",
+      duplex: "Duplex",
+      house: "Maison",
+      plot: "Terrain",
+      commercial: "Local commercial",
+      storageUnit: "Débarras",
+      building: "Immeuble",
+    } as Record<string, string>,
+    advertiser: {
+      agency: "Publié par une agence",
+      private: "Annonce de particulier",
+      unknown: "Annonceur inconnu",
+    } as Record<string, string>,
     deal: {
       מכירה: "À vendre",
       השכרה: "À louer",

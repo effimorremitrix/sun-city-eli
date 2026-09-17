@@ -195,6 +195,7 @@ export const he = {
     fullName: "שם מלא",
     phone: "טלפון",
     sendWa: "שליחה בוואטסאפ",
+    priceOnRequest: "המחיר לפרטים",
     leadSaved: "הפנייה נשמרה ונשלחה לסוכן המטפל. הוא יחזור אליך בהקדם.",
     openWhatsApp: "פתיחת וואטסאפ",
     waInterested: (
@@ -629,6 +630,8 @@ export const he = {
     city: "עיר",
     streetOptional: "רחוב (אופציונלי)",
     streetPlaceholder: "למשל: גולדה מאיר",
+    streetFreeTextHint:
+      "אפשר להקליד כל רחוב, גם כזה שאין בו כרגע נכס שלנו — הסוכן החכם ימשיך לחפש בו.",
     roomsExactLabel: "חדרים (מדויק, ±חצי חדר)",
     minPrice: "מחיר מינימלי (₪)",
     maxPrice: "מחיר מקסימלי (₪)",
@@ -805,6 +808,7 @@ export const he = {
       other: "מהשטח",
     },
     videoUnsupported: "הדפדפן אינו תומך בניגון וידאו",
+    count: (n: number) => `${n} פריטים מהשטח`,
   },
 
   limits: {
@@ -819,6 +823,22 @@ export const he = {
   },
 
   maps: {
+    propertyType: {
+      apartment: "דירה",
+      penthouse: "פנטהאוז",
+      gardenApartment: "דירת גן",
+      duplex: "דופלקס",
+      house: "בית פרטי",
+      plot: "מגרש",
+      commercial: "נכס מסחרי",
+      storageUnit: "מחסן",
+      building: "בניין",
+    } as Record<string, string>,
+    advertiser: {
+      agency: "מתיווך",
+      private: "מודעה פרטית",
+      unknown: "מפרסם לא ידוע",
+    } as Record<string, string>,
     deal: {
       מכירה: "מכירה",
       השכרה: "השכרה",

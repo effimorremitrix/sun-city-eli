@@ -94,3 +94,31 @@ export const marketSourceLabel = (m: Pick<MarketListing, "source" | "source_site
   m.source_site ??
   { yad2: "יד2", komo: "קומו", madlan: "מדלן", homeless: "הומלס", winwin: "וין וין" }[m.source] ??
   m.source;
+
+/**
+ * כותרת מודעה בשפת הדף.
+ *
+ * מודעות מהלוחות נכתבות בעברית, וכך הן נשמרות. במקום לתרגם טקסט חופשי
+ * בזמן אמת (יקר ולא צפוי), הכותרת נבנית מחדש מהשדות המובנים שכבר יש
+ * לנו — סוג הנכס, מספר חדרים, כתובת ושכונה — כך שהיא מוצגת במלואה בשפת
+ * הדף. שמות רחוב ושכונה נשארים כפי שהם (שמות פרטיים), בדיוק כמו באתרי
+ * נדל"ן בין-לאומיים.
+ */
+export function localizeMarketTitle(
+  m: Pick<MarketListing, "title" | "description" | "rooms" | "address" | "neighborhood">,
+  dict: {
+    maps: { propertyType: Record<string, string>; neighborhoods: Record<string, string> };
+    properties: { roomsUnit: string };
+  },
+  lang: string,
+  detect: (title: string | null | undefined, description?: string | null) => string,
+): string {
+  if (lang === "he") return m.title;
+  const typeKey = detect(m.title, m.description);
+  const head = dict.maps.propertyType[typeKey] ?? dict.maps.propertyType["apartment"] ?? "";
+  const rooms = m.rooms != null ? `${m.rooms} ${dict.properties.roomsUnit}` : null;
+  const hood = m.neighborhood ? (dict.maps.neighborhoods[m.neighborhood] ?? m.neighborhood) : null;
+  const where = [m.address, hood].filter(Boolean).join(", ");
+  const head2 = [head, rooms].filter(Boolean).join(" · ");
+  return (where ? `${head2}, ${where}` : head2) || m.title;
+}

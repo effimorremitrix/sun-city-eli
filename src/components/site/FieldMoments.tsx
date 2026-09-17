@@ -2,7 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, PlayCircle } from "lucide-react";
 import { LOCALE_META, useLang } from "@/lib/i18n";
 import type { FieldCategory, FieldMediaItem } from "@/lib/field-media.functions";
-import { Reveal } from "./Reveal";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 /* ============================================================
  * "מהשטח" — סרטונים ותמונות מעסקאות אמיתיות: חתימות, מסירת מפתחות,
@@ -13,7 +19,7 @@ import { Reveal } from "./Reveal";
 type Props = { items: FieldMediaItem[] };
 
 export function FieldMoments({ items }: Props) {
-  const { t, lang } = useLang();
+  const { t, lang, dir } = useLang();
   const [category, setCategory] = useState<FieldCategory | "all">("all");
 
   // הקטגוריות הקיימות בפועל — בסדר הופעתן במילון
@@ -69,10 +75,20 @@ export function FieldMoments({ items }: Props) {
         </div>
       )}
 
-      <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {visible.map((item, i) => (
-          <li key={item.id} className="h-full">
-            <Reveal delay={Math.min(i, 5) * 60} className="h-full">
+      {/* קרוסלה כמו במדור הממליצים: מעבר נוח ימינה/שמאלה, כרטיס אחד בנייד
+          ושלושה במחשב. הכיוון נגזר משפת הדף (RTL/LTR). */}
+      <Carousel
+        className="mt-6"
+        opts={{
+          direction: dir === "rtl" ? "rtl" : "ltr",
+          align: "start",
+          loop: visible.length > 3,
+        }}
+        dir={dir}
+      >
+        <CarouselContent>
+          {visible.map((item) => (
+            <CarouselItem key={item.id} className="basis-full sm:basis-1/2 lg:basis-1/3">
               <article className="soft-card flex h-full flex-col overflow-hidden">
                 {item.mediaKind === "video" ? (
                   <LazyVideo
@@ -107,10 +123,19 @@ export function FieldMoments({ items }: Props) {
                   )}
                 </div>
               </article>
-            </Reveal>
-          </li>
-        ))}
-      </ul>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        {visible.length > 1 && (
+          <>
+            <CarouselPrevious />
+            <CarouselNext />
+          </>
+        )}
+      </Carousel>
+      <p className="mt-3 text-sm text-muted-foreground" aria-live="polite">
+        {t.field.count(visible.length)}
+      </p>
     </section>
   );
 }

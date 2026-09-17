@@ -29,11 +29,12 @@ import {
 } from "@/lib/ai-search.functions";
 import { WebCandidates } from "@/components/portal/WebCandidates";
 import { formatListingPrice, listingImages, localizeListing, type Listing } from "@/lib/listings";
-import { marketSourceLabel, type MarketListing } from "@/lib/market";
+import { localizeMarketTitle, marketSourceLabel, type MarketListing } from "@/lib/market";
 import type { MatchResult } from "@/lib/match-score";
 import { getBackToSiteHref } from "@/lib/back-to-site";
 import { waProps, reserveWhatsAppWindow, whatsappUrl } from "@/lib/site-data";
-import { useLang, type Dict } from "@/lib/i18n";
+import { errorText, useLang, type Dict } from "@/lib/i18n";
+import { detectPropertyType } from "@/lib/property-type";
 
 /** הודעת חסימה של החיפוש החכם בשפת הדף (spend = תקרת הוצאה → "לא זמין") */
 const aiLimitMessage = (t: Dict, reason: AiLimitReason): string => {
@@ -47,6 +48,13 @@ const aiLimitMessage = (t: Dict, reason: AiLimitReason): string => {
  * מדורי האזור האישי של הלקוח: התאמות עם אחוז התאמה ופירוט,
  * משוב ❤️/❌/⭐/📞, נכסים שמורים, וכרטיס הסוכן המטפל.
  * ============================================================ */
+
+/**
+ * שורת פרטים אחת מהחלקים שיש להם ערך בפועל. חלק חסר פשוט אינו מופיע —
+ * ללקוח לא מוצג "אין מידע" על שדה חסר בנכס חיצוני.
+ */
+const detailsLine = (...parts: Array<string | null | undefined | false>): string =>
+  parts.filter((p): p is string => typeof p === "string" && p.trim() !== "").join(" · ");
 
 /** תגית פירוט של קריטריון התאמה — ✓ ירוק, ~ צהוב ("מחיר מעט מעל התקציב"), ✗ אפור */
 function CriterionChip({ label, level }: { label: string; level: "full" | "near" | "miss" }) {
@@ -185,10 +193,13 @@ function MatchCard({
             )}
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {listing.neighborhood
-              ? (t.maps.neighborhoods[listing.neighborhood] ?? listing.neighborhood)
-              : t.misc.noInfo}{" "}
-            · {formatListingPrice(listing.price)} · {t.portal.viaProfile(item.profileLabel)}
+            {detailsLine(
+              listing.neighborhood
+                ? (t.maps.neighborhoods[listing.neighborhood] ?? listing.neighborhood)
+                : null,
+              listing.price != null ? formatListingPrice(listing.price) : null,
+              t.portal.viaProfile(item.profileLabel),
+            )}
           </p>
           {shown.length > 0 && (
             <p className="mt-1.5 flex flex-wrap gap-1">
@@ -239,6 +250,8 @@ function MarketMatchCard({
   onMessage: (msg: string) => void;
 }) {
   const { t, lang } = useLang();
+  // כותרת בשפת הדף: המודעה נשמרת בעברית מהלוח ונבנית מחדש מהשדות המובנים
+  const title = localizeMarketTitle(listing, t, lang, detectPropertyType);
   const request = useServerFn(requestMarketCallback);
   const [busy, setBusy] = useState<"callback" | "interest" | null>(null);
   const [done, setDone] = useState<Set<"callback" | "interest">>(() => new Set());
@@ -285,7 +298,7 @@ function MarketMatchCard({
         {listing.image_url ? (
           <img
             src={listing.image_url}
-            alt={listing.title}
+            alt={title}
             loading="lazy"
             referrerPolicy="no-referrer"
             className="size-20 shrink-0 rounded-xl object-cover"
@@ -295,7 +308,7 @@ function MarketMatchCard({
         )}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-bold text-primary">{listing.title}</p>
+            <p className="font-bold text-primary">{title}</p>
             {match?.score != null && (
               <span className="rounded-full bg-sun px-2.5 py-0.5 text-xs font-extrabold text-sun-foreground">
                 {t.portal.matchBadge(match.score)}
@@ -311,12 +324,15 @@ function MarketMatchCard({
             </span>
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {listing.neighborhood
-              ? (t.maps.neighborhoods[listing.neighborhood] ?? listing.neighborhood)
-              : t.misc.noInfo}{" "}
-            · {formatListingPrice(listing.price, lang)}
-            {listing.rooms != null ? ` · ${listing.rooms} ${t.properties.roomsUnit}` : ""}
-            {profileLabel ? ` · ${t.portal.viaProfile(profileLabel)}` : ""}
+            {detailsLine(
+              listing.neighborhood
+                ? (t.maps.neighborhoods[listing.neighborhood] ?? listing.neighborhood)
+                : null,
+              listing.price != null ? formatListingPrice(listing.price, lang) : null,
+              listing.rooms != null ? `${listing.rooms} ${t.properties.roomsUnit}` : null,
+              listing.size_sqm != null ? `${listing.size_sqm} ${t.properties.sqm}` : null,
+              profileLabel ? t.portal.viaProfile(profileLabel) : null,
+            )}
           </p>
           {shown.length > 0 && (
             <p className="mt-1.5 flex flex-wrap gap-1">
@@ -439,7 +455,7 @@ export function PortalAiSearch({ onMessage }: { onMessage: (msg: string) => void
       setRes(r);
     } catch (e) {
       setRes(null);
-      setErr(e instanceof Error ? e.message : t.properties.aiFailed);
+      setErr(errorText(e, lang, t.properties.aiFailed));
     } finally {
       setBusy(false);
     }
@@ -512,11 +528,13 @@ export function PortalAiSearch({ onMessage }: { onMessage: (msg: string) => void
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-primary">{listing.title}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {listing.neighborhood
-                        ? (t.maps.neighborhoods[listing.neighborhood] ?? listing.neighborhood)
-                        : t.misc.noInfo}{" "}
-                      · {formatListingPrice(listing.price, lang)}
-                      {listing.rooms != null ? ` · ${listing.rooms} ${t.properties.roomsUnit}` : ""}
+                      {detailsLine(
+                        listing.neighborhood
+                          ? (t.maps.neighborhoods[listing.neighborhood] ?? listing.neighborhood)
+                          : null,
+                        listing.price != null ? formatListingPrice(listing.price, lang) : null,
+                        listing.rooms != null ? `${listing.rooms} ${t.properties.roomsUnit}` : null,
+                      )}
                     </p>
                     <div className="mt-1.5 text-sm">
                       <a
@@ -689,10 +707,12 @@ export function PortalExtrasSections({ onMessage }: { onMessage: (msg: string) =
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-primary">{listing.title}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {listing.neighborhood
-                      ? (t.maps.neighborhoods[listing.neighborhood] ?? listing.neighborhood)
-                      : t.misc.noInfo}{" "}
-                    · {formatListingPrice(listing.price)}
+                    {detailsLine(
+                      listing.neighborhood
+                        ? (t.maps.neighborhoods[listing.neighborhood] ?? listing.neighborhood)
+                        : null,
+                      listing.price != null ? formatListingPrice(listing.price) : null,
+                    )}
                   </p>
                   <div className="mt-1.5 text-sm">
                     <a

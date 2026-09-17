@@ -46,8 +46,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useLive } from "@/lib/site-live";
 import { isValidIsraeliPhone } from "@/lib/leads";
 import { createPublicLead } from "@/lib/leads.functions";
-import { mapValue, useLang, type Dict } from "@/lib/i18n";
+import { errorText, mapValue, useLang, type Dict } from "@/lib/i18n";
 import { trackEvent } from "@/lib/analytics";
+import {
+  detectPropertyType,
+  hasValue,
+  isFieldRelevant,
+  type PropertyField,
+} from "@/lib/property-type";
 import { PropertyMap } from "@/components/site/PropertyMap";
 import { NeighborhoodPicker } from "@/components/site/NeighborhoodPicker";
 import { SmartAgentBanner } from "@/components/site/SmartAgentSection";
@@ -193,7 +199,7 @@ export function PropertySection({ listings, updatedAt }: Props) {
       setAreas([]);
     } catch (err) {
       setAi(null);
-      setAiErr(err instanceof Error ? err.message : t.properties.aiFailed);
+      setAiErr(errorText(err, lang, t.properties.aiFailed));
     } finally {
       setAiBusy(false);
     }
@@ -436,10 +442,16 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
   const { lang, t } = useLang();
   const gallery = listingImages(p);
   const img = gallery[0] ?? null;
-  const noInfo = t.misc.noInfo;
   const hood = mapValue(t.maps.neighborhoods, p.neighborhood);
   const city = t.maps.cities[p.city] ?? p.city;
-  const price = formatListingPrice(p.price, lang);
+  // מחיר חסר: מציגים "לפרטים" ולא "אין מידע" — זו מודעה ולא טופס
+  const price = p.price == null ? t.properties.priceOnRequest : formatListingPrice(p.price, lang);
+
+  // שדות שאינם רלוונטיים לסוג הנכס (חדרים/קומה במגרש) או שאין להם ערך —
+  // פשוט אינם מוצגים, במקום "אין מידע"
+  const type = detectPropertyType(p.title, p.description);
+  const show = (field: PropertyField, value: unknown) =>
+    isFieldRelevant(type, field) && hasValue(value);
 
   return (
     <article className="soft-card flex h-full flex-col overflow-hidden">
@@ -476,27 +488,35 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
         <h3 className="mt-1 line-clamp-2 min-h-12 text-base">{p.title}</h3>
         <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
           <MapPin className="size-4 shrink-0 text-sun" aria-hidden="true" />
-          {hood ?? noInfo}, {city}
+          {[hood, city].filter(Boolean).join(", ")}
         </p>
 
         <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-foreground">
-          <li className="flex items-center gap-1">
-            <BedDouble className="size-4 text-sun" aria-hidden="true" />
-            {p.rooms ?? noInfo} {t.properties.roomsUnit}
-          </li>
-          <li className="flex items-center gap-1">
-            <Ruler className="size-4 text-sun" aria-hidden="true" />
-            {p.size_sqm ?? noInfo} {t.properties.sqm}
-          </li>
-          <li className="flex items-center gap-1">
-            <Building className="size-4 text-sun" aria-hidden="true" />
-            {t.properties.floorLabel(p.floor ?? noInfo)}
-          </li>
+          {show("rooms", p.rooms) && (
+            <li className="flex items-center gap-1">
+              <BedDouble className="size-4 text-sun" aria-hidden="true" />
+              {p.rooms} {t.properties.roomsUnit}
+            </li>
+          )}
+          {show("size", p.size_sqm) && (
+            <li className="flex items-center gap-1">
+              <Ruler className="size-4 text-sun" aria-hidden="true" />
+              {p.size_sqm} {t.properties.sqm}
+            </li>
+          )}
+          {show("floor", p.floor) && (
+            <li className="flex items-center gap-1">
+              <Building className="size-4 text-sun" aria-hidden="true" />
+              {t.properties.floorLabel(p.floor as string)}
+            </li>
+          )}
         </ul>
 
         <ul className="mt-3 flex flex-wrap gap-2">
           {(Object.keys(featureIcons) as Array<keyof typeof featureIcons>)
-            .filter((key) => p[key])
+            .filter(
+              (key) => p[key] && isFieldRelevant(type, featureIcons[key].key as PropertyField),
+            )
             .map((key) => {
               const { key: labelKey, Icon } = featureIcons[key];
               return (
@@ -569,7 +589,48 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
   const noInfo = t.misc.noInfo;
   const hood = mapValue(t.maps.neighborhoods, p.neighborhood);
   const city = t.maps.cities[p.city] ?? p.city;
-  const price = formatListingPrice(p.price, lang);
+  const price = p.price == null ? t.properties.priceOnRequest : formatListingPrice(p.price, lang);
+
+  // מפרט הנכס: רק שדות רלוונטיים לסוג הנכס שיש להם ערך
+  const type = detectPropertyType(p.title, p.description);
+  const yesNo = (on: boolean, count: number | null) =>
+    on
+      ? count && count > 1
+        ? `${t.properties.yes} (${count})`
+        : t.properties.yes
+      : t.properties.no;
+  const specRows: Array<[string, string]> = [
+    [t.properties.specDeal, t.maps.deal[p.deal_type] ?? p.deal_type],
+    ...(p.address ? ([[t.properties.specAddress, p.address]] as Array<[string, string]>) : []),
+    ...(isFieldRelevant(type, "rooms") && p.rooms != null
+      ? ([[t.properties.specRooms, String(p.rooms)]] as Array<[string, string]>)
+      : []),
+    ...(isFieldRelevant(type, "size") && p.size_sqm != null
+      ? ([[t.properties.specSize, t.properties.sqmValue(p.size_sqm)]] as Array<[string, string]>)
+      : []),
+    ...(isFieldRelevant(type, "floor") && hasValue(p.floor)
+      ? ([[t.properties.specFloor, p.floor as string]] as Array<[string, string]>)
+      : []),
+    ...(isFieldRelevant(type, "mamad")
+      ? ([[t.properties.features.mamad, yesNo(p.has_mamad, null)]] as Array<[string, string]>)
+      : []),
+    ...(isFieldRelevant(type, "elevator")
+      ? ([[t.properties.features.elevator, yesNo(p.has_elevator, null)]] as Array<[string, string]>)
+      : []),
+    ...(isFieldRelevant(type, "parking")
+      ? ([[t.properties.features.parking, yesNo(p.has_parking, p.parking_count)]] as Array<
+          [string, string]
+        >)
+      : []),
+    ...(isFieldRelevant(type, "balcony")
+      ? ([[t.properties.features.balcony, yesNo(p.has_balcony, null)]] as Array<[string, string]>)
+      : []),
+    ...(isFieldRelevant(type, "storage")
+      ? ([[t.properties.features.storage, yesNo(p.has_storage, p.storage_count)]] as Array<
+          [string, string]
+        >)
+      : []),
+  ];
 
   const next = () => setIndex((i) => (i + 1) % gallery.length);
   const prev = () => setIndex((i) => (i - 1 + gallery.length) % gallery.length);
@@ -716,43 +777,15 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
           )}
 
           <p className="mt-4 font-display text-2xl font-extrabold text-primary">{price}</p>
-          <p className="mt-2 leading-relaxed text-foreground">{p.description ?? noInfo}</p>
+          {p.description && <p className="mt-2 leading-relaxed text-foreground">{p.description}</p>}
 
+          {/* טבלת המפרט מציגה רק שורות שרלוונטיות לסוג הנכס ושיש בהן ערך:
+              במגרש לא תופיע שורת חדרים או קומה, ובנכס בלי נתון השורה
+              נעלמת במקום להציג "אין מידע". */}
           <table className="mt-4 w-full text-start text-sm">
             <caption className="sr-only">{t.properties.specCaption}</caption>
             <tbody className="divide-y divide-border">
-              {[
-                [t.properties.specDeal, t.maps.deal[p.deal_type] ?? p.deal_type],
-                [t.properties.specAddress, p.address ?? noInfo],
-                [t.properties.specRooms, p.rooms == null ? noInfo : String(p.rooms)],
-                [
-                  t.properties.specSize,
-                  p.size_sqm == null ? noInfo : t.properties.sqmValue(p.size_sqm),
-                ],
-                [t.properties.specFloor, p.floor ?? noInfo],
-                [t.properties.features.mamad, p.has_mamad ? t.properties.yes : t.properties.no],
-                [
-                  t.properties.features.elevator,
-                  p.has_elevator ? t.properties.yes : t.properties.no,
-                ],
-                [
-                  t.properties.features.parking,
-                  p.has_parking
-                    ? p.parking_count && p.parking_count > 1
-                      ? `${t.properties.yes} (${p.parking_count})`
-                      : t.properties.yes
-                    : t.properties.no,
-                ],
-                [t.properties.features.balcony, p.has_balcony ? t.properties.yes : t.properties.no],
-                [
-                  t.properties.features.storage,
-                  p.has_storage
-                    ? p.storage_count && p.storage_count > 1
-                      ? `${t.properties.yes} (${p.storage_count})`
-                      : t.properties.yes
-                    : t.properties.no,
-                ],
-              ].map(([k, v]) => (
+              {specRows.map(([k, v]) => (
                 <tr key={k}>
                   <th scope="row" className="py-2 text-start font-semibold text-muted-foreground">
                     {k}
