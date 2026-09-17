@@ -160,6 +160,30 @@ export function Testimonials() {
             {t.testimonials.counter(Math.min(i, items.length - 1) + 1, items.length)}
           </p>
         </div>
+
+        {/* דילוג ישיר — עם עשרות המלצות, דפדוף אחד-אחד אינו מספיק.
+            הרשימה עצמה אינה מוגבלת: כל ההמלצות השמורות זמינות כאן. */}
+        {items.length > 1 && (
+          <div
+            className="mt-3 flex flex-wrap gap-1.5"
+            role="tablist"
+            aria-label={t.testimonials.title}
+          >
+            {items.map((it, index) => (
+              <button
+                key={`${it.name}-${index}`}
+                type="button"
+                role="tab"
+                aria-selected={index === Math.min(i, items.length - 1)}
+                aria-label={t.testimonials.counter(index + 1, items.length)}
+                onClick={() => go(() => index)}
+                className={`size-2.5 rounded-full transition-colors ${
+                  index === Math.min(i, items.length - 1) ? "bg-sun" : "bg-border"
+                }`}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

@@ -202,6 +202,8 @@ export const ru: Dict = {
     fullName: "Полное имя",
     phone: "Телефон",
     sendWa: "Отправить в WhatsApp",
+    leadSaved: "Заявка сохранена и отправлена вашему агенту. Он свяжется с вами в ближайшее время.",
+    openWhatsApp: "Открыть WhatsApp",
     waInterested: (
       office: string,
       d: { title: string; hood: string; price: string; name: string; phone: string },
@@ -752,6 +754,7 @@ export const ru: Dict = {
     source: "Оригинальное объявление",
     callback: "Хочу, чтобы агент перезвонил",
     callbackSent: "Принято! Агент свяжется с вами в ближайшее время.",
+    openWhatsApp: "Открыть WhatsApp",
     send: "Отправить",
     cancel: "Отмена",
     match: (n: number) => `${n}% совпадение`,

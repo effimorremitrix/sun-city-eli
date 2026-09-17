@@ -127,6 +127,9 @@ function candidateToRow(c: ScoutCandidate, deal: "מכירה" | "השכרה", no
     has_parking: c.has_parking,
     has_balcony: c.has_balcony,
     match_score: c.match_score,
+    // מי פרסם — הבסיס להפרדה בין מודעות תיווך למודעות פרטיות בסוכן החכם
+    advertiser_type: c.advertiser_type,
+    agency_name: c.agency_name,
     raw: { match_reason: c.match_reason, raw_neighborhood: c.neighborhood } as never,
     last_seen_at: now,
     is_active: true,

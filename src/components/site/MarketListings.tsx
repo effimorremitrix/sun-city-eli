@@ -13,7 +13,7 @@ import { marketSourceLabel, type MarketListing } from "@/lib/market";
 import { formatListingPrice } from "@/lib/listings";
 import { createPublicLead } from "@/lib/leads.functions";
 import { isValidIsraeliPhone } from "@/lib/leads";
-import { openWa } from "@/lib/site-data";
+import { reserveWhatsAppWindow, whatsappUrl } from "@/lib/site-data";
 import { useLive } from "@/lib/site-live";
 import { mapValue, useLang } from "@/lib/i18n";
 import { trackEvent } from "@/lib/analytics";
@@ -112,6 +112,8 @@ export function MarketCard({
   const [form, setForm] = useState({ name: "", phone: "" });
   const [err, setErr] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  /** כתובת גיבוי כשחלון הוואטסאפ נחסם בדפדפן (נפוץ במחשב) */
+  const [waFallback, setWaFallback] = useState<string | null>(null);
   // צפייה במודעה מהשוק — נספרת פעם אחת לכרטיס (מקור או טופס חזרה)
   const viewedRef = useRef(false);
   const trackView = () => {
@@ -130,25 +132,34 @@ export function MarketCard({
     if (!form.name.trim()) return setErr(t.properties.errName);
     if (!isValidIsraeliPhone(form.phone)) return setErr(t.misc.phoneError);
     setErr(null);
-    // קליטה שקטה כליד אצל הסוכן — עם המודעה מהשוק שבגללה הלקוח פנה
-    try {
-      void createLead({
-        data: {
-          siteId,
-          name: form.name,
-          phone: form.phone,
-          source: "התעניינות בנכס",
-          marketListingId: m.id,
-          sessionId: readSessionId(),
-        },
-      }).catch(() => {});
-    } catch {
-      /* קליטת ליד היא Best-effort */
-    }
-    trackEvent("lead_submit", siteId);
+
+    // הלשונית נפתחת כאן, בתוך ההקלקה עצמה — אחרי await הדפדפן במחשב חוסם
+    // חלון קופץ, וזו הסיבה ש"סוכן יחזור אליי" עבד בנייד ולא במחשב.
+    const pending = reserveWhatsAppWindow();
+    const waMsg = t.market.waMsg(live.agentName, m.title, m.source_url);
+
     setSent(true);
     setFormOpen(false);
-    openWa(t.market.waMsg(live.agentName, m.title, m.source_url), live.phoneTel);
+    trackEvent("lead_submit", siteId);
+
+    // הליד נשמר תמיד — גם אם וואטסאפ לא נפתח בסוף
+    void (async () => {
+      try {
+        await createLead({
+          data: {
+            siteId,
+            name: form.name,
+            phone: form.phone,
+            source: "בקשת חזרה",
+            marketListingId: m.id,
+            sessionId: readSessionId(),
+          },
+        });
+      } catch {
+        /* קליטת ליד היא Best-effort — לא עוצרת את פתיחת וואטסאפ */
+      }
+      if (!pending.go(waMsg, live.phoneTel)) setWaFallback(whatsappUrl(waMsg, live.phoneTel));
+    })();
   };
 
   return (
@@ -198,9 +209,20 @@ export function MarketCard({
         </ul>
 
         {sent && (
-          <p className="mt-3 rounded-xl bg-secondary p-2.5 text-xs font-semibold text-primary">
-            {t.market.callbackSent}
-          </p>
+          <div className="mt-3 rounded-xl bg-secondary p-2.5 text-xs font-semibold text-primary">
+            <p>{t.market.callbackSent}</p>
+            {waFallback && (
+              <a
+                href={waFallback}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1.5 inline-flex items-center gap-1 underline"
+              >
+                <MessageCircle className="size-3.5" aria-hidden="true" />
+                {t.market.openWhatsApp}
+              </a>
+            )}
+          </div>
         )}
 
         {formOpen && !sent && (

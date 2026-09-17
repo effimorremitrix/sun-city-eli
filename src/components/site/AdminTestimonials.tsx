@@ -6,6 +6,7 @@ import {
   adminDeleteTestimonial,
   adminListTestimonials,
   adminSaveTestimonial,
+  adminTestimonialsStats,
   type TestimonialRow,
 } from "@/lib/testimonials.functions";
 import type { ManagedSite } from "@/lib/admin.server";
@@ -85,10 +86,16 @@ export default function AdminTestimonials({
   const listFn = useServerFn(adminListTestimonials);
   const saveFn = useServerFn(adminSaveTestimonial);
   const deleteFn = useServerFn(adminDeleteTestimonial);
+  const statsFn = useServerFn(adminTestimonialsStats);
 
   const list = useQuery({
     queryKey: ["admin-testimonials"],
     queryFn: () => listFn(),
+  });
+  // מונה אמת מהמסד — התשובה ל"האם המלצה נמחקה או רק לא מוצגת"
+  const stats = useQuery({
+    queryKey: ["admin-testimonials-stats"],
+    queryFn: () => statsFn(),
   });
 
   const [form, setForm] = useState<Form | null>(null);
@@ -106,7 +113,7 @@ export default function AdminTestimonials({
     try {
       await fn();
       setMsg(okMsg);
-      await list.refetch();
+      await Promise.all([list.refetch(), stats.refetch()]);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "הפעולה נכשלה");
     } finally {
@@ -234,6 +241,18 @@ export default function AdminTestimonials({
           ? "כל המלצה נשמרת בנפרד עם היקף הצגה: כללית של SUN CITY (בכל הדפים), של סוכן מסוים או של כמה סוכנים. הטקסטים מתורגמים אוטומטית לשפות האתר בשמירה."
           : "ההמלצות שאתם מוסיפים מוצגות בדף שלכם, לצד ההמלצות הכלליות של SUN CITY. הטקסטים מתורגמים אוטומטית לשפות האתר בשמירה."}
       </p>
+
+      {/* מונה שמור-במסד: כל המלצה חדשה מתווספת, לעולם אינה דורסת קיימות.
+          התצוגה בדף היא קרוסלה (המלצה אחת בכל רגע) ואינה מוגבלת בכמות. */}
+      {stats.data && (
+        <p className="mt-2 rounded-xl bg-secondary/60 px-3 py-2 text-xs font-bold text-primary">
+          שמורות במסד: {stats.data.total} המלצות · מפורסמות: {stats.data.published} · כלליות:{" "}
+          {stats.data.global}
+          {isAdmin && stats.data.legacyArchive > 0
+            ? ` · ארכיון מהמבנה הישן: ${stats.data.legacyArchive} (שוחזרו לרשימה)`
+            : ""}
+        </p>
+      )}
 
       {msg && (
         <p className="mt-3 rounded-xl bg-secondary p-3 text-sm font-semibold text-primary">{msg}</p>

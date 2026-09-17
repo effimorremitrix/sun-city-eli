@@ -294,11 +294,13 @@ export const getMyPortalExtras = createServerFn({ method: "GET" })
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(1),
+      // מודעות ממשרדי תיווך בלבד — מודעות של מוכרים פרטיים אינן מוצגות
       supabase
         .from("market_listings")
         .select(MARKET_COLUMNS)
         .eq("is_active", true)
         .eq("hidden_by_admin", false)
+        .eq("advertiser_type", "agency")
         .order("first_seen_at", { ascending: false })
         .limit(400),
     ]);

@@ -20,10 +20,8 @@ import type { FieldMediaItem } from "@/lib/field-media.functions";
 import { SiteLiveProvider, localizeLive, type LiveSite } from "@/lib/site-live";
 import { getPublicSite } from "@/lib/site.functions";
 import { listPublicListings, listPublicAgents } from "@/lib/listings.functions";
-import { listPublicMarketListings } from "@/lib/market.functions";
 import { listPublicSoldProperties, type SoldPage } from "@/lib/sold.functions";
 import { localizeListing, type Listing } from "@/lib/listings";
-import type { MarketListing } from "@/lib/market";
 import { RESERVED_AGENT_SLUGS } from "@/lib/reserved-slugs";
 import {
   DEFAULT_LOCALE,
@@ -73,13 +71,13 @@ export const Route = createFileRoute("/{-$lang}/$agentSlug")({
     const slug = params.agentSlug.toLowerCase();
     if (RESERVED_AGENT_SLUGS.has(slug)) throw notFound();
 
-    const [live, listings, agents, sold, marketListings] = await Promise.all([
+    // האתר הציבורי מציג נכסי SUN CITY בלבד; מודעות ממשרדי תיווך אחרים
+    // מוצגות רק באזור האישי / בסוכן החכם, אחרי הרשמה.
+    const [live, listings, agents, sold] = await Promise.all([
       getPublicSite({ data: { slug } }),
       listPublicListings({ data: { slug } }),
       listPublicAgents(),
       listPublicSoldProperties({ data: {} }),
-      // מודעות מהשוק — כשל בטעינה אינו מפיל את הדף האישי
-      listPublicMarketListings({ data: { limit: 200 } }).catch((): MarketListing[] => []),
     ]);
     if (!live.found) throw notFound();
     // ממליצים ו"מהשטח" מהטבלאות — אחרי שה-siteId ידוע, בשפת הדף
@@ -89,7 +87,6 @@ export const Route = createFileRoute("/{-$lang}/$agentSlug")({
       listings,
       agents,
       sold,
-      marketListings,
       fieldMedia: extras.fieldMedia,
     };
   },
@@ -147,12 +144,11 @@ function AgentPage() {
 
 function AgentPageContent() {
   const { lang, t } = useLang();
-  const { live, listings, agents, sold, marketListings, fieldMedia } = Route.useLoaderData() as {
+  const { live, listings, agents, sold, fieldMedia } = Route.useLoaderData() as {
     live: LiveSite;
     listings: Listing[];
     agents: PublicAgentRow[];
     sold: SoldPage;
-    marketListings: MarketListing[];
     fieldMedia: FieldMediaItem[];
   };
   const localizedLive = localizeLive(live, lang, t);
@@ -171,11 +167,7 @@ function AgentPageContent() {
           {/* הפרופיל של סוכן הדף מוצג כראשי; יתר הסוכנים בקרוסלה מתחתיו */}
           <AgentProfile />
           <Team agents={agents} variant="secondary" />
-          <PropertySection
-            listings={localizedListings}
-            updatedAt={listingsUpdatedAt}
-            marketListings={marketListings ?? []}
-          />
+          <PropertySection listings={localizedListings} updatedAt={listingsUpdatedAt} />
           <SmartAgentSection />
           <ItemsSection />
           <SellerSection />

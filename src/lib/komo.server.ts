@@ -307,5 +307,9 @@ export function komoCardToCandidate(card: KomoCard, query: KomoQuery): ScoutCand
     raw_summary: s(summary, 600),
     match_score: scoreCard(card),
     match_reason: "מודעה פעילה בקומו שעונה על קריטריוני החיפוש",
+    // קומו הוא לוח של משרדי תיווך: הפרסום בו נעשה דרך משרד, ולכן כל
+    // מודעה שנסרקת ממנו היא מודעת תיווך.
+    advertiser_type: "agency" as const,
+    agency_name: null,
   };
 }

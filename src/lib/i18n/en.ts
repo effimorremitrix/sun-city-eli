@@ -201,6 +201,8 @@ export const en: Dict = {
     fullName: "Full name",
     phone: "Phone",
     sendWa: "Send via WhatsApp",
+    leadSaved: "Your request was saved and sent to your agent. They will get back to you shortly.",
+    openWhatsApp: "Open WhatsApp",
     waInterested: (
       office: string,
       d: { title: string; hood: string; price: string; name: string; phone: string },
@@ -751,6 +753,7 @@ export const en: Dict = {
     source: "Original listing",
     callback: "Have an agent call me back",
     callbackSent: "Got it! The agent will get back to you shortly.",
+    openWhatsApp: "Open WhatsApp",
     send: "Send",
     cancel: "Cancel",
     match: (n: number) => `${n}% match`,

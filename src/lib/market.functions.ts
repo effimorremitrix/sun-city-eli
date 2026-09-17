@@ -2,7 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { MARKET_COLUMNS, type MarketListing } from "@/lib/market";
 
-/** מודעות פעילות מהשוק — לדף הבית ולאזור האישי (ציבורי, RLS מסנן מוסתרות) */
+/**
+ * מודעות פעילות מהשוק — לאזור האישי / לסוכן החכם בלבד.
+ * מוחזרות אך ורק מודעות של משרדי תיווך (advertiser_type='agency'):
+ * מודעות של מוכרים פרטיים אינן מוצגות בשום מסך באתר.
+ */
 export const listPublicMarketListings = createServerFn({ method: "GET" })
   .inputValidator((input?: { limit?: number }) => ({
     limit: Math.min(300, Math.max(1, Number(input?.limit ?? 200) || 200)),
@@ -16,6 +20,7 @@ export const listPublicMarketListings = createServerFn({ method: "GET" })
       .select(MARKET_COLUMNS)
       .eq("is_active", true)
       .eq("hidden_by_admin", false)
+      .eq("advertiser_type", "agency")
       .order("first_seen_at", { ascending: false })
       .limit(data.limit);
     if (error) {
@@ -36,6 +41,7 @@ export const getPublicMarketListing = createServerFn({ method: "GET" })
       .from("market_listings")
       .select(MARKET_COLUMNS)
       .eq("id", data.id)
+      .eq("advertiser_type", "agency")
       .maybeSingle();
     return (row as unknown as MarketListing | null) ?? null;
   });

@@ -22,10 +22,12 @@ import {
   adminDeleteLead,
   adminGetContact,
   adminGetLead,
+  adminResendLeadAlert,
   adminLeadQuickAction,
   adminReassignLead,
   adminSaveLead,
   type LeadEventRow,
+  type LeadAlertRow,
   type QuickActionKey,
 } from "@/lib/leads.functions";
 import {
@@ -396,6 +398,7 @@ export default function AdminLeadDrawer({
   const quickAction = useServerFn(adminLeadQuickAction);
   const reassignLead = useServerFn(adminReassignLead);
   const setPipeline = useServerFn(adminSetLeadPipeline);
+  const resendAlert = useServerFn(adminResendLeadAlert);
   // מי אפשר להציב כאחראי על הליד בדף הזה (בעל הדף + מנהלים ראשיים)
   const fetchAssignable = useServerFn(adminAssignableUsers);
   const assignable = useQuery({
@@ -1045,6 +1048,62 @@ export default function AdminLeadDrawer({
                   <Trash2 className="size-4" aria-hidden="true" />
                   מחיקה
                 </button>
+              )}
+            </div>
+          )}
+
+          {/* התראות לסוכן — נשלחו או נכשלו, עם סיבה ושליחה חוזרת */}
+          {leadId && (
+            <div className="mt-6">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-extrabold text-primary">התראות לסוכן</p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    void run(
+                      () => resendAlert({ data: { siteId, leadId } }),
+                      "ההתראה נשלחה מחדש — ראו את התוצאה ברשימה",
+                    )
+                  }
+                  className="inline-flex items-center gap-1 rounded-xl border border-primary/30 px-3 py-1.5 text-xs font-bold text-primary"
+                >
+                  <MessageCircle className="size-3.5 text-sun" aria-hidden="true" />
+                  שליחה חוזרת
+                </button>
+              </div>
+              {(detail.data?.alerts ?? []).length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  לא נרשמה שליחת התראה על הליד הזה. הליד עצמו שמור בכל מקרה.
+                </p>
+              ) : (
+                <ul className="grid gap-1.5 text-xs">
+                  {(detail.data?.alerts ?? []).map((a: LeadAlertRow) => (
+                    <li
+                      key={a.id}
+                      className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-xl border border-border p-2"
+                    >
+                      <span className="shrink-0 text-muted-foreground">
+                        {fmtDateTime(a.created_at)}
+                      </span>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${activityStatusClass(a.status)}`}
+                      >
+                        {ACTIVITY_STATUS_LABELS[a.status] ?? a.status}
+                      </span>
+                      <span className="shrink-0 font-bold text-primary">
+                        {a.channel === "whatsapp"
+                          ? "וואטסאפ"
+                          : a.channel === "email"
+                            ? "מייל"
+                            : (a.channel ?? "")}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate" dir="auto">
+                        {a.recipient ?? ""} {a.message ?? a.event}
+                      </span>
+                      {a.error && <span className="w-full text-destructive">{a.error}</span>}
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           )}

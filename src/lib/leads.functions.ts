@@ -85,31 +85,128 @@ export const adminGetLead = createServerFn({ method: "POST" })
     siteId: String(input?.siteId ?? ""),
     leadId: String(input?.leadId ?? ""),
   }))
-  .handler(async ({ data, context }): Promise<{ lead: LeadRow; events: LeadEventRow[] }> => {
+  .handler(
+    async ({
+      data,
+      context,
+    }): Promise<{ lead: LeadRow; events: LeadEventRow[]; alerts: LeadAlertRow[] }> => {
+      const { assertSiteAccess } = await import("@/lib/admin.server");
+      await assertSiteAccess(context, data.siteId);
+
+      const [{ data: lead, error }, { data: events, error: evError }, { data: alerts }] =
+        await Promise.all([
+          context.supabase
+            .from("leads")
+            .select(LEAD_ROW_COLUMNS)
+            .eq("site_id", data.siteId)
+            .eq("id", data.leadId)
+            .single(),
+          context.supabase
+            .from("lead_events")
+            .select("id,event_type,note,listing_id,metadata,actor_user_id,created_at")
+            .eq("lead_id", data.leadId)
+            .eq("site_id", data.siteId)
+            .order("created_at", { ascending: false })
+            .limit(200),
+          // ההתראות שנשלחו (או נכשלו) על הליד הזה — התשובה ל"האם הסוכן קיבל"
+          context.supabase
+            .from("activity_log")
+            .select("id, event, channel, status, recipient, message, error, created_at")
+            .eq("lead_id", data.leadId)
+            .eq("kind", "notification")
+            .order("created_at", { ascending: false })
+            .limit(30),
+        ]);
+      if (error) throw new Error(error.message);
+      if (evError) throw new Error(evError.message);
+      return {
+        lead: lead as unknown as LeadRow,
+        events: (events ?? []) as unknown as LeadEventRow[],
+        alerts: (alerts ?? []) as unknown as LeadAlertRow[],
+      };
+    },
+  );
+
+/** שורת התראה בכרטיס הליד (מתוך activity_log) */
+export type LeadAlertRow = {
+  id: number;
+  event: string;
+  channel: "email" | "whatsapp" | "sms" | "inapp" | null;
+  status: "ok" | "failed" | "skipped" | "blocked";
+  recipient: string | null;
+  message: string | null;
+  error: string | null;
+  created_at: string;
+};
+
+/**
+ * שליחה חוזרת של ההתראה לסוכן על ליד קיים — כשהמייל/הוואטסאפ נכשלו
+ * (ספק לא מוגדר, טוקן שפג, מספר שגוי) ותוקנו. הליד עצמו כבר שמור; זו
+ * רק השליחה. התוצאה נרשמת ביומן בדיוק כמו שליחה רגילה.
+ */
+export const adminResendLeadAlert = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { siteId: string; leadId: string }) => ({
+    siteId: String(input?.siteId ?? ""),
+    leadId: String(input?.leadId ?? ""),
+  }))
+  .handler(async ({ data, context }): Promise<{ ok: boolean; agentNotified: boolean }> => {
     const { assertSiteAccess } = await import("@/lib/admin.server");
     await assertSiteAccess(context, data.siteId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { LEAD_COLUMNS, contactCriteriaSummary } = await import("@/lib/leads.server");
+    const { notifyAgent } = await import("@/lib/notify.server");
+    const { getSettings } = await import("@/lib/settings.server");
 
-    const [{ data: lead, error }, { data: events, error: evError }] = await Promise.all([
-      context.supabase
-        .from("leads")
-        .select(LEAD_ROW_COLUMNS)
-        .eq("site_id", data.siteId)
-        .eq("id", data.leadId)
-        .single(),
-      context.supabase
-        .from("lead_events")
-        .select("id,event_type,note,listing_id,metadata,actor_user_id,created_at")
-        .eq("lead_id", data.leadId)
-        .eq("site_id", data.siteId)
-        .order("created_at", { ascending: false })
-        .limit(200),
-    ]);
+    const { data: leadRow, error } = await supabaseAdmin
+      .from("leads")
+      .select(LEAD_COLUMNS)
+      .eq("id", data.leadId)
+      .eq("site_id", data.siteId)
+      .single();
     if (error) throw new Error(error.message);
-    if (evError) throw new Error(evError.message);
-    return {
-      lead: lead as unknown as LeadRow,
-      events: (events ?? []) as unknown as LeadEventRow[],
+    const lead = leadRow as unknown as {
+      id: string;
+      site_id: string;
+      contact_id: string | null;
+      full_name: string;
+      phone: string | null;
+      email: string | null;
+      listing_id: string | null;
     };
+
+    const settings = await getSettings();
+    const target = await resolveTarget(lead.listing_id, null);
+    const criteria = await contactCriteriaSummary(lead.contact_id, leadRow as never);
+    const { data: site } = await supabaseAdmin
+      .from("sites")
+      .select("slug")
+      .eq("id", lead.site_id)
+      .maybeSingle();
+    const slug = (site?.slug as string | null) ?? "";
+
+    const result = await notifyAgent({
+      kind: "callback",
+      responseLabel: "רוצה שסוכן יחזור אליי",
+      siteId: lead.site_id,
+      contactId: lead.contact_id,
+      leadId: lead.id,
+      clientName: lead.full_name,
+      clientPhone: lead.phone,
+      clientEmail: lead.email,
+      listing: target
+        ? {
+            id: target.listingId,
+            marketId: target.marketListingId,
+            title: target.title,
+            url: `${settings.site_url}/${slug}?listing=${target.listingId ?? ""}#properties`,
+            sourceUrl: target.sourceUrl ?? null,
+          }
+        : null,
+      criteriaSummary: criteria,
+      siteUrl: settings.site_url,
+    });
+    return { ok: true, agentNotified: result.agentNotified };
   });
 
 export type LeadInput = {
@@ -544,11 +641,11 @@ export const createPublicLead = createServerFn({ method: "POST" })
             .limit(1)
             .maybeSingle();
           const target = await resolveTarget(data.listingId, data.marketListingId);
+          const isInterest = data.source === "התעניינות בנכס";
           if (leadRow && target) {
             await handleClientAction({
-              kind: data.source === "התעניינות בנכס" ? "interest" : "callback",
-              responseLabel:
-                data.source === "התעניינות בנכס" ? "מעניין אותי" : "רוצה שסוכן יחזור אליי",
+              kind: isInterest ? "interest" : "callback",
+              responseLabel: isInterest ? "מעניין אותי" : "רוצה שסוכן יחזור אליי",
               userId,
               contact,
               lead: leadRow as never,
@@ -668,7 +765,7 @@ export const requestMarketCallback = createServerFn({ method: "POST" })
       createdNote: `הלקוח התעניין בנכס מהשוק: ${target.title}`,
     });
     const label = data.kind === "callback" ? "רוצה שסוכן יחזור אליי" : "מעניין אותי";
-    await handleClientAction({
+    const result = await handleClientAction({
       kind: data.kind,
       responseLabel: label,
       userId: context.userId,
@@ -677,7 +774,18 @@ export const requestMarketCallback = createServerFn({ method: "POST" })
       target,
       siteUrl: settings.site_url,
     });
-    return { ok: true };
+
+    // פרטי הסוכן המטפל חוזרים ללקוח כדי שהכפתור יוכל לפתוח וואטסאפ אליו —
+    // הליד כבר נשמר ונשלח, ופתיחת וואטסאפ היא תוספת ולא תנאי.
+    const { agentChannels } = await import("@/lib/notify.server");
+    const agent = await agentChannels(lead.site_id);
+    return {
+      ok: true,
+      agentNotified: result?.agentNotified === true,
+      agent: agent ? { name: agent.name, phoneTel: agent.publicPhone } : null,
+      listingTitle: target.title,
+      sourceUrl: target.sourceUrl ?? null,
+    };
   });
 
 /** העברת ליד (והלקוח שלו) לסוכן אחר — מנהל ראשי בלבד */

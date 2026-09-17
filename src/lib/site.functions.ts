@@ -7,7 +7,6 @@ import {
   type LiveContentTranslation,
   type LiveFaqItem,
   type LiveSite,
-  type LiveTestimonial,
   type LiveTranslations,
 } from "@/lib/site-live";
 import { OFFICE_SLUG } from "@/lib/site-data";
@@ -96,7 +95,6 @@ export const saveSiteContent = createServerFn({ method: "POST" })
       business?: Record<string, unknown>;
       texts?: Record<string, unknown>;
       translations?: Record<string, unknown>;
-      testimonials?: unknown[] | null;
       faq?: unknown[] | null;
     }) => input,
   )
@@ -114,16 +112,10 @@ export const saveSiteContent = createServerFn({ method: "POST" })
       siteId = fallback.id;
     }
 
-    // ממליצים ושאלות נפוצות עוברים ולידציה; undefined = לא לגעת בערך הקיים
-    let testimonials: unknown;
+    // ממליצים אינם נשמרים כאן יותר: הם רשומות עצמאיות בטבלת testimonials
+    // (ראו testimonials.functions.ts). המסלול הישן — מערך jsonb שנדרס בכל
+    // שמירה — הוא שגרם ל"ההמלצות נעלמות"; העמודה נשארת כארכיון לקריאה בלבד.
     let faq: unknown;
-    if (data.testimonials !== undefined) {
-      const { testimonialSchema } = await import("@/lib/listing-schema");
-      testimonials =
-        data.testimonials === null
-          ? null
-          : data.testimonials.slice(0, 30).map((t) => testimonialSchema.parse(t));
-    }
     if (data.faq !== undefined) {
       const { faqItemSchema } = await import("@/lib/listing-schema");
       faq = data.faq === null ? null : data.faq.slice(0, 30).map((f) => faqItemSchema.parse(f));
@@ -132,7 +124,6 @@ export const saveSiteContent = createServerFn({ method: "POST" })
     // תרגום אוטומטי של התוכן שנשמר (ממליצים, שאלות נפוצות, אודות ותפקיד
     // הסוכן) לשלוש שפות האתר — ממוזג לתוך עמודת translations הקיימת
     const translations = await mergeAutoTranslations(context, siteId, data, {
-      testimonials: testimonials as LiveTestimonial[] | null | undefined,
       faq: faq as LiveFaqItem[] | null | undefined,
     });
 
@@ -142,7 +133,6 @@ export const saveSiteContent = createServerFn({ method: "POST" })
         ...(data.business !== undefined ? { business: data.business as never } : {}),
         ...(data.texts !== undefined ? { texts: data.texts as never } : {}),
         ...(translations ? { translations: translations as never } : {}),
-        ...(data.testimonials !== undefined ? { testimonials: testimonials as never } : {}),
         ...(data.faq !== undefined ? { faq: faq as never } : {}),
       },
       { onConflict: "site_id" },
@@ -168,22 +158,19 @@ async function mergeAutoTranslations(
   data: {
     business?: Record<string, unknown>;
     translations?: Record<string, unknown>;
-    testimonials?: unknown[] | null;
     faq?: unknown[] | null;
   },
   parsed: {
-    testimonials: LiveTestimonial[] | null | undefined;
     faq: LiveFaqItem[] | null | undefined;
   },
 ): Promise<LiveTranslations | undefined> {
-  const touchesAuto =
-    data.business !== undefined || data.testimonials !== undefined || data.faq !== undefined;
+  const touchesAuto = data.business !== undefined || data.faq !== undefined;
   if (!touchesAuto && !data.translations) return undefined;
 
   // המצב הנוכחי במסד — הבסיס למיזוג ולהשוואת החתימות
   const { data: row } = await context.supabase
     .from("site_content")
-    .select("business, testimonials, faq, translations")
+    .select("business, faq, translations")
     .eq("site_id", siteId)
     .maybeSingle();
   const existing = ((row?.translations ?? {}) as LiveTranslations) || {};
@@ -214,21 +201,12 @@ async function mergeAutoTranslations(
   const business = (data.business ??
     (row?.business as Record<string, unknown> | null) ??
     {}) as Record<string, unknown>;
-  const testimonials =
-    parsed.testimonials !== undefined
-      ? parsed.testimonials
-      : ((row?.testimonials as LiveTestimonial[] | null) ?? null);
   const faq = parsed.faq !== undefined ? parsed.faq : ((row?.faq as LiveFaqItem[] | null) ?? null);
 
   const source: Record<string, string> = {};
   const str = (v: unknown) => (typeof v === "string" ? v : "");
   source["business.bio"] = str(business["bio"]);
   source["business.roleTitle"] = str(business["roleTitle"]);
-  for (const t of Array.isArray(testimonials) ? testimonials : []) {
-    source[`testimonials.${t.id}.name`] = str(t.name);
-    source[`testimonials.${t.id}.type`] = str(t.type);
-    source[`testimonials.${t.id}.quote`] = str(t.quote);
-  }
   for (const f of Array.isArray(faq) ? faq : []) {
     source[`faq.${f.id}.q`] = str(f.q);
     source[`faq.${f.id}.a`] = str(f.a);
@@ -250,19 +228,18 @@ async function mergeAutoTranslations(
       business?: Record<string, string>;
     };
     const prev = merged[lang] ?? {};
-    // המפתחות הידניים נשארים; bio/roleTitle, הממליצים והשאלות מוחלפים במלואם
-    // (ממליץ שנמחק — התרגום שלו נמחק איתו)
+    // המפתחות הידניים נשארים; bio/roleTitle והשאלות מוחלפים במלואם
+    // (שאלה שנמחקה — התרגום שלה נמחק איתה). תרגומי הממליצים הישנים
+    // (entry.testimonials) נשמרים כארכיון לשחזור ואינם נכתבים מחדש.
     const prevBusiness = { ...(prev.business ?? {}) };
     delete prevBusiness.bio;
     delete prevBusiness.roleTitle;
     const entry: LiveContentTranslation = { ...prev };
-    delete entry.testimonials;
     delete entry.faq;
     delete entry._hash;
     const business = { ...prevBusiness, ...(nested.business ?? {}) };
     if (Object.keys(business).length) entry.business = business;
     else delete entry.business;
-    if (nested.testimonials) entry.testimonials = nested.testimonials;
     if (nested.faq) entry.faq = nested.faq;
     if (nested._hash) entry._hash = nested._hash;
     if (!entry.texts || !Object.keys(entry.texts).length) delete entry.texts;

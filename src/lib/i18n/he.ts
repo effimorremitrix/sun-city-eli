@@ -195,6 +195,8 @@ export const he = {
     fullName: "שם מלא",
     phone: "טלפון",
     sendWa: "שליחה בוואטסאפ",
+    leadSaved: "הפנייה נשמרה ונשלחה לסוכן המטפל. הוא יחזור אליך בהקדם.",
+    openWhatsApp: "פתיחת וואטסאפ",
     waInterested: (
       office: string,
       d: { title: string; hood: string; price: string; name: string; phone: string },
@@ -736,6 +738,7 @@ export const he = {
     source: "למודעה המקורית",
     callback: "רוצה שסוכן יחזור אליי",
     callbackSent: "קיבלנו! הסוכן יחזור אליך בהקדם.",
+    openWhatsApp: "פתיחת וואטסאפ",
     send: "שליחה",
     cancel: "ביטול",
     match: (n: number) => `${n}% התאמה`,

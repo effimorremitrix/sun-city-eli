@@ -1,3 +1,9 @@
+import {
+  buildWa as buildWaImpl,
+  isMobileDevice as isMobileImpl,
+  openWhatsApp as openWhatsAppImpl,
+  whatsappUrl as whatsappUrlImpl,
+} from "@/lib/whatsapp-open";
 import prop1 from "@/assets/prop-1.jpg";
 import prop2 from "@/assets/prop-2.jpg";
 import prop3 from "@/assets/prop-3.jpg";
@@ -74,32 +80,49 @@ export const mapsEmbedUrl = `https://www.google.com/maps?q=${lat},${lng}&z=17&ou
 /* ---------------------------- וואטסאפ ---------------------------- */
 /** מקור אמת אחד ויחיד לכל קישורי הוואטסאפ באתר. אין להרכיב קישור ידנית בשום מקום. */
 
-export const WA_PHONE = "0525551200";
+/* המימוש נמצא ב-whatsapp-open.ts (בחירת יעד לפי מכשיר ולשונית שנפתחת מראש
+   בתוך ההקלקה); כאן ייצוא חוזר, כדי ששאר האתר ימשיך לייבא מ-site-data. */
+export {
+  WA_PHONE,
+  toIntl,
+  buildWa,
+  whatsappUrl,
+  openWhatsApp,
+  reserveWhatsAppWindow,
+  isMobileDevice,
+} from "@/lib/whatsapp-open";
 
-export const toIntl = (p: string) => "972" + p.replace(/\D/g, "").replace(/^0/, "");
+/** הפונקציה היחידה לפתיחת וואטסאפ בכל האתר — מחזירה האם החלון נפתח */
+export const openWa = (msg: string, phone?: string): boolean => openWhatsAppImpl(msg, phone).opened;
 
-/** קישור wa.me התקני – מקור אמת יחיד. phone הוא מספר הסוכן של הדף הנוכחי. */
-export const buildWa = (msg: string, phone: string = WA_PHONE) =>
-  "https://wa.me/" + toIntl(phone) + "?text=" + encodeURIComponent(msg);
-
-/** הפונקציה היחידה לפתיחת וואטסאפ בכל האתר */
-export const openWa = (msg: string, phone?: string) =>
-  window.open(buildWa(msg, phone), "_blank", "noopener,noreferrer");
-
-/** props לקישור/כפתור וואטסאפ – מבטיח שהפתיחה תמיד עוברת דרך openWa */
+/**
+ * props לקישור/כפתור וואטסאפ.
+ * ה-href הוא תמיד wa.me: הוא נכון בשרת (SSR) ובכל מכשיר, ולכן גם "פתיחה
+ * בלשונית חדשה" והעתקת הקישור עובדות. ה-onClick משדרג את היעד במחשב
+ * ל-WhatsApp Web — פתיחה ישירה בתוך ההקלקה, בלי await, ולכן אינה נחסמת.
+ * אם הפתיחה בכל זאת נחסמה, מבטלים את preventDefault ונותנים לדפדפן לנווט.
+ */
 export const waProps = (msg: string, phone?: string) => ({
-  href: buildWa(msg, phone),
+  href: buildWaImpl(msg, phone),
   target: "_blank" as const,
   rel: "noopener noreferrer",
   onClick: (e: { preventDefault: () => void }) => {
+    if (isMobileImpl()) return; // בנייד wa.me כבר פותח את האפליקציה
     e.preventDefault();
-    openWa(msg, phone);
+    if (!openWhatsAppImpl(msg, phone).opened) {
+      // החלון נחסם — ניווט בלשונית הנוכחית עדיף על "לא קרה כלום"
+      try {
+        window.location.href = whatsappUrlImpl(msg, phone);
+      } catch {
+        /* לא נותר מה לעשות */
+      }
+    }
   },
 });
 
 /** שמות תאימות – מפנים לאותה פונקציה יחידה */
-export const whatsappLink = (text: string, phone?: string) => buildWa(text, phone);
-export const agentWhatsappLink = (phone: string, text: string) => buildWa(text, phone);
+export const whatsappLink = (text: string, phone?: string) => buildWaImpl(text, phone);
+export const agentWhatsappLink = (phone: string, text: string) => buildWaImpl(text, phone);
 
 /* ---------------------------- טקסטים ---------------------------- */
 

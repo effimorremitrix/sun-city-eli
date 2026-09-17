@@ -27,11 +27,12 @@ import {
   type AiLimitReason,
   type AiSearchResult,
 } from "@/lib/ai-search.functions";
+import { WebCandidates } from "@/components/portal/WebCandidates";
 import { formatListingPrice, listingImages, localizeListing, type Listing } from "@/lib/listings";
 import { marketSourceLabel, type MarketListing } from "@/lib/market";
 import type { MatchResult } from "@/lib/match-score";
 import { getBackToSiteHref } from "@/lib/back-to-site";
-import { waProps } from "@/lib/site-data";
+import { waProps, reserveWhatsAppWindow, whatsappUrl } from "@/lib/site-data";
 import { useLang, type Dict } from "@/lib/i18n";
 
 /** הודעת חסימה של החיפוש החכם בשפת הדף (spend = תקרת הוצאה → "לא זמין") */
@@ -241,16 +242,31 @@ function MarketMatchCard({
   const request = useServerFn(requestMarketCallback);
   const [busy, setBusy] = useState<"callback" | "interest" | null>(null);
   const [done, setDone] = useState<Set<"callback" | "interest">>(() => new Set());
+  /** כתובת גיבוי כשהדפדפן חסם את חלון הוואטסאפ (קורה בעיקר במחשב) */
+  const [waFallback, setWaFallback] = useState<string | null>(null);
 
   const act = async (kind: "callback" | "interest") => {
     if (busy || done.has(kind)) return;
+    // "רוצה שסוכן יחזור אליי" פותח גם וואטסאפ לסוכן — הלשונית נשמרת כאן,
+    // בתוך ההקלקה, כי אחרי ה-await הדפדפן במחשב חוסם פתיחת חלון.
+    const pending = kind === "callback" ? reserveWhatsAppWindow() : null;
     setBusy(kind);
     try {
-      await request({ data: { marketListingId: listing.id, kind } });
+      const res = await request({ data: { marketListingId: listing.id, kind } });
       setDone((prev) => new Set(prev).add(kind));
       onMessage(t.portal.fbCallbackOk);
+      if (pending) {
+        const phone = res?.agent?.phoneTel ?? undefined;
+        const msg = t.market.waMsg(
+          res?.agent?.name ?? t.portal.agentCardTitle,
+          res?.listingTitle ?? listing.title,
+          res?.sourceUrl ?? listing.source_url,
+        );
+        if (!pending.go(msg, phone)) setWaFallback(whatsappUrl(msg, phone));
+      }
     } catch {
-      // best-effort — הכפתור פשוט לא משתנה
+      // הליד לא נשמר — לא פותחים וואטסאפ שמנותק מפנייה שמורה
+      pending?.cancel();
     } finally {
       setBusy(null);
     }
@@ -343,6 +359,17 @@ function MarketMatchCard({
               <Heart className="size-3.5" aria-hidden="true" />
               {t.portal.fbInterested}
             </button>
+            {waFallback && (
+              <a
+                href={waFallback}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-bold text-primary underline"
+              >
+                <MessageCircle className="size-3.5" aria-hidden="true" />
+                {t.market.openWhatsApp}
+              </a>
+            )}
           </div>
         </div>
       </div>
@@ -351,13 +378,23 @@ function MarketMatchCard({
 }
 
 /**
- * חיפוש חכם בכל השוק — לאזור האישי של הלקוח: טקסט חופשי → פילטרים → נכסי
- * המשרד + מודעות מהשוק שתואמות. בלי סריקה חיה (includeWeb=false) — זו
- * נשארת בדף הציבורי כדי לא לבזבז את המכסה היומית מהפורטל.
+ * הסוכן החכם — החיפוש הרחב, ובאזור האישי בלבד:
+ * טקסט חופשי → פילטרים → נכסי SUN CITY + מודעות ממשרדי תיווך אחרים
+ * (יד2, קומו, מדלן...) + סריקה חיה של הלוחות. מודעות של מוכרים פרטיים
+ * אינן מוצגות כאן — הסינון נעשה בשרת (advertiser_type='agency').
+ * באתר הציבורי מוצגים נכסי SUN CITY בלבד; זו ההפרדה בין השניים.
  */
 export function PortalAiSearch({ onMessage }: { onMessage: (msg: string) => void }) {
   const { t, lang } = useLang();
   const search = useServerFn(aiSearchListings);
+  // הסוכן המטפל — מאותה שאילתה של שאר הפורטל (react-query מאחד את הקריאה),
+  // כדי שפניות מתוצאות הסריקה החיה ינותבו אליו ולא למספר כללי
+  const fetchExtrasForAgent = useServerFn(getMyPortalExtras);
+  const extrasForAgent = useQuery({
+    queryKey: ["portal-extras"],
+    queryFn: () => fetchExtrasForAgent(),
+  });
+  const agent = extrasForAgent.data?.agent ?? null;
   const fetchListings = useServerFn(listPublicListings);
   const fetchMarket = useServerFn(listPublicMarketListings);
   const [query, setQuery] = useState("");
@@ -393,7 +430,7 @@ export function PortalAiSearch({ onMessage }: { onMessage: (msg: string) => void
     setErr(null);
     setBusy(true);
     try {
-      const r = await search({ data: { query, lang, includeWeb: false, website } });
+      const r = await search({ data: { query, lang, includeWeb: true, website } });
       if (r.limited) {
         setRes(null);
         setErr(aiLimitMessage(t, r.limited));
@@ -508,6 +545,15 @@ export function PortalAiSearch({ onMessage }: { onMessage: (msg: string) => void
             ))}
           </ul>
         </>
+      )}
+
+      {/* סריקה חיה של הלוחות — מודעות מתיווך בלבד, באזור האישי בלבד */}
+      {res && (
+        <WebCandidates
+          web={res.web}
+          agentPhone={agent?.phoneTel ?? ""}
+          agentName={agent?.name ?? t.portal.agentCardTitle}
+        />
       )}
     </section>
   );

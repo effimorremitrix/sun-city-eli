@@ -14,6 +14,8 @@ export type AiLimitReason = "daily" | "burst" | "disabled" | "blocked" | "spend"
 export type AiWebSummary = {
   scanned: number;
   rejected: number;
+  /** מודעות שנפסלו כי אינן של משרד תיווך (מפרסם פרטי או לא ידוע) */
+  privateFiltered: number;
   sites: Array<{
     site: string;
     total: number;
@@ -120,7 +122,14 @@ async function releaseWebSearch(reservationId: string): Promise<void> {
  */
 export const aiSearchListings = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: { query: string; includeWeb?: boolean; lang?: string; website?: string | null }) => {
+    (input: {
+      query: string;
+      includeWeb?: boolean;
+      lang?: string;
+      website?: string | null;
+      /** האתר הציבורי: נכסי SUN CITY בלבד, בלי מודעות מלוחות אחרים */
+      officeOnly?: boolean;
+    }) => {
       const query = String(input?.query ?? "")
         .trim()
         .slice(0, 300);
@@ -131,6 +140,7 @@ export const aiSearchListings = createServerFn({ method: "POST" })
       return {
         query,
         includeWeb: input?.includeWeb !== false,
+        officeOnly: input?.officeOnly === true,
         lang,
         website: String(input?.website ?? "").slice(0, 100),
       };
@@ -181,26 +191,35 @@ export const aiSearchListings = createServerFn({ method: "POST" })
       return limitedResult("spend");
     }
 
+    // מודעות מהשוק נשלפות רק לחיפוש של האזור האישי, ותמיד מודעות של
+    // משרדי תיווך בלבד — מודעות של מוכרים פרטיים אינן מוצגות בשום מסך.
     const [{ data: rows, error }, { data: marketRows }] = await Promise.all([
       db
         .from("listings")
         .select(LISTING_COLUMNS)
         .eq("is_published", true)
         .order("sort_order", { ascending: true }),
-      db
-        .from("market_listings")
-        .select(MARKET_COLUMNS)
-        .eq("is_active", true)
-        .eq("hidden_by_admin", false)
-        .order("first_seen_at", { ascending: false })
-        .limit(400),
+      data.officeOnly
+        ? Promise.resolve({ data: [] as unknown[] })
+        : db
+            .from("market_listings")
+            .select(MARKET_COLUMNS)
+            .eq("is_active", true)
+            .eq("hidden_by_admin", false)
+            .eq("advertiser_type", "agency")
+            .order("first_seen_at", { ascending: false })
+            .limit(400),
     ]);
     if (error) throw new Error("טעינת הנכסים נכשלה");
 
-    // אוצר הרחובות מהנכסים המפורסמים נשלח למודל כדי שיזהה שם רחוב בודד
-    const streets = streetVocabulary(
-      (rows ?? []) as Array<{ address: string | null; title: string }>,
-      [...neighborhoods],
+    // אוצר הרחובות נשלח למודל כדי שיזהה שם רחוב בודד. הוא אינו מבוסס רק
+    // על נכסי SUN CITY: רחוב שאין בו נכס שלנו עדיין חייב להיות ניתן לחיפוש
+    // (ראו knownStreets — רחובות נתניה + כתובות מהלוחות שנסרקו).
+    const { knownStreets } = await import("@/lib/streets.server");
+    const streets = await knownStreets(
+      streetVocabulary((rows ?? []) as Array<{ address: string | null; title: string }>, [
+        ...neighborhoods,
+      ]),
     );
     let { filters, explanation } = await extractFilters(
       data.query,
@@ -285,6 +304,11 @@ export const aiSearchListings = createServerFn({ method: "POST" })
             `${WEB_FEATURE}_api`,
             { limit: 30 },
           );
+          // רק מודעות של משרדי תיווך מוצגות ללקוח (וגם נשמרות עם סיווג
+          // המפרסם). מודעה שלא ברור מי פרסם אותה נחשבת "לא מתיווך".
+          const agencyCandidates = candidates.filter((c) => c.advertiser_type === "agency");
+          const privateFiltered = candidates.length - agencyCandidates.length;
+
           // מה שנמצא בסריקה חיה נשמר גם במאגר השוק — לטובת כל הלקוחות
           try {
             const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -308,6 +332,8 @@ export const aiSearchListings = createServerFn({ method: "POST" })
               has_parking: c.has_parking,
               has_balcony: c.has_balcony,
               match_score: c.match_score,
+              advertiser_type: c.advertiser_type,
+              agency_name: c.agency_name,
               last_seen_at: now,
               is_active: true,
             }));
@@ -323,11 +349,12 @@ export const aiSearchListings = createServerFn({ method: "POST" })
           }
           web = {
             status: "ok",
-            candidates,
+            candidates: agencyCandidates,
             remaining: Math.max(0, settings.web_search_user_daily - used),
             summary: {
               scanned: candidates.length + rejected.length,
               rejected: rejected.length,
+              privateFiltered,
               sites: sites.map((s) => ({
                 site: s.site,
                 total: s.total,
