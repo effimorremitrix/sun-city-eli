@@ -33,6 +33,11 @@ export type ListingAgent = {
   phone: string | null;
   phoneTel: string | null;
   photoUrl: string | null;
+  /**
+   * שם הסוכן המתועתק, לפי קוד שפה. מגיע מתרגומי הדף שלו, כדי שכרטיס
+   * הנכס בדף אנגלי/צרפתי/רוסי לא יציג שם בעברית.
+   */
+  nameByLang?: Partial<Record<string, string>> | null;
 };
 
 export type Listing = {
@@ -211,11 +216,16 @@ export function matchQueryStreet(query: string, streets: string[]): string | nul
 export function localizeListing(l: Listing, lang: string): Listing {
   if (lang === "he") return l;
   const tr = l.translations?.[lang];
-  if (!tr) return l;
+  // שם הסוכן מתועתק בנפרד מהכותרת/התיאור: נכס בלי תרגום טקסט עדיין צריך
+  // להציג את שם הסוכן בשפת הדף
+  const agentName = l.agent?.nameByLang?.[lang]?.trim();
+  const agent = agentName && l.agent ? { ...l.agent, name: agentName } : l.agent;
+  if (!tr) return agent === l.agent ? l : { ...l, ...(agent ? { agent } : {}) };
   return {
     ...l,
     title: tr.title ?? l.title,
     description: tr.description ?? l.description,
+    ...(agent ? { agent } : {}),
   };
 }
 

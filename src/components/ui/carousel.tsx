@@ -24,6 +24,8 @@ type CarouselContextProps = {
   scrollNext: () => void;
   canScrollPrev: boolean;
   canScrollNext: boolean;
+  /** כיוון הקרוסלה — קובע לאן מצביעים החצים ומה עושה כל מקש חץ */
+  isRtl: boolean;
 } & CarouselProps;
 
 const CarouselContext = React.createContext<CarouselContextProps | null>(null);
@@ -69,17 +71,23 @@ const Carousel = React.forwardRef<
     api?.scrollNext();
   }, [api]);
 
+  const isRtl = opts?.direction === "rtl";
+
+  // המקשים פיזיים: ב-RTL הפריט הבא נמצא *משמאל*, ולכן מקש שמאל מקדם
+  // קדימה. בלי ההיפוך הזה הדפדוף במקלדת הרגיש הפוך בעברית.
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key === "ArrowLeft") {
         event.preventDefault();
-        scrollPrev();
+        if (isRtl) scrollNext();
+        else scrollPrev();
       } else if (event.key === "ArrowRight") {
         event.preventDefault();
-        scrollNext();
+        if (isRtl) scrollPrev();
+        else scrollNext();
       }
     },
-    [scrollPrev, scrollNext],
+    [scrollPrev, scrollNext, isRtl],
   );
 
   React.useEffect(() => {
@@ -115,6 +123,7 @@ const Carousel = React.forwardRef<
         scrollNext,
         canScrollPrev,
         canScrollNext,
+        isRtl,
       }}
     >
       <div
@@ -142,7 +151,8 @@ const CarouselContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HT
           ref={ref}
           className={cn(
             "flex",
-            orientation === "horizontal" ? "-ml-4" : "-mt-4 flex-col",
+            // מרווח לוגי (-ms/ps) ולא פיזי — אחרת ב-RTL הרווח נופל בצד הלא נכון
+            orientation === "horizontal" ? "-ms-4" : "-mt-4 flex-col",
             className,
           )}
           {...props}
@@ -164,7 +174,7 @@ const CarouselItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLD
         aria-roledescription="slide"
         className={cn(
           "min-w-0 shrink-0 grow-0 basis-full",
-          orientation === "horizontal" ? "pl-4" : "pt-4",
+          orientation === "horizontal" ? "ps-4" : "pt-4",
           className,
         )}
         {...props}
@@ -176,7 +186,10 @@ CarouselItem.displayName = "CarouselItem";
 
 const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(
   ({ className, variant = "outline", size = "icon", ...props }, ref) => {
-    const { orientation, scrollPrev, canScrollPrev } = useCarousel();
+    const { orientation, scrollPrev, canScrollPrev, isRtl } = useCarousel();
+    // "הקודם" נמצא בתחילת הציר: משמאל ב-LTR, מימין ב-RTL. גם המיקום
+    // (start) וגם הצלמית מתהפכים, אחרת החץ מצביע לכיוון ההפוך מהתנועה.
+    const PrevIcon = isRtl ? ArrowRight : ArrowLeft;
 
     return (
       <Button
@@ -184,19 +197,19 @@ const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ComponentProp
         variant={variant}
         size={size}
         className={cn(
-          "absolute  h-8 w-8 rounded-full",
+          "absolute h-8 w-8 rounded-full",
           // עד xl החץ נשאר בתוך שולי העמוד — מעבר לקצה הוא מרחיב את ה-body
           // וגורם לגלילה אופקית בנייד (העמוד "נחתך" בקצה הימני ב-RTL)
           orientation === "horizontal"
-            ? "-left-3 top-1/2 -translate-y-1/2 xl:-left-12"
-            : "-top-12 left-1/2 -translate-x-1/2 rotate-90",
+            ? "-start-3 top-1/2 -translate-y-1/2 xl:-start-12"
+            : "-top-12 start-1/2 -translate-x-1/2 rotate-90",
           className,
         )}
         disabled={!canScrollPrev}
         onClick={scrollPrev}
         {...props}
       >
-        <ArrowLeft className="h-4 w-4" />
+        <PrevIcon className="h-4 w-4" />
         <span className="sr-only">Previous slide</span>
       </Button>
     );
@@ -206,7 +219,8 @@ CarouselPrevious.displayName = "CarouselPrevious";
 
 const CarouselNext = React.forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(
   ({ className, variant = "outline", size = "icon", ...props }, ref) => {
-    const { orientation, scrollNext, canScrollNext } = useCarousel();
+    const { orientation, scrollNext, canScrollNext, isRtl } = useCarousel();
+    const NextIcon = isRtl ? ArrowLeft : ArrowRight;
 
     return (
       <Button
@@ -216,15 +230,15 @@ const CarouselNext = React.forwardRef<HTMLButtonElement, React.ComponentProps<ty
         className={cn(
           "absolute h-8 w-8 rounded-full",
           orientation === "horizontal"
-            ? "-right-3 top-1/2 -translate-y-1/2 xl:-right-12"
-            : "-bottom-12 left-1/2 -translate-x-1/2 rotate-90",
+            ? "-end-3 top-1/2 -translate-y-1/2 xl:-end-12"
+            : "-bottom-12 start-1/2 -translate-x-1/2 rotate-90",
           className,
         )}
         disabled={!canScrollNext}
         onClick={scrollNext}
         {...props}
       >
-        <ArrowRight className="h-4 w-4" />
+        <NextIcon className="h-4 w-4" />
         <span className="sr-only">Next slide</span>
       </Button>
     );

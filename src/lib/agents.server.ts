@@ -18,8 +18,17 @@ export type PublicAgentRow = {
    * בלעדיהם כרטיס הצוות הציג תפקיד בעברית גם בדף אנגלי/צרפתי, כי
    * role_title מגיע מהמסד ומנצח את המילון.
    */
-  translations?: Record<string, { business?: { roleTitle?: string; bio?: string } }> | null;
+  translations?: Record<
+    string,
+    { business?: { roleTitle?: string; bio?: string; agentName?: string } }
+  > | null;
 };
+
+/** שם הסוכן בשפת הדף — תעתיק מהמסד, ואם אין, העברית כמות שהיא */
+export const agentNameFor = (a: PublicAgentRow, lang: string): string =>
+  (lang === "he" ? null : a.translations?.[lang]?.business?.agentName?.trim() || null) ??
+  a.agent_name ??
+  a.name;
 
 /** תפקיד הסוכן בשפת הדף — תרגום מהמסד, ואם אין, העברית כמות שהיא */
 export const agentRoleFor = (a: PublicAgentRow, lang: string): string =>
@@ -46,6 +55,12 @@ const toListingAgent = (a: PublicAgentRow): ListingAgent => ({
   phone: a.phone,
   phoneTel: a.phone_tel,
   photoUrl: a.photo_url,
+  // התעתיקים נשלחים לקליינט; localizeListing בוחר לפי שפת הדף
+  nameByLang: Object.fromEntries(
+    Object.entries(a.translations ?? {})
+      .map(([lang, entry]) => [lang, entry?.business?.agentName?.trim() ?? ""])
+      .filter(([, name]) => name),
+  ),
 });
 
 /** ברירת מחדל כשאין רשומת site במסד — אלי כליף */

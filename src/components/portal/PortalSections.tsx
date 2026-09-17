@@ -49,6 +49,13 @@ const aiLimitMessage = (t: Dict, reason: AiLimitReason): string => {
  * משוב ❤️/❌/⭐/📞, נכסים שמורים, וכרטיס הסוכן המטפל.
  * ============================================================ */
 
+/** שם הסוכן בשפת הממשק — תעתיק מהמסד, ואם אין, השם כמות שהוא */
+const agentNameIn = (
+  agent: { name: string; nameByLang?: Partial<Record<string, string>> | null } | null,
+  lang: string,
+  fallback: string,
+): string => (agent ? agent.nameByLang?.[lang]?.trim() || agent.name : fallback);
+
 /**
  * שורת פרטים אחת מהחלקים שיש להם ערך בפועל. חלק חסר פשוט אינו מופיע —
  * ללקוח לא מוצג "אין מידע" על שדה חסר בנכס חיצוני.
@@ -257,6 +264,7 @@ function MarketMatchCard({
   const [done, setDone] = useState<Set<"callback" | "interest">>(() => new Set());
   /** כתובת גיבוי כשהדפדפן חסם את חלון הוואטסאפ (קורה בעיקר במחשב) */
   const [waFallback, setWaFallback] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
 
   const act = async (kind: "callback" | "interest") => {
     if (busy || done.has(kind)) return;
@@ -271,15 +279,18 @@ function MarketMatchCard({
       if (pending) {
         const phone = res?.agent?.phoneTel ?? undefined;
         const msg = t.market.waMsg(
-          res?.agent?.name ?? t.portal.agentCardTitle,
+          agentNameIn(res?.agent ?? null, lang, t.portal.agentCardTitle),
           res?.listingTitle ?? listing.title,
           res?.sourceUrl ?? listing.source_url,
         );
         if (!pending.go(msg, phone)) setWaFallback(whatsappUrl(msg, phone));
       }
-    } catch {
-      // הליד לא נשמר — לא פותחים וואטסאפ שמנותק מפנייה שמורה
+    } catch (e) {
+      // הליד לא נשמר — לא פותחים וואטסאפ שמנותק מפנייה שמורה.
+      // עד כה הכשל נבלע והכפתור פשוט לא הגיב, והלקוח לא ידע ששום דבר
+      // לא קרה. עכשיו הוא רואה הודעה ויכול לנסות שוב.
       pending?.cancel();
+      setErr(errorText(e, lang, t.portal.actionFailed));
     } finally {
       setBusy(null);
     }
@@ -387,6 +398,11 @@ function MarketMatchCard({
               </a>
             )}
           </div>
+          {err && (
+            <p role="alert" className="mt-1.5 text-xs font-semibold text-destructive">
+              {err}
+            </p>
+          )}
         </div>
       </div>
     </li>
@@ -570,7 +586,7 @@ export function PortalAiSearch({ onMessage }: { onMessage: (msg: string) => void
         <WebCandidates
           web={res.web}
           agentPhone={agent?.phoneTel ?? ""}
-          agentName={agent?.name ?? t.portal.agentCardTitle}
+          agentName={agentNameIn(agent, lang, t.portal.agentCardTitle)}
         />
       )}
     </section>
@@ -579,13 +595,14 @@ export function PortalAiSearch({ onMessage }: { onMessage: (msg: string) => void
 
 /** כל מדורי הפורטל המורחבים — התאמות, שמורים והסוכן המטפל */
 export function PortalExtrasSections({ onMessage }: { onMessage: (msg: string) => void }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const fetchExtras = useServerFn(getMyPortalExtras);
   const extras = useQuery({ queryKey: ["portal-extras"], queryFn: () => fetchExtras() });
 
   const refresh = () => void extras.refetch();
   const feedback = extras.data?.feedback ?? {};
   const agent = extras.data?.agent ?? null;
+  const agentName = agentNameIn(agent, lang, t.portal.agentCardTitle);
 
   return (
     <>
@@ -600,7 +617,7 @@ export function PortalExtrasSections({ onMessage }: { onMessage: (msg: string) =
             {agent.photoUrl ? (
               <img
                 src={agent.photoUrl}
-                alt={agent.name}
+                alt={agentName}
                 className="size-16 rounded-full border-2 border-sun object-cover"
               />
             ) : (
@@ -609,7 +626,7 @@ export function PortalExtrasSections({ onMessage }: { onMessage: (msg: string) =
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <p className="font-bold text-primary">{agent.name}</p>
+              <p className="font-bold text-primary">{agentName}</p>
               {agent.slug && (
                 <a href={`/${agent.slug}`} className="text-xs underline">
                   {t.portal.agentSiteLink}
@@ -619,7 +636,7 @@ export function PortalExtrasSections({ onMessage }: { onMessage: (msg: string) =
             <div className="flex gap-2">
               {agent.phoneTel && (
                 <a
-                  {...waProps(`${t.floatingWa.waMsg(agent.name)}`, agent.phoneTel)}
+                  {...waProps(`${t.floatingWa.waMsg(agentName)}`, agent.phoneTel)}
                   className="flex items-center gap-1.5 rounded-xl bg-whatsapp px-4 py-2 text-sm font-bold text-whatsapp-foreground"
                 >
                   <MessageCircle className="size-4" aria-hidden="true" />

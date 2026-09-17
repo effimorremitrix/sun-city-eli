@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, CalendarClock, ListTodo, Plus, Sparkles } from "lucide-react";
+import { AlertTriangle, BellOff, CalendarClock, ListTodo, Plus, Sparkles } from "lucide-react";
 import { adminListFollowUps, adminListLeads, type LeadRow } from "@/lib/leads.functions";
 import { adminListTasks, adminSetTaskStatus } from "@/lib/crm.functions";
+import { adminNotifyReadiness, adminSendTestNotification } from "@/lib/system.functions";
 import { isTaskOverdue } from "@/lib/crm";
 import { LEAD_STATUSES } from "@/lib/leads";
 import { leadCriteriaChips } from "@/components/site/LeadCriteria";
@@ -175,6 +176,29 @@ export default function AdminLeads({
   const fetchLeads = useServerFn(adminListLeads);
   const fetchTasks = useServerFn(adminListTasks);
   const setTaskStatus = useServerFn(adminSetTaskStatus);
+  // מצב ערוצי ההתראות של הדף — התשובה ל"למה לא קיבלתי וואטסאפ/מייל"
+  const fetchReadiness = useServerFn(adminNotifyReadiness);
+  const sendTest = useServerFn(adminSendTestNotification);
+  const readiness = useQuery({
+    queryKey: ["admin-notify-readiness", siteId],
+    queryFn: () => fetchReadiness({ data: { siteId } }),
+  });
+  const [testResult, setTestResult] = useState<string | null>(null);
+  const [testBusy, setTestBusy] = useState(false);
+
+  const runTest = async () => {
+    setTestBusy(true);
+    setTestResult(null);
+    try {
+      const r = await sendTest({ data: { siteId } });
+      setTestResult(`מייל — ${r.email} · וואטסאפ — ${r.whatsapp}`);
+    } catch (e) {
+      setTestResult(e instanceof Error ? e.message : "בדיקת ההתראות נכשלה");
+    } finally {
+      setTestBusy(false);
+      void readiness.refetch();
+    }
+  };
 
   const [sub, setSub] = useState<SubTab>("tasks");
   const [statusFilter, setStatusFilter] = useState("");
@@ -246,6 +270,47 @@ export default function AdminLeads({
           ליד חדש
         </button>
       </div>
+
+      {/* התראות לסוכן: הליד תמיד נשמר, אבל מייל/וואטסאפ יוצאים רק אם יש ספק
+          מוגדר וכתובת/מספר לדף. בלי הבאנר הזה חוסר תצורה היה שקט לגמרי. */}
+      {readiness.data && !readiness.data.ready && (
+        <div
+          role="alert"
+          className="mt-4 rounded-xl border border-destructive/40 bg-destructive/5 p-3"
+        >
+          <p className="flex items-center gap-2 text-sm font-extrabold text-destructive">
+            <BellOff className="size-4" aria-hidden="true" />
+            התראות לסוכן אינן נשלחות
+          </p>
+          <ul className="mt-1.5 list-inside list-disc text-xs text-destructive">
+            {readiness.data.blockers.map((b) => (
+              <li key={b}>{b}</li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            הלידים עצמם נשמרים כרגיל ומופיעים כאן — רק ההתראה היוצאת חסומה.
+          </p>
+          <button
+            type="button"
+            onClick={() => void runTest()}
+            disabled={testBusy}
+            className="mt-2 rounded-xl border border-destructive/40 px-3 py-1.5 text-xs font-bold text-destructive disabled:opacity-60"
+          >
+            {testBusy ? "שולח…" : "שליחת התראת בדיקה"}
+          </button>
+          {testResult && <p className="mt-1.5 text-xs font-semibold text-primary">{testResult}</p>}
+        </div>
+      )}
+      {readiness.data?.ready && readiness.data.recentFailures > 0 && (
+        <p className="mt-4 rounded-xl border border-sun/50 bg-sun/10 p-3 text-xs font-semibold text-primary">
+          {readiness.data.recentFailures} התראות נכשלו או דולגו בשבוע האחרון. הסיבה מופיעה בכרטיס
+          הליד, תחת "התראות לסוכן".{" "}
+          <button type="button" onClick={() => void runTest()} className="underline">
+            שליחת התראת בדיקה
+          </button>
+          {testResult && <span className="block">{testResult}</span>}
+        </p>
+      )}
 
       <div className="mt-4 flex flex-wrap gap-2" role="tablist">
         {(

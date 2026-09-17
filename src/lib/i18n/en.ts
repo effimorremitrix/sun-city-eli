@@ -34,6 +34,11 @@ export const en: Dict = {
     hello: "Hello,",
     defaultUser: "User",
     myAccount: "My Account",
+    myAreaByRole: {
+      client: "My personal area",
+      agent: "My agent area",
+      admin: "My admin system",
+    } as Record<string, string>,
     authArea: "Sign In",
     logout: "Log out",
     logoutFull: "Log out",

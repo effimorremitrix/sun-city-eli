@@ -60,6 +60,8 @@ export type LiveContentTranslation = {
     hours?: LiveHour[];
     bio?: string;
     roleTitle?: string;
+    /** שם הסוכן מתועתק לשפת הדף */
+    agentName?: string;
   };
   /** תרגומי ממליצים לפי מזהה הממליץ */
   testimonials?: Record<string, { name?: string; type?: string; quote?: string }>;
@@ -305,7 +307,9 @@ export function localizeLive(live: LiveSite, lang: Locale, t: Dict): LiveSite {
       t.liveDefaults.address,
     ),
     hours: localizeHours(tr.business?.hours, live.business.hours, t),
-    // אודות ותפקיד הסוכן — תרגום מהמסד (אוטומטי בשמירה) או העברית כמות שהיא
+    // שם הסוכן, אודות ותפקיד — תרגום מהמסד (אוטומטי בשמירה) או העברית
+    // כמות שהיא. שם הסוכן מתועתק ולא מתורגם לפי משמעות (ראו translate.server).
+    agentName: tr.business?.agentName?.trim() || live.business.agentName,
     bio: tr.business?.bio?.trim() || live.business.bio,
     roleTitle: tr.business?.roleTitle?.trim() || live.business.roleTitle,
   };

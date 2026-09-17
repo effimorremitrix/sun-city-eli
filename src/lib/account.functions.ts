@@ -233,6 +233,8 @@ export type PortalAgent = {
   phoneTel: string | null;
   photoUrl: string | null;
   slug: string | null;
+  /** שם הסוכן המתועתק לפי קוד שפה — האזור האישי מציג לפי שפת הממשק */
+  nameByLang?: Partial<Record<string, string>> | null;
 };
 
 export type PortalMarketMatch = {
@@ -415,7 +417,11 @@ export const getMyPortalExtras = createServerFn({ method: "GET" })
       if (siteId) {
         const [{ data: site }, { data: content }] = await Promise.all([
           supabaseAdmin.from("sites").select("slug").eq("id", siteId).maybeSingle(),
-          supabaseAdmin.from("site_content").select("business").eq("site_id", siteId).maybeSingle(),
+          supabaseAdmin
+            .from("site_content")
+            .select("business, translations")
+            .eq("site_id", siteId)
+            .maybeSingle(),
         ]);
         const business = (content?.business ?? {}) as {
           agentName?: string;
@@ -424,12 +430,21 @@ export const getMyPortalExtras = createServerFn({ method: "GET" })
           phoneTel?: string;
           photoUrl?: string;
         };
+        const translations = (content?.translations ?? {}) as Record<
+          string,
+          { business?: { agentName?: string } } | undefined
+        >;
         agent = {
           name: business.agentName || business.name || "Sun City",
           phone: business.phone ?? null,
           phoneTel: business.phoneTel ?? null,
           photoUrl: business.photoUrl ?? null,
           slug: (site?.slug as string | undefined) ?? null,
+          nameByLang: Object.fromEntries(
+            Object.entries(translations)
+              .map(([lang, entry]) => [lang, entry?.business?.agentName?.trim() ?? ""])
+              .filter(([, name]) => name),
+          ),
         };
       }
     } catch (e) {

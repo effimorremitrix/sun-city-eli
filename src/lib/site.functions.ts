@@ -207,6 +207,8 @@ async function mergeAutoTranslations(
   const str = (v: unknown) => (typeof v === "string" ? v : "");
   source["business.bio"] = str(business["bio"]);
   source["business.roleTitle"] = str(business["roleTitle"]);
+  // שם הסוכן מתועתק לשפת היעד (לא מתורגם לפי משמעות) — ראו systemPrompt
+  source["business.agentName"] = str(business["agentName"]);
   for (const f of Array.isArray(faq) ? faq : []) {
     source[`faq.${f.id}.q`] = str(f.q);
     source[`faq.${f.id}.a`] = str(f.a);
@@ -234,6 +236,7 @@ async function mergeAutoTranslations(
     const prevBusiness = { ...(prev.business ?? {}) };
     delete prevBusiness.bio;
     delete prevBusiness.roleTitle;
+    delete prevBusiness.agentName;
     const entry: LiveContentTranslation = { ...prev };
     delete entry.faq;
     delete entry._hash;

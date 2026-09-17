@@ -130,6 +130,8 @@ export async function runTranslationBackfill(
       const str = (v: unknown) => (typeof v === "string" ? v : "");
       if (str(business["bio"])) source["business.bio"] = str(business["bio"]);
       if (str(business["roleTitle"])) source["business.roleTitle"] = str(business["roleTitle"]);
+      // שם הסוכן — מתועתק לשפת היעד, כדי שהוא לא יישאר בעברית בדף מתורגם
+      if (str(business["agentName"])) source["business.agentName"] = str(business["agentName"]);
       if (str(texts["heroTitle"])) source["texts.heroTitle"] = str(texts["heroTitle"]);
       if (str(texts["heroSubtitle"])) source["texts.heroSubtitle"] = str(texts["heroSubtitle"]);
       for (const f of faq) {

@@ -34,6 +34,11 @@ export const ru: Dict = {
     hello: "Здравствуйте,",
     defaultUser: "Пользователь",
     myAccount: "Личный кабинет",
+    myAreaByRole: {
+      client: "Мой личный кабинет",
+      agent: "Мой кабинет агента",
+      admin: "Моя панель управления",
+    } as Record<string, string>,
     authArea: "Личный кабинет",
     logout: "Выйти",
     logoutFull: "Выйти",
