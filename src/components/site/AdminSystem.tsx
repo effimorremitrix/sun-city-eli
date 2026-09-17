@@ -64,6 +64,12 @@ const JOBS: Array<{ name: string; label: string; suggested: string; desc: string
     suggested: "כל שעה",
     desc: "בודקת רכיבים ושולחת התראה כשמשהו נופל",
   },
+  {
+    name: "translate-backfill",
+    label: "השלמת תרגומים",
+    suggested: "פעם ביום (04:00), ובלחיצה אחרי הוספת תוכן",
+    desc: "משלימה תרגום לאנגלית/צרפתית/רוסית לכל תוכן שנשאר בעברית — נכסים, נמכרים, ממליצים, מהשטח ותוכן הדפים. כל ריצה מטפלת בקבוצה; מריצים שוב עד ש-remaining הוא 0.",
+  },
 ];
 
 const jobLabel = (name: string) => JOBS.find((j) => j.name === name)?.label ?? name;

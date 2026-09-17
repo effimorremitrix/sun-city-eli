@@ -837,6 +837,13 @@ export const ru: Dict = {
   },
 
   maps: {
+    floor: {
+      קרקע: "Первый этаж",
+      מרתף: "Подвал",
+      גג: "Крыша",
+      פנטהאוז: "Пентхаус",
+      "קומת עמודים": "Опорный этаж",
+    } as Record<string, string>,
     propertyType: {
       apartment: "Квартира",
       penthouse: "Пентхаус",

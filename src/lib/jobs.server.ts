@@ -17,6 +17,7 @@ export const JOB_NAMES = [
   "follow-up-reminders",
   "backup",
   "health-check",
+  "translate-backfill",
 ] as const;
 export type JobName = (typeof JOB_NAMES)[number];
 
@@ -74,6 +75,21 @@ async function jobNotifyPending(): Promise<JobResult> {
   const { sendAllPendingNotifications } = await import("@/lib/notify.server");
   const sent = await sendAllPendingNotifications(settings.site_url);
   return { ok: true, summary: sent as unknown as Record<string, unknown> };
+}
+
+/**
+ * השלמת תרגומים לתוכן קיים (נכסים, נמכרים, ממליצים, מהשטח ותוכן הדפים).
+ * התרגום האוטומטי רץ בשמירה בלבד, ולכן תוכן ישן נשאר בעברית בדפי אנגלית/
+ * צרפתית/רוסית. הריצה מוגבלת בכמות ומשלימה את השאר בריצה הבאה.
+ */
+async function jobTranslateBackfill(): Promise<JobResult> {
+  const { runTranslationBackfill } = await import("@/lib/translate-backfill.server");
+  const summary = await runTranslationBackfill();
+  return {
+    ok: summary.errors.length === 0,
+    summary: summary as unknown as Record<string, unknown>,
+    error: summary.errors[0] ?? null,
+  };
 }
 
 async function jobFollowUpReminders(): Promise<JobResult> {
@@ -320,6 +336,7 @@ const RUNNERS: Record<JobName, () => Promise<JobResult>> = {
   "follow-up-reminders": jobFollowUpReminders,
   backup: jobBackup,
   "health-check": jobHealthCheck,
+  "translate-backfill": jobTranslateBackfill,
 };
 
 /** מריץ משימה ורושם ב-job_runs. לעולם לא זורק — מחזיר את התוצאה */

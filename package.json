@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
+    "qa": "bun run scripts/qa-checks.ts",
     "format": "prettier --write ."
   },
   "dependencies": {

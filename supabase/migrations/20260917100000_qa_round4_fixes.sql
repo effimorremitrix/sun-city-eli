@@ -253,3 +253,22 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
    WHERE char_length(street) >= 2
 $$;
 GRANT EXECUTE ON FUNCTION public.get_known_streets(text) TO anon, authenticated;
+
+/* ---------------- 5. משימת השלמת תרגומים ---------------- */
+
+-- התרגום האוטומטי רץ רק בשמירה של פריט, ולכן תוכן שנוצר לפניו נשאר
+-- בעברית בדפי אנגלית/צרפתית/רוסית. המשימה translate-backfill משלימה
+-- אותו בקבוצות; מתוזמנת אחת לשעה בלילה כדי לפרוק תור גדול בהדרגה.
+DO $$ BEGIN
+  PERFORM cron.unschedule('suncity-translate-backfill');
+EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
+DO $$ BEGIN
+  PERFORM cron.schedule(
+    'suncity-translate-backfill',
+    '5 0-4 * * *',
+    $c$SELECT public.run_scheduled_job('translate-backfill')$c$
+  );
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'pg_cron scheduling skipped: %', SQLERRM;
+END $$;

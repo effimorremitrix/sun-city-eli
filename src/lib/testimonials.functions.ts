@@ -342,3 +342,39 @@ export const adminTestimonialsStats = createServerFn({ method: "GET" })
       };
     },
   );
+
+/**
+ * שינוי היקף הצגה לכמה המלצות בבת אחת — מנהל בלבד.
+ *
+ * למה זה נחוץ: המנגנון של "המלצה משרדית שמופיעה בכל דפי הסוכנים" קיים
+ * (scope='global'), אבל כל ההמלצות ההיסטוריות יובאו עם היקף "הדף שבו
+ * הוזנו". בלי פעולה קבוצתית צריך לפתוח כל המלצה בנפרד כדי להפוך אותה
+ * לכללית, ולכן בפועל אף המלצה לא סונכרנה בין הסוכנים.
+ */
+export const adminBulkSetTestimonialScope = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { ids: string[]; scope: string; siteIds?: string[] }) => ({
+    ids: Array.isArray(input?.ids) ? input.ids.map(String).slice(0, 200) : [],
+    scope: input?.scope === "global" ? ("global" as const) : ("sites" as const),
+    siteIds: Array.isArray(input?.siteIds) ? input.siteIds.map(String).slice(0, 30) : [],
+  }))
+  .handler(async ({ data, context }): Promise<{ ok: true; updated: number }> => {
+    const { assertManager } = await import("@/lib/admin.server");
+    const access = await assertManager(context);
+    // היקף כללי משנה את מה שמוצג בדפים של סוכנים אחרים — מנהל בלבד
+    if (!access.isAdmin) throw new Error("רק מנהל יכול לשנות היקף הצגה של המלצות");
+    if (!data.ids.length) return { ok: true, updated: 0 };
+    if (data.scope === "sites" && !data.siteIds.length) {
+      throw new Error("יש לבחור לפחות דף אחד להצגה");
+    }
+
+    const { error } = await context.supabase
+      .from("testimonials")
+      .update({
+        scope: data.scope,
+        site_ids: data.scope === "global" ? [] : data.siteIds,
+      })
+      .in("id", data.ids);
+    if (error) throw new Error(error.message);
+    return { ok: true, updated: data.ids.length };
+  });

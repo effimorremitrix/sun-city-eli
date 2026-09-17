@@ -507,7 +507,7 @@ function PropertyCard({ property: p, onOpen }: { property: Listing; onOpen: () =
           {show("floor", p.floor) && (
             <li className="flex items-center gap-1">
               <Building className="size-4 text-sun" aria-hidden="true" />
-              {t.properties.floorLabel(p.floor as string)}
+              {t.properties.floorLabel(mapValue(t.maps.floor, p.floor) as string)}
             </li>
           )}
         </ul>
@@ -609,7 +609,9 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
       ? ([[t.properties.specSize, t.properties.sqmValue(p.size_sqm)]] as Array<[string, string]>)
       : []),
     ...(isFieldRelevant(type, "floor") && hasValue(p.floor)
-      ? ([[t.properties.specFloor, p.floor as string]] as Array<[string, string]>)
+      ? ([[t.properties.specFloor, mapValue(t.maps.floor, p.floor) as string]] as Array<
+          [string, string]
+        >)
       : []),
     ...(isFieldRelevant(type, "mamad")
       ? ([[t.properties.features.mamad, yesNo(p.has_mamad, null)]] as Array<[string, string]>)

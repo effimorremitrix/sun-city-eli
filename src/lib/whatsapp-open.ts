@@ -22,8 +22,21 @@
 /** מספר הוואטסאפ של המשרד — ברירת המחדל כשלדף אין מספר סוכן */
 export const WA_PHONE = "0525551200";
 
-/** נרמול מספר ישראלי לפורמט בינלאומי לכתובות wa.me / web.whatsapp.com */
-export const toIntl = (p: string) => "972" + p.replace(/\D/g, "").replace(/^0/, "");
+/**
+ * נרמול מספר לפורמט בינלאומי לכתובות wa.me / web.whatsapp.com.
+ *
+ * הגרסה הקודמת הוסיפה "972" תמיד, ולכן מספר שהוזן בלוח הניהול כבר בפורמט
+ * בינלאומי ("972525551200" או "+972-52-555-1200") הפך ל-972972… והקישור
+ * הוביל למספר לא קיים. הכלל כאן זהה ל-toE164Il בצד השרת: מספר שכבר מתחיל
+ * ב-972 נשאר, מספר מקומי מאבד את ה-0 המוביל, ואחר מקבל קידומת.
+ */
+export const toIntl = (raw: string): string => {
+  const digits = (raw ?? "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("972")) return digits;
+  if (digits.startsWith("0")) return `972${digits.slice(1)}`;
+  return `972${digits}`;
+};
 
 /** קישור wa.me — נשמר לשימושים שדורשים כתובת ניתנת להעתקה (מיילים, קישורים) */
 export const buildWa = (msg: string, phone: string = WA_PHONE) =>

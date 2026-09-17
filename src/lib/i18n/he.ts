@@ -823,6 +823,13 @@ export const he = {
   },
 
   maps: {
+    floor: {
+      קרקע: "קרקע",
+      מרתף: "מרתף",
+      גג: "גג",
+      פנטהאוז: "פנטהאוז",
+      "קומת עמודים": "קומת עמודים",
+    } as Record<string, string>,
     propertyType: {
       apartment: "דירה",
       penthouse: "פנטהאוז",

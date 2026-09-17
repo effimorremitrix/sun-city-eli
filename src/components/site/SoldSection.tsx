@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Home } from "lucide-react";
 import logo from "@/assets/sun-city-logo-full.svg";
 import { useLive } from "@/lib/site-live";
-import { useLang } from "@/lib/i18n";
+import { mapValue, useLang } from "@/lib/i18n";
 import { listPublicSoldProperties, type SoldPage, type SoldProperty } from "@/lib/sold.functions";
 import {
   Carousel,
@@ -283,7 +283,8 @@ export function SoldSection({ page }: Props) {
                 <SoldPoster item={s} />
                 <p className="mt-3 text-sm text-muted-foreground">
                   {[
-                    s.neighborhood,
+                    // השכונה היא ערך קנוני מהמסד — מתורגמת דרך מפת השכונות
+                    mapValue(t.maps.neighborhoods, s.neighborhood),
                     s.sold_at && fmtDate(s.sold_at) ? t.sold.soldOn(fmtDate(s.sold_at)!) : null,
                   ]
                     .filter(Boolean)
