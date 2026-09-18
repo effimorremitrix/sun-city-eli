@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, BellOff, CalendarClock, ListTodo, Plus, Sparkles } from "lucide-react";
+import {
+  AlertTriangle,
+  BellOff,
+  CalendarClock,
+  Flame,
+  ListTodo,
+  Plus,
+  Sparkles,
+} from "lucide-react";
 import { adminListFollowUps, adminListLeads, type LeadRow } from "@/lib/leads.functions";
 import { adminListTasks, adminSetTaskStatus } from "@/lib/crm.functions";
 import { adminNotifyReadiness, adminSendTestNotification } from "@/lib/system.functions";
@@ -36,6 +44,9 @@ function LeadListItem({ lead, onOpen }: { lead: LeadRow; onOpen: () => void }) {
     ...(lead.buy_categories ?? []).map((c) => ({ key: `buy-${c}`, label: `קנייה: ${c}` })),
     ...(lead.sell_categories ?? []).map((c) => ({ key: `sell-${c}`, label: `מכירה: ${c}` })),
   ];
+  // כמה פעמים הלקוח הרים יד על נכס. ליד פתוח אחד ללקוח, ולכן זה המקום
+  // היחיד בשורה שמבדיל בין פנייה חד-פעמית ללקוח שמחפש באמת.
+  const signals = lead.interest_count ?? 0;
   return (
     <li className="rounded-xl border border-border p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -46,10 +57,22 @@ function LeadListItem({ lead, onOpen }: { lead: LeadRow; onOpen: () => void }) {
         >
           {lead.full_name}
         </button>
-        <span
-          className={`rounded-full px-2 py-0.5 text-xs font-bold ${statusChipClass(lead.status)}`}
-        >
-          {lead.status}
+        <span className="flex flex-wrap items-center gap-1.5">
+          {signals > 0 && (
+            <span
+              className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${
+                signals >= 2 ? "bg-sun/25 text-primary" : "bg-secondary text-primary"
+              }`}
+            >
+              <Flame className="size-3.5" aria-hidden="true" />
+              {signals === 1 ? "סימון עניין" : `${signals} סימוני עניין`}
+            </span>
+          )}
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs font-bold ${statusChipClass(lead.status)}`}
+          >
+            {lead.status}
+          </span>
         </span>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
@@ -73,6 +96,13 @@ function LeadListItem({ lead, onOpen }: { lead: LeadRow; onOpen: () => void }) {
         {lead.listing?.title && <> · {lead.listing.title}</>}
         {lead.created_at && <> · {fmtDateTime(lead.created_at)}</>}
       </p>
+      {lead.last_signal_at && (
+        <p className="mt-1 text-xs font-bold text-primary">
+          אחרון: {lead.last_signal_label ? `"${lead.last_signal_label}"` : "סימון עניין"}
+          {lead.last_signal_title ? ` על ${lead.last_signal_title}` : ""} ·{" "}
+          {fmtDateTime(lead.last_signal_at)}
+        </p>
+      )}
       {criteriaChips.length > 0 && (
         <p className="mt-1.5 flex flex-wrap gap-1">
           {criteriaChips.map((c) => (

@@ -5,6 +5,7 @@ import {
   CalendarCheck,
   CalendarClock,
   CheckCircle2,
+  Flame,
   Home,
   MessageCircle,
   MessageSquareHeart,
@@ -558,6 +559,16 @@ export default function AdminLeadDrawer({
                 referrer={lead.referrer}
                 landing_path={lead.landing_path}
               />
+            )}
+            {/* חום הליד: כמה פעמים הלקוח סימן עניין ומה היה האחרון. הנכסים
+                עצמם מפורטים בציר הזמן שלמטה — כאן רק הכותרת המהירה. */}
+            {lead && (lead.interest_count ?? 0) > 0 && (
+              <p className="mt-1 flex items-center gap-1 truncate text-xs font-bold text-primary">
+                <Flame className="size-3.5 shrink-0" aria-hidden="true" />
+                {lead.interest_count} סימוני עניין
+                {lead.last_signal_title ? ` · אחרון: ${lead.last_signal_title}` : ""}
+                {lead.last_signal_at ? ` (${fmtDateTime(lead.last_signal_at)})` : ""}
+              </p>
             )}
           </div>
           <button

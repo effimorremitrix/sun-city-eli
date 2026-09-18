@@ -41,6 +41,11 @@ export type LeadRecord = {
   deal_value?: number | null;
   lost_reason?: string | null;
   closed_at?: string | null;
+  /* אות העניין של הלקוח (bump_lead_signal): מונה החום והסימון האחרון */
+  interest_count?: number;
+  last_signal_at?: string | null;
+  last_signal_label?: string | null;
+  last_signal_title?: string | null;
 } & LeadCriteria;
 
 /**
@@ -70,7 +75,7 @@ export const LEAD_CRITERIA_COLUMNS =
 
 // מחרוזת אחת (לא שרשור) — כדי שמנתח הטיפוסים של postgrest יזהה את העמודות
 export const LEAD_COLUMNS =
-  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at,contact_id,marketing_consent,utm_source,utm_campaign,referrer,landing_path,deal_type,city,neighborhoods,property_type,min_price,max_price,min_rooms,max_rooms,min_size,min_floor,max_floor,needs_mamad,needs_elevator,needs_parking,needs_balcony,assigned_user_id,deal_value,lost_reason,closed_at";
+  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at,contact_id,marketing_consent,utm_source,utm_campaign,referrer,landing_path,deal_type,city,neighborhoods,property_type,min_price,max_price,min_rooms,max_rooms,min_size,min_floor,max_floor,needs_mamad,needs_elevator,needs_parking,needs_balcony,assigned_user_id,deal_value,lost_reason,closed_at,interest_count,last_signal_at,last_signal_label,last_signal_title";
 
 /** כוונות עסקה חוקיות על ליד/פרופיל (כולל 'קנייה' — כוונת קונה) */
 export const LEAD_DEAL_TYPES = ["קנייה", "מכירה", "השכרה"] as const;
@@ -309,6 +314,11 @@ export async function ingestLead(
     }
     // ליד שנשאר אצל סוכן אחר מהמטפל הקבוע (למשל לפני המעבר ל-contacts) — לא מזיזים
     // אוטומטית; המנהל מעביר. אבל נגיעה קלה מעלה אותו לראש הרשימה.
+    // PostgREST לא מריץ UPDATE בלי עמודות, ולכן פנייה חוזרת שאין בה מה
+    // להשלים (המקרה הרגיל: אותו לקוח מסמן נכס נוסף) נבלעה בשקט והליד נשאר
+    // במקומו ברשימה. הנגיעה המפורשת מחזירה את הכוונה — הטריגר
+    // leads_set_updated_at קובע את הערך בפועל.
+    if (!Object.keys(patch).length) patch["updated_at"] = new Date().toISOString();
     const { error: updErr } = await supabaseAdmin
       .from("leads")
       .update(patch as never)
@@ -573,6 +583,17 @@ export async function handleClientAction(input: {
     actorUserId: input.userId,
     message: `${lead.full_name}: "${input.responseLabel}" על ${target.title}`,
   });
+
+  // אות העניין על הליד עצמו: מונה החום והסימון האחרון. אטומי ב-DB כדי ששני
+  // סימונים סמוכים לא ידרסו זה את המונה של זה, וה-UPDATE שבתוכו מעלה את
+  // הליד לראש רשימת הלידים — עד כה סימון על נכס שני לא הזיז את השורה בכלל.
+  // כישלון כאן לא מפיל את הפנייה: הליד, ציר הזמן וההתראה כבר נשמרו.
+  const { error: bumpErr } = await supabaseAdmin.rpc("bump_lead_signal", {
+    p_lead_id: lead.id,
+    p_label: input.responseLabel,
+    p_title: target.title,
+  });
+  if (bumpErr) console.error("bump_lead_signal failed", bumpErr.message);
 
   if (input.kind === "callback" || input.kind === "response") {
     const followUpAt = tomorrowAt10Israel();
