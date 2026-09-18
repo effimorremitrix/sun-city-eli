@@ -32,7 +32,7 @@ export type LeadEventRow = {
 };
 
 const LEAD_ROW_COLUMNS =
-  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at,contact_id,utm_source,utm_campaign,referrer,landing_path,deal_type,city,neighborhoods,property_type,min_price,max_price,min_rooms,max_rooms,min_size,min_floor,max_floor,needs_mamad,needs_elevator,needs_parking,needs_balcony,assigned_user_id,deal_value,lost_reason,closed_at,listing:listing_id(id,title)";
+  "id,site_id,user_id,listing_id,search_profile_id,full_name,phone,phone_normalized,email,source,status,buy_categories,sell_categories,notes,next_action,next_follow_up_at,created_at,updated_at,contact_id,utm_source,utm_campaign,referrer,landing_path,deal_type,city,neighborhoods,property_type,min_price,max_price,min_rooms,max_rooms,min_size,min_floor,max_floor,needs_mamad,needs_elevator,needs_parking,needs_balcony,assigned_user_id,deal_value,lost_reason,closed_at,interest_count,last_signal_at,last_signal_label,last_signal_title,listing:listing_id(id,title)";
 
 const str = (v: unknown, max = 200): string | null => {
   const s = typeof v === "string" ? v.trim() : "";
