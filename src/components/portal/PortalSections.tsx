@@ -270,7 +270,7 @@ function MarketMatchCard({
     if (busy || done.has(kind)) return;
     // "רוצה שסוכן יחזור אליי" פותח גם וואטסאפ לסוכן — הלשונית נשמרת כאן,
     // בתוך ההקלקה, כי אחרי ה-await הדפדפן במחשב חוסם פתיחת חלון.
-    const pending = kind === "callback" ? reserveWhatsAppWindow() : null;
+    const pending = kind === "callback" ? reserveWhatsAppWindow(t.misc.openingWhatsApp) : null;
     setBusy(kind);
     try {
       const res = await request({ data: { marketListingId: listing.id, kind } });
@@ -332,6 +332,10 @@ function MarketMatchCard({
             </span>
             <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-secondary-foreground">
               {marketSourceLabel(listing)}
+            </span>
+            {/* מוצגות רק מודעות של משרדי תיווך — התגית אומרת זאת ללקוח, עם שם המשרד כשידוע */}
+            <span className="rounded-full bg-whatsapp/15 px-2 py-0.5 text-[11px] font-bold text-primary">
+              {listing.agency_name ? t.portal.brokerNamed(listing.agency_name) : t.portal.brokerTag}
             </span>
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -455,6 +459,13 @@ export function PortalAiSearch({ onMessage }: { onMessage: (msg: string) => void
         .map((l) => localizeListing(l, lang))
     : [];
   const marketHits = res ? (market.data ?? []).filter((m) => res.marketIds.includes(m.id)) : [];
+  // הסריקה החיה מוצגת בנפרד מ"מודעות מהשוק" (המאגר). מודעה שכבר מופיעה
+  // ברשימת המאגר לא מוצגת שוב בסריקה החיה — אחרת הלקוח רואה אותה פעמיים
+  // ולא מבין מה ההבדל בין שני המדורים.
+  const knownUrls = new Set(marketHits.map((m) => m.source_url));
+  const liveWeb = res
+    ? { ...res.web, candidates: res.web.candidates.filter((c) => !knownUrls.has(c.source_url)) }
+    : null;
   const loaded = res != null && !listings.isLoading && !market.isLoading;
 
   const submit = async (e: React.FormEvent) => {
@@ -573,6 +584,7 @@ export function PortalAiSearch({ onMessage }: { onMessage: (msg: string) => void
           <h3 className="mt-4 text-sm font-extrabold text-primary">
             {t.portal.aiMarketResults} ({marketHits.length})
           </h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">{t.portal.aiMarketResultsHint}</p>
           <ul className="mt-2 grid gap-3">
             {marketHits.map((m) => (
               <MarketMatchCard key={m.id} listing={m} onMessage={onMessage} />
@@ -582,9 +594,9 @@ export function PortalAiSearch({ onMessage }: { onMessage: (msg: string) => void
       )}
 
       {/* סריקה חיה של הלוחות — מודעות מתיווך בלבד, באזור האישי בלבד */}
-      {res && (
+      {liveWeb && (
         <WebCandidates
-          web={res.web}
+          web={liveWeb}
           agentPhone={agent?.phoneTel ?? ""}
           agentName={agentNameIn(agent, lang, t.portal.agentCardTitle)}
         />

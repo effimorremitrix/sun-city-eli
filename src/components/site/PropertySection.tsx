@@ -645,7 +645,7 @@ function PropertyModal({ property: p, onClose }: { property: Listing; onClose: (
 
     // לשונית נשמרת כאן, בתוך ההקלקה — אחרת הדפדפן במחשב חוסם את הפתיחה
     // שמגיעה אחרי ה-await של שמירת הליד (בנייד זה עבד, במחשב לא).
-    const pending = reserveWhatsAppWindow();
+    const pending = reserveWhatsAppWindow(t.misc.openingWhatsApp);
     const waMsg = t.properties.waInterested(p.agent?.name ?? business.name, {
       title: p.title,
       hood: hood ?? noInfo,

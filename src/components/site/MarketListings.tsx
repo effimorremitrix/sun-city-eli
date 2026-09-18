@@ -142,7 +142,7 @@ export function MarketCard({
 
     // הלשונית נפתחת כאן, בתוך ההקלקה עצמה — אחרי await הדפדפן במחשב חוסם
     // חלון קופץ, וזו הסיבה ש"סוכן יחזור אליי" עבד בנייד ולא במחשב.
-    const pending = reserveWhatsAppWindow();
+    const pending = reserveWhatsAppWindow(t.misc.openingWhatsApp);
     const waMsg = t.market.waMsg(live.agentName, m.title, m.source_url);
 
     setSent(true);

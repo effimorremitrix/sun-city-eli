@@ -98,8 +98,9 @@ export const en: Dict = {
   properties: {
     agentOfListing: "Listing agent:",
     web: {
-      title: "More options from the market",
-      subtitle: "Real listings found across the web for your search, with a link to the source.",
+      title: "Found right now on the boards (live scan)",
+      subtitle:
+        "Listings by real-estate agencies found this minute on Yad2, Komo and more, not yet in our pool. Contact goes through your agent.",
       remaining: (n: number) => ` ${n} scans left today.`,
       match: "Match:",
       colSource: "Source",
@@ -520,6 +521,7 @@ export const en: Dict = {
 
   misc: {
     noInfo: "No info",
+    openingWhatsApp: "Opening WhatsApp…",
     backHome: "Back to home",
     legalHebrewNotice:
       "The binding version of this page is the Hebrew one; this translation is provided for convenience.",
@@ -711,7 +713,11 @@ export const en: Dict = {
       "Describe what you're looking for in your own words — we'll filter the office listings and real listings from the boards (yad2, komo and more).",
     aiOfficeResults: "Office listings",
     aiMarketResults: "Market listings",
+    aiMarketResultsHint:
+      "Listings by other real-estate agencies already in our pool (scanned nightly). Contact goes through your agent.",
     aiNoResults: "No properties match your request. Try rephrasing or widening the criteria.",
+    brokerTag: "Agency listing",
+    brokerNamed: (name: string) => `Agency: ${name}`,
   },
 
   accountSettings: {

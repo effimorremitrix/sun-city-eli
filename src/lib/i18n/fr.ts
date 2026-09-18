@@ -99,9 +99,9 @@ export const fr: Dict = {
   properties: {
     agentOfListing: "Agent du bien :",
     web: {
-      title: "Plus d'options sur le marché",
+      title: "Trouvé à l'instant sur les portails (analyse en direct)",
       subtitle:
-        "De vraies annonces trouvées sur le web selon votre recherche, avec un lien vers la source.",
+        "Annonces d'agences immobilières trouvées à l'instant sur Yad2, Komo et autres, pas encore dans notre base. Le contact passe par votre agent.",
       remaining: (n: number) => ` ${n} analyses restantes aujourd'hui.`,
       match: "Correspondance :",
       colSource: "Source",
@@ -530,6 +530,7 @@ export const fr: Dict = {
 
   misc: {
     noInfo: "Non renseigné",
+    openingWhatsApp: "Ouverture de WhatsApp…",
     backHome: "Retour à l'accueil",
     legalHebrewNotice:
       "La version faisant foi de cette page est la version en hébreu ; cette traduction est fournie à titre indicatif.",
@@ -722,7 +723,11 @@ export const fr: Dict = {
       "Décrivez ce que vous cherchez avec vos mots — nous filtrons les biens de l'agence et de vraies annonces des portails (yad2, komo et autres).",
     aiOfficeResults: "Biens de l'agence",
     aiMarketResults: "Annonces du marché",
+    aiMarketResultsHint:
+      "Annonces d'autres agences immobilières déjà dans notre base (analysée chaque nuit). Le contact passe par votre agent.",
     aiNoResults: "Aucun bien ne correspond à votre demande. Reformulez ou élargissez les critères.",
+    brokerTag: "Annonce d'agence",
+    brokerNamed: (name: string) => `Agence : ${name}`,
   },
 
   accountSettings: {

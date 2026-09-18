@@ -250,5 +250,181 @@ if (originalNavigator) {
   Object.defineProperty(globals, "navigator", { value: originalNavigator, configurable: true });
 }
 
+console.log("\n--- לשונית וואטסאפ שנשמרת בתוך ההקלקה (מסך לבן ב'סוכן יחזור אליי') ---");
+type FakeWin = {
+  closed: boolean;
+  opener: unknown;
+  location: { href: string; replace: (url: string) => void };
+  focus: () => void;
+  close: () => void;
+  document: {
+    title: string;
+    body: { dir: string; style: { cssText: string }; textContent: string };
+  };
+};
+const makeWin = (): FakeWin => {
+  const w: FakeWin = {
+    closed: false,
+    opener: {},
+    location: {
+      href: "about:blank",
+      replace(url) {
+        w.location.href = url;
+      },
+    },
+    focus() {},
+    close() {
+      w.closed = true;
+    },
+    document: { title: "", body: { dir: "", style: { cssText: "" }, textContent: "" } },
+  };
+  return w;
+};
+const opens: Array<{ url: string; features: string | undefined }> = [];
+let reservedWin: FakeWin | null = makeWin();
+Object.defineProperty(globals, "window", {
+  value: {
+    open: (url: string, _target: string, features?: string) => {
+      opens.push({ url, features });
+      return reservedWin;
+    },
+  },
+  configurable: true,
+});
+const pending = wa.reserveWhatsAppWindow("פותחים וואטסאפ…");
+// window.open עם noopener מחזיר תמיד null — זה מה שהשאיר את הלשונית ריקה
+check("הלשונית נפתחת בלי noopener (אחרת אין ידית אליה)", opens[0]?.features, undefined);
+check("ה-opener מנותק ידנית במקום הדגל", reservedWin?.opener, null);
+check(
+  "בזמן ההמתנה מוצג טקסט ולא מסך לבן",
+  reservedWin?.document.body.textContent,
+  "פותחים וואטסאפ…",
+);
+const navigated = pending.go("שלום", "052-5551200");
+check("אחרי שמירת הליד הלשונית מנווטת לוואטסאפ", navigated, true);
+check(
+  "היעד הוא WhatsApp Web עם מספר הסוכן",
+  reservedWin?.location.href.startsWith("https://web.whatsapp.com/send?phone=972525551200"),
+  true,
+);
+check("לא נפתחה לשונית שנייה", opens.length, 1);
+reservedWin = null;
+const blocked = wa.reserveWhatsAppWindow("פותחים וואטסאפ…");
+check("חלון חסום — go מחזיר false והממשק מציג קישור גיבוי", blocked.go("שלום"), false);
+reservedWin = makeWin();
+const cancelled = wa.reserveWhatsAppWindow();
+cancelled.cancel();
+check("ביטול סוגר את הלשונית הריקה", reservedWin.closed, true);
+check("openWhatsApp מדווח שנפתח רק כשיש חלון", wa.openWhatsApp("שלום").opened, true);
+
+console.log("\n--- מודעות מהשוק: רק מודעות של משרדי תיווך ---");
+const komo = await import("../src/lib/komo.server");
+const yad2 = await import("../src/lib/yad2.server");
+const { isAgencyListing } = await import("../src/lib/market");
+check(
+  "קומו: 'תיווך' בכרטיס → מתיווך",
+  komo.classifyKomoAdvertiser('<div class="tag">תיווך</div>').advertiserType,
+  "agency",
+);
+check(
+  "קומו: שם המשרד נשלף",
+  komo.classifyKomoAdvertiser("<span>מתיווך רימקס נתניה</span><a>פרטים נוספים</a>"),
+  { advertiserType: "agency", agencyName: "רימקס נתניה" },
+);
+check(
+  "קומו: 'ללא תיווך' → פרטי (גובר על המילה תיווך)",
+  komo.classifyKomoAdvertiser("<span>ללא תיווך</span>").advertiserType,
+  "private",
+);
+check(
+  "קומו: 'ללא מתווך' / 'ללא דמי תיווך' → פרטי",
+  [
+    komo.classifyKomoAdvertiser("<span>ללא מתווך</span>").advertiserType,
+    komo.classifyKomoAdvertiser("<p>דירה מקסימה, ללא דמי תיווך</p>").advertiserType,
+  ],
+  ["private", "private"],
+);
+check(
+  "קומו: 'פרטי' כמילה → פרטי",
+  komo.classifyKomoAdvertiser("<span>פרטי</span>").advertiserType,
+  "private",
+);
+check(
+  "קומו: 'פרטים נוספים' אינו סימן פרטי",
+  komo.classifyKomoAdvertiser("<a>פרטים נוספים</a>").advertiserType,
+  "unknown",
+);
+check(
+  "קומו: 'בית פרטי' הוא סוג נכס ולא מפרסם",
+  komo.classifyKomoAdvertiser("<h2>בית פרטי 5 חדרים</h2>").advertiserType,
+  "unknown",
+);
+check(
+  "קומו: מחלקת HTML private → פרטי",
+  komo.classifyKomoAdvertiser('<div class="card private">דירה</div>').advertiserType,
+  "private",
+);
+check(
+  "קומו: בלי שום סימן → לא ידוע (לא מוצג ללקוחות)",
+  komo.classifyKomoAdvertiser('<div class="price">2,700,000 ₪</div>').advertiserType,
+  "unknown",
+);
+const komoCard = (id: string, title: string, extra: string) =>
+  `<div class="card"><a href="/code/nadlan/details/?modaaNum=${id}" class="x"><h2 class="title">${title}</h2></a>` +
+  `<div class="price">2,700,000 ₪</div><div class="description">דירה 4.0 חדרים (107 מ"ר) <br> קומה:1 מתוך 6</div>` +
+  `<div class="agent">${extra}</div></div>\n`;
+const komoPage =
+  komoCard("1001", "נתניה, קריית צאנז, הרצוג 1", "מתיווך אנגלו סכסון") +
+  komoCard("1002", "נתניה, מרכז העיר, הרצל 5", "פרטי") +
+  komoCard("1003", "נתניה, עיר ימים, ניצה 10", "");
+const komoCards = komo.parseKomoCards(komoPage);
+check(
+  "קומו: כל כרטיס מסווג לפי הסימן שלו בלבד (לא של השכן)",
+  komoCards.map((c) => [c.id, c.advertiserType, c.agencyName]),
+  [
+    ["1001", "agency", "אנגלו סכסון"],
+    ["1002", "private", null],
+    ["1003", "unknown", null],
+  ],
+);
+const templatePage = Array.from({ length: 6 }, (_, i) =>
+  komoCard(String(2000 + i), "נתניה, רחוב", "תיווך"),
+).join("");
+check(
+  "קומו: 'תיווך' בכל הכרטיסים בלי שם משרד = תבנית, לא ראיה → לא ידוע",
+  komo.parseKomoCards(templatePage).every((c) => c.advertiserType === "unknown"),
+  true,
+);
+check("יד2: שם משרד → מתיווך", yad2.advertiserOf({ customer: { agencyName: "רימקס" } }), {
+  advertiser_type: "agency",
+  agency_name: "רימקס",
+});
+check(
+  "יד2: דלי private → פרטי",
+  yad2.advertiserOf({ feedBucket: "private" }).advertiser_type,
+  "private",
+);
+check(
+  "יד2: adType agency בלי שם → מתיווך",
+  yad2.advertiserOf({ adType: "agency" }).advertiser_type,
+  "agency",
+);
+check(
+  "יד2: פלטינום בלי שם משרד → לא ידוע (מסלול קידום אינו הוכחה)",
+  yad2.advertiserOf({ adType: "platinum" }).advertiser_type,
+  "unknown",
+);
+check("יד2: בלי שום סימן → לא ידוע", yad2.advertiserOf({}).advertiser_type, "unknown");
+check(
+  "ללקוח מוצגת רק מודעת תיווך",
+  [
+    isAgencyListing({ advertiser_type: "agency" }),
+    isAgencyListing({ advertiser_type: "private" }),
+    isAgencyListing({ advertiser_type: "unknown" }),
+    isAgencyListing({}),
+  ],
+  [true, false, false, false],
+);
+
 console.log(failures === 0 ? "\n✓ כל הבדיקות עברו" : `\n✗ ${failures} בדיקות נכשלו`);
 if (failures) process.exit(1);

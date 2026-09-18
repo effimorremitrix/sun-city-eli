@@ -103,6 +103,8 @@ export type Yad2Item = {
   metaData?: { coverImage?: string; images?: string[]; squareMeterBuild?: number };
   customer?: { agencyName?: string };
   tags?: Array<{ name?: string; id?: number }>;
+  /** הדלי בפיד שממנו הגיעה המודעה (private/agency/platinum/…) — נוסף אצלנו */
+  feedBucket?: string;
 };
 
 type FeedResponse = {
@@ -286,7 +288,10 @@ function collectPageItems(data: FeedResponse["data"]): Yad2Item[] {
     if (key === "pagination" || !Array.isArray(value)) continue;
     for (const item of value as Yad2Item[]) {
       // כרטיסי פרסום מגיעים באותם דליים בלי token/כתובת — הם אינם מודעות
-      if (item?.token && item.address && item.additionalDetails?.roomsCount) out.push(item);
+      if (item?.token && item.address && item.additionalDetails?.roomsCount) {
+        // שם הדלי הוא ראיה לסוג המפרסם כשלמודעה עצמה אין adType
+        out.push({ ...item, feedBucket: key });
+      }
     }
   }
   return out;
@@ -354,8 +359,14 @@ function buildSummary(item: Yad2Item): string | null {
   if (typeof floor === "number") parts.push(`קומה ${floor}`);
   const built = item.metaData?.squareMeterBuild;
   if (typeof built === "number" && built > 0) parts.push(`${built} מ"ר בנוי`);
-  const agency = item.customer?.agencyName;
-  parts.push(agency ? `מתיווך ${agency}` : "מודעה פרטית");
+  // אותו סיווג כמו advertiser_type — עד כה כל מודעה בלי שם משרד נכתבה
+  // "מודעה פרטית", גם כשסווגה כתיווך לפי הדלי, והתקציר סתר את הסיווג
+  const who = advertiserOf(item);
+  if (who.advertiser_type === "agency") {
+    parts.push(who.agency_name ? `מתיווך ${who.agency_name}` : "תיווך");
+  } else if (who.advertiser_type === "private") {
+    parts.push("מודעה פרטית");
+  }
   const images = item.metaData?.images?.length ?? 0;
   if (images > 0) parts.push(`${images} תמונות`);
   return parts.length ? parts.join(" · ") : null;
@@ -417,20 +428,23 @@ export function yad2ItemToCandidate(item: Yad2Item, dealType: "forsale" | "rent"
 }
 
 /**
- * סוג המפרסם ביד2. הפיד מציין שם משרד תיווך (customer.agencyName) למודעות
- * של מתווכים, ו-adType מסמן את הדלי שהמודעה הגיעה ממנו (private/agency/
- * platinum/trio — שלושת האחרונים הם מסלולי פרסום של משרדי תיווך).
- * בלי אף אחד מהשניים אין הכרעה, ולכן 'unknown' — והסוכן החכם לא יציג אותה.
+ * סוג המפרסם ביד2 — רק לפי ראיה חיובית:
+ *   • שם משרד תיווך (customer.agencyName) → תיווך.
+ *   • adType של המודעה, או שם הדלי בפיד כשאין adType: 'private' → פרטי,
+ *     'agency'/'broker'/'office' → תיווך.
+ *   • 'platinum'/'trio' הם מסלולי קידום ולא הוכחה למי שפרסם: מודעת תיווך
+ *     במסלול כזה מגיעה עם שם המשרד, ובלעדיו נשארים ב-'unknown'.
+ * מודעה שלא הוכרעה אינה מוצגת ללקוחות — עדיף לפספס מאשר להציג מודעה פרטית.
  */
-function advertiserOf(item: Yad2Item): {
+export function advertiserOf(item: Yad2Item): {
   advertiser_type: ScoutCandidate["advertiser_type"];
   agency_name: string | null;
 } {
   const agency = s(item.customer?.agencyName, 120);
   if (agency) return { advertiser_type: "agency", agency_name: agency };
-  const adType = (item.adType ?? "").toLowerCase();
+  const adType = (item.adType ?? item.feedBucket ?? "").toLowerCase();
   if (adType === "private") return { advertiser_type: "private", agency_name: null };
-  if (["agency", "platinum", "trio", "broker", "office"].includes(adType)) {
+  if (["agency", "broker", "office"].includes(adType)) {
     return { advertiser_type: "agency", agency_name: null };
   }
   return { advertiser_type: "unknown", agency_name: null };

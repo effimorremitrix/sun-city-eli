@@ -128,6 +128,10 @@ export function WebCandidates({
                   <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-secondary-foreground">
                     {c.source_site}
                   </span>
+                  {/* רק מודעות של משרדי תיווך מגיעות לכאן — שם המשרד כשידוע */}
+                  <p className="mt-1 whitespace-nowrap text-[11px] font-bold text-primary">
+                    {c.agency_name ? t.portal.brokerNamed(c.agency_name) : t.portal.brokerTag}
+                  </p>
                 </td>
                 <td className="px-3 py-2.5">
                   <p className="font-bold text-primary">{titleOf(c)}</p>

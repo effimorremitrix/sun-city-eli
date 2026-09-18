@@ -106,7 +106,11 @@ export async function refreshScanTasks(): Promise<{ tasks: number }> {
   return { tasks: rows.length };
 }
 
-function candidateToRow(c: ScoutCandidate, deal: "מכירה" | "השכרה", now: string) {
+/**
+ * שורת market_listings ממועמד סריקה — משותפת לסריקה הלילית ולשמירה מהחיפוש
+ * החכם, כדי ששני המסלולים יכתבו אותם שדות (source קנוני, סיווג מפרסם).
+ */
+export function candidateToRow(c: ScoutCandidate, deal: "מכירה" | "השכרה", now: string) {
   const source =
     SOURCE_KEYS[c.source_site] ?? c.source_site.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
   return {

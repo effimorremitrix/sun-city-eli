@@ -67,22 +67,66 @@ export type PendingWaWindow = {
 };
 
 /**
- * נפתחת מיד בתוך מטפל ההקלקה, לפני כל await. מחזירה אובייקט שמנווט
- * את אותה לשונית כשהעבודה בשרת הסתיימה.
+ * פתיחת חלון חדש שמחזירה ידית אליו.
+ *
+ * הלקח מהשטח: window.open עם "noopener" (או "noreferrer", שגורר noopener)
+ * מחזיר לפי התקן תמיד null — גם כשהלשונית נפתחה. כך "רוצה שסוכן יחזור
+ * אליי" פתח לשונית ריקה שלא הייתה לנו ידית אליה, הניווט אחרי ה-await
+ * מעולם לא הגיע אליה, והלקוח נשאר מול מסך לבן. לכן פותחים *בלי* הדגלים
+ * ומנתקים את ה-opener ידנית מיד אחרי הפתיחה: האתר שייטען בלשונית אינו
+ * מקבל גישה לחלון שלנו, ואנחנו כן שומרים על הידית ללשונית.
  */
-export function reserveWhatsAppWindow(): PendingWaWindow {
+function openDetached(url: string): Window | null {
+  const win = window.open(url, "_blank");
+  if (win) {
+    try {
+      win.opener = null;
+    } catch {
+      /* דפדפן ישן — הלשונית עדיין נפתחה */
+    }
+  }
+  return win;
+}
+
+/**
+ * תוכן זמני ללשונית שעדיין מחכה לשמירת הליד — כדי שלא יוצג מסך לבן
+ * גם בשנייה שבין ההקלקה לניווט. about:blank שפתחנו הוא באותו מקור, ולכן
+ * מותר לכתוב אליו.
+ */
+function writePlaceholder(win: Window, text: string): void {
+  try {
+    const doc = win.document;
+    doc.title = text;
+    doc.body.dir = "auto";
+    doc.body.style.cssText =
+      "margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;" +
+      "font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-size:18px;color:#1f2a44;background:#fff";
+    doc.body.textContent = text;
+  } catch {
+    /* לא קריטי — הלשונית תנווט בכל מקרה */
+  }
+}
+
+/**
+ * נפתחת מיד בתוך מטפל ההקלקה, לפני כל await. מחזירה אובייקט שמנווט
+ * את אותה לשונית כשהעבודה בשרת הסתיימה. placeholder הוא הטקסט שמוצג
+ * בלשונית בזמן ההמתנה ("פותחים וואטסאפ…").
+ */
+export function reserveWhatsAppWindow(placeholder?: string): PendingWaWindow {
   let win: Window | null = null;
   try {
-    win = window.open("", "_blank", "noopener,noreferrer");
+    win = openDetached("");
   } catch {
     win = null;
   }
+  if (win && placeholder) writePlaceholder(win, placeholder);
   return {
     go: (msg, phone) => {
       const url = whatsappUrl(msg, phone);
       if (win && !win.closed) {
         try {
-          win.location.href = url;
+          // replace ולא href — כדי ש"אחורה" בלשונית לא יחזיר לעמוד הריק
+          win.location.replace(url);
           win.focus();
           return true;
         } catch {
@@ -91,8 +135,7 @@ export function reserveWhatsAppWindow(): PendingWaWindow {
       }
       // הלשונית נחסמה או נסגרה — ניסיון אחרון בפתיחה רגילה
       try {
-        const opened = window.open(url, "_blank", "noopener,noreferrer");
-        return Boolean(opened);
+        return Boolean(openDetached(url));
       } catch {
         return false;
       }
@@ -110,12 +153,13 @@ export function reserveWhatsAppWindow(): PendingWaWindow {
 /**
  * פתיחה ישירה (בלי await לפניה) — למשל קישורי וואטסאפ סטטיים בדף.
  * מחזירה את הכתובת כדי שהקורא יוכל להציג קישור גיבוי אם נחסם.
+ * opened אמין רק כי הפתיחה נעשית בלי noopener (ראו openDetached): עם הדגל
+ * הערך היה תמיד false, ו-waProps ניווט גם את הלשונית הנוכחית לוואטסאפ.
  */
 export function openWhatsApp(msg: string, phone?: string): { url: string; opened: boolean } {
   const url = whatsappUrl(msg, phone);
   try {
-    const win = window.open(url, "_blank", "noopener,noreferrer");
-    return { url, opened: Boolean(win) };
+    return { url, opened: Boolean(openDetached(url)) };
   } catch {
     return { url, opened: false };
   }

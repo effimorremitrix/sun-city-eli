@@ -64,6 +64,14 @@ export type KomoCard = {
   sizeSqm: number | null;
   floor: number | null;
   totalFloors: number | null;
+  /** מי פרסם — לפי סימני "תיווך"/"פרטי" בכרטיס; בלי סימן: לא ידוע (ולא מוצג) */
+  advertiserType: KomoAdvertiser["advertiserType"];
+  agencyName: string | null;
+};
+
+export type KomoAdvertiser = {
+  advertiserType: "agency" | "private" | "unknown";
+  agencyName: string | null;
 };
 
 export type KomoFetchResult = {
@@ -151,11 +159,98 @@ export function parseKomoTotal(html: string): number {
 const CARD_RE =
   /<a href="\/code\/nadlan\/details\/\?modaaNum=(\d+)"[\s\S]{0,400}?<h2 class="title">([\s\S]*?)<\/h2>[\s\S]{0,400}?<div class="price">([\s\S]*?)<\/div>[\s\S]{0,400}?<div class="description">([\s\S]*?)(?:<div|<span|<\/div>)/g;
 
+const HEB = "א-ת";
+
+/**
+ * סימני "מודעה פרטית" בטקסט הכרטיס. "ללא תיווך" נבדק לפני סימני התיווך
+ * (הוא מכיל את המילה "תיווך"), ו"פרטי" נספר רק כמילה עצמאית — לא "פרטים
+ * נוספים" ולא "בית פרטי" (סוג נכס).
+ */
+const PRIVATE_TEXT_RE = new RegExp(
+  `ללא תיווך|בלי תיווך|ללא מתווך|בלי מתווך|ללא דמי תיווך|בלי דמי תיווך|מודעה פרטית|מפרסם פרטי|מוכר פרטי|משכיר פרטי|בעל הנכס|מבעלים|מהבעלים|(?<!בית\\s)(?<![${HEB}])פרטי(?![${HEB}])`,
+);
+const AGENCY_TEXT_RE = /תיווך|מתווך|מתווכת|סוכנות נדל|יועץ נדל|יועצת נדל/;
+/** שם המשרד כשהוא כתוב ליד המילה תיווך: "מתיווך רימקס", "תיווך: אנגלו סכסון" */
+const AGENCY_NAME_RE = new RegExp(
+  `(?:מתיווך|משרד תיווך|תיווך)\\s*[:\\-–]?\\s*([${HEB}A-Za-z0-9][^·|,<>\\n]{1,58})`,
+);
+/* סימנים ב-HTML עצמו (שמות מחלקות/פרמטרים). קומו כותב את הקוד בתעתיק
+   עברי (nehes, modaaNum, yesMamad), ולכן גם prati/tivuch נבדקים. */
+const PRIVATE_HTML_RE = /\b(?:private|prati)\b/i;
+const AGENCY_HTML_RE = /\b(?:agency|broker|realtor|tivuch|tiwuch|metavech)\b/i;
+
+/** מילים שאינן שם משרד גם כשהן מופיעות אחרי "תיווך" */
+const NOT_A_NAME_RE = /^(?:בלבד|ללא|בלי|פרטי|פרטים|נוספים|לפרטים|צור קשר|לחץ|לחצו)/;
+
+/**
+ * סיווג המפרסם מתוך קטע ה-HTML של כרטיס אחד.
+ *
+ * הכלל: מודעה נחשבת "מתיווך" רק עם ראיה חיובית (המילה תיווך/מתווך או שם
+ * משרד), "פרטית" עם סימן פרטי, ואחרת "לא ידוע" — ומודעה לא ידועה אינה
+ * מוצגת ללקוחות. עד כה כל מודעה מקומו סומנה כמתיווך בלי בדיקה, אבל קומו
+ * מפרסם גם מודעות של מוכרים פרטיים, והמשרד אינו רשאי להציג אותן.
+ * סימן "פרטי" גובר על סימן "תיווך" — טעות לכיוון ההסתרה עדיפה.
+ */
+export function classifyKomoAdvertiser(cardHtml: string): KomoAdvertiser {
+  // גבולות אלמנטים הופכים למפרידים, כדי ששם המשרד לא "יזלוג" לאלמנט הבא
+  const text = decodeEntities(cardHtml.replace(/<[^>]*>/g, " · "));
+  if (PRIVATE_TEXT_RE.test(text) || PRIVATE_HTML_RE.test(cardHtml)) {
+    return { advertiserType: "private", agencyName: null };
+  }
+  if (AGENCY_TEXT_RE.test(text) || AGENCY_HTML_RE.test(cardHtml)) {
+    const raw =
+      AGENCY_NAME_RE.exec(text)?.[1]
+        ?.trim()
+        .replace(/[\s:.\-–]+$/, "") ?? "";
+    const agencyName = raw.length >= 2 && !NOT_A_NAME_RE.test(raw) ? raw.slice(0, 60) : null;
+    return { advertiserType: "agency", agencyName };
+  }
+  return { advertiserType: "unknown", agencyName: null };
+}
+
+const OPEN_TAG_RE = /<(?:div|li|article|section)\b/g;
+const CLOSE_TAG_RE = /<\/(?:div|li|article|section)>/;
+
+/**
+ * גבולות ה-HTML של כרטיס אחד: מהאזכור הראשון של המודעה (קישור התמונה)
+ * ועד תחילת הכרטיס הבא. תגית העטיפה של הכרטיס הבא, שנפתחת ממש לפני
+ * הקישור אליו, נחתכת החוצה כדי ששמות המחלקות שלה לא ייוחסו לכרטיס הזה.
+ */
+function cardSlice(
+  html: string,
+  match: RegExpMatchArray,
+  prevMatch: RegExpMatchArray | undefined,
+  nextId: string | undefined,
+): string {
+  const id = match[1] ?? "";
+  const at = match.index ?? 0;
+  const prevEnd = prevMatch ? (prevMatch.index ?? 0) + prevMatch[0].length : 0;
+  let start = html.indexOf(`modaaNum=${id}"`, prevEnd);
+  if (start < 0 || start > at) start = at;
+
+  let end = nextId ? html.indexOf(`modaaNum=${nextId}"`, at + match[0].length) : -1;
+  if (end < 0) end = Math.min(html.length, at + match[0].length + 4000);
+  else {
+    const anchor = html.lastIndexOf("<a", end);
+    if (anchor > start) {
+      end = anchor;
+      const head = html.slice(Math.max(start, anchor - 300), anchor);
+      let lastOpen = -1;
+      for (const m of head.matchAll(OPEN_TAG_RE)) lastOpen = m.index ?? -1;
+      if (lastOpen >= 0 && !CLOSE_TAG_RE.test(head.slice(lastOpen))) {
+        end = Math.max(start, anchor - 300) + lastOpen;
+      }
+    }
+  }
+  return html.slice(start, end);
+}
+
 export function parseKomoCards(html: string): KomoCard[] {
   const cards: KomoCard[] = [];
   const seen = new Set<string>();
+  const matches = [...html.matchAll(CARD_RE)];
 
-  for (const match of html.matchAll(CARD_RE)) {
+  for (const [i, match] of matches.entries()) {
     const id = match[1] ?? "";
     if (!id || seen.has(id)) continue;
     seen.add(id);
@@ -163,6 +258,9 @@ export function parseKomoCards(html: string): KomoCard[] {
     const title = decodeEntities(match[2] ?? "");
     const price = decodeEntities(match[3] ?? "");
     const description = decodeEntities(match[4] ?? "");
+    const advertiser = classifyKomoAdvertiser(
+      cardSlice(html, match, matches[i - 1], matches[i + 1]?.[1]),
+    );
 
     // "נתניה, מרכז העיר, שמואל הנציב" → עיר, שכונה, רחוב. יש מודעות בלי
     // שכונה ("נתניה, קרל פופר 11"); שם המקטע השני הוא רחוב, לא שכונה.
@@ -190,10 +288,26 @@ export function parseKomoCards(html: string): KomoCard[] {
       sizeSqm: digits(description.match(/\(([\d,.]+)\s*מ"ר\)/)?.[1] ?? ""),
       floor: floorText === "קרקע" ? 0 : floorText ? digits(floorText) : null,
       totalFloors: floors ? digits(floors[2] ?? "") : null,
+      advertiserType: advertiser.advertiserType,
+      agencyName: advertiser.agencyName,
     });
   }
 
-  return cards;
+  return guardTemplateMarker(cards);
+}
+
+/**
+ * רשת ביטחון: אם *כל* הכרטיסים בעמוד יצאו "מתיווך" בלי שם משרד ובלי אף
+ * מודעה פרטית, סביר שהמילה "תיווך" יושבת בתבנית של קומו (למשל קישור סינון
+ * שחוזר בכל כרטיס) ולא במודעה עצמה — ואז אין לנו ראיה אמיתית. במקרה כזה
+ * הכרטיסים חוזרים ל"לא ידוע" ואינם מוצגים: טעות לכיוון ההסתרה עדיפה על
+ * הצגת מודעה פרטית כמודעת תיווך.
+ */
+function guardTemplateMarker(cards: KomoCard[]): KomoCard[] {
+  if (cards.length < 5) return cards;
+  const suspicious = cards.every((c) => c.advertiserType === "agency" && c.agencyName == null);
+  if (!suspicious) return cards;
+  return cards.map((c) => ({ ...c, advertiserType: "unknown" as const, agencyName: null }));
 }
 
 /** מודעה שאינה מתאימה לסוג העסקה של העמוד (מודעה ממומנת שדלפה לתוכו) */
@@ -284,6 +398,14 @@ export function komoCardToCandidate(card: KomoCard, query: KomoQuery): ScoutCand
       ? `קומה ${card.floor} מתוך ${card.totalFloors}`
       : null,
     card.sizeSqm != null ? `${card.sizeSqm} מ"ר` : null,
+    // מי פרסם — נכתב לתקציר כדי שהמנהל יראה את הסיווג גם במאגר
+    card.advertiserType === "agency"
+      ? card.agencyName
+        ? `מתיווך ${card.agencyName}`
+        : "תיווך"
+      : card.advertiserType === "private"
+        ? "מודעה פרטית"
+        : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -307,9 +429,9 @@ export function komoCardToCandidate(card: KomoCard, query: KomoQuery): ScoutCand
     raw_summary: s(summary, 600),
     match_score: scoreCard(card),
     match_reason: "מודעה פעילה בקומו שעונה על קריטריוני החיפוש",
-    // קומו הוא לוח של משרדי תיווך: הפרסום בו נעשה דרך משרד, ולכן כל
-    // מודעה שנסרקת ממנו היא מודעת תיווך.
-    advertiser_type: "agency" as const,
-    agency_name: null,
+    // קומו מפרסם גם מודעות פרטיות, ולכן הסיווג נקרא מהכרטיס (ראו
+    // classifyKomoAdvertiser) ואינו "תיווך" גורף כפי שהיה.
+    advertiser_type: card.advertiserType,
+    agency_name: card.agencyName,
   };
 }
