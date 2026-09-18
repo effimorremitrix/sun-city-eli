@@ -595,11 +595,7 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
-          interest_count: number
           landing_path: string | null
-          last_signal_at: string | null
-          last_signal_label: string | null
-          last_signal_title: string | null
           listing_id: string | null
           lost_reason: string | null
           marketing_consent: boolean
@@ -653,11 +649,7 @@ export type Database = {
           email?: string | null
           full_name: string
           id?: string
-          interest_count?: number
           landing_path?: string | null
-          last_signal_at?: string | null
-          last_signal_label?: string | null
-          last_signal_title?: string | null
           listing_id?: string | null
           lost_reason?: string | null
           marketing_consent?: boolean
@@ -711,11 +703,7 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
-          interest_count?: number
           landing_path?: string | null
-          last_signal_at?: string | null
-          last_signal_label?: string | null
-          last_signal_title?: string | null
           listing_id?: string | null
           lost_reason?: string | null
           marketing_consent?: boolean
@@ -2030,10 +2018,6 @@ export type Database = {
         Returns: Json
       }
       assignable_site_users: { Args: { p_site_id: string }; Returns: Json }
-      bump_lead_signal: {
-        Args: { p_label: string; p_lead_id: string; p_title: string }
-        Returns: undefined
-      }
       can_view_contact: { Args: { _contact_id: string }; Returns: boolean }
       consume_rate_limit: {
         Args: {
